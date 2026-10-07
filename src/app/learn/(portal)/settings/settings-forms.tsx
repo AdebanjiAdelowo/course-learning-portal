@@ -1,11 +1,9 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
-
 import { updatePassword } from "@/app/learn/actions/auth";
 import { updateProfile } from "@/app/learn/actions/profile";
-import { FormMessage, SelectField, SubmitButton, TextArea, TextField } from "@/components/ui/form";
-import { idleState, PASSWORD_MIN_LENGTH } from "@/lib/validation";
+import { FormMessage, SelectField, SubmitButton, TextArea, TextField, useServerForm } from "@/components/ui/form";
+import { PASSWORD_MIN_LENGTH } from "@/lib/validation";
 
 export function ProfileForm({
   fullName,
@@ -18,10 +16,10 @@ export function ProfileForm({
   bio: string;
   zones: string[];
 }) {
-  const [state, action] = useActionState(updateProfile, idleState);
+  const { state, pending, formProps } = useServerForm(updateProfile);
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form {...formProps} className="space-y-5">
       <TextField
         label="Full name"
         name="full_name"
@@ -54,21 +52,16 @@ export function ProfileForm({
         errors={state.fieldErrors?.bio}
       />
       <FormMessage state={state} />
-      <SubmitButton pendingLabel="Saving…">Save profile</SubmitButton>
+      <SubmitButton pending={pending} pendingLabel="Saving…">Save profile</SubmitButton>
     </form>
   );
 }
 
 export function PasswordForm() {
-  const [state, action] = useActionState(updatePassword, idleState);
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (state.status === "success") formRef.current?.reset();
-  }, [state]);
+  const { state, pending, formProps } = useServerForm(updatePassword, { resetOnSuccess: true });
 
   return (
-    <form ref={formRef} action={action} className="space-y-5" noValidate>
+    <form {...formProps} className="space-y-5">
       <TextField
         label="New password"
         name="password"
@@ -88,7 +81,7 @@ export function PasswordForm() {
         errors={state.fieldErrors?.confirm}
       />
       <FormMessage state={state} />
-      <SubmitButton pendingLabel="Saving…">Change password</SubmitButton>
+      <SubmitButton pending={pending} pendingLabel="Saving…">Change password</SubmitButton>
     </form>
   );
 }

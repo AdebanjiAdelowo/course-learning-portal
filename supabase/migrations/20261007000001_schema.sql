@@ -279,7 +279,9 @@ create table public.submissions (
 create index submissions_user_id_idx on public.submissions (user_id);
 create index submissions_status_idx on public.submissions (status);
 
--- Timestamps follow the status so that clients can never set them directly.
+-- Timestamps follow the status. Students cannot write these columns at all (see the column
+-- grants in the next migration); the service role may supply explicit values, for example when
+-- importing historical work, and they are kept.
 create function public.submissions_track_status() returns trigger
 language plpgsql
 set search_path = ''
@@ -287,24 +289,31 @@ as $$
 begin
   new.updated_at := now();
   if tg_op = 'INSERT' then
-    new.submitted_at := case when new.status = 'in_progress' then null else now() end;
-    new.reviewed_at := case when new.status = 'reviewed' then now() else null end;
-    return new;
-  end if;
-  if new.status is distinct from old.status then
-    if new.status = 'submitted' then
-      new.submitted_at := now();
-      new.reviewed_at := null;
-    elsif new.status = 'reviewed' then
-      new.submitted_at := coalesce(old.submitted_at, now());
-      new.reviewed_at := now();
-    else
+    if new.status = 'in_progress' then
       new.submitted_at := null;
       new.reviewed_at := null;
+    else
+      new.submitted_at := coalesce(new.submitted_at, now());
+      new.reviewed_at := case when new.status = 'reviewed' then coalesce(new.reviewed_at, now()) else null end;
     end if;
-  else
-    new.submitted_at := old.submitted_at;
-    new.reviewed_at := old.reviewed_at;
+    return new;
+  end if;
+
+  if new.status is distinct from old.status then
+    if new.status = 'in_progress' then
+      new.submitted_at := null;
+      new.reviewed_at := null;
+    elsif new.status = 'submitted' then
+      if new.submitted_at is not distinct from old.submitted_at then
+        new.submitted_at := now();
+      end if;
+      new.reviewed_at := null;
+    else
+      new.submitted_at := coalesce(new.submitted_at, now());
+      if new.reviewed_at is not distinct from old.reviewed_at then
+        new.reviewed_at := now();
+      end if;
+    end if;
   end if;
   return new;
 end;

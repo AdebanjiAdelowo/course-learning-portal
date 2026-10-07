@@ -1,14 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
-
 import { updatePassword } from "@/app/learn/actions/auth";
 import { ButtonLink } from "@/components/ui/button";
-import { FormMessage, SubmitButton, TextField } from "@/components/ui/form";
-import { idleState, PASSWORD_MIN_LENGTH } from "@/lib/validation";
+import { FormMessage, SubmitButton, TextField, useServerForm } from "@/components/ui/form";
+import { PASSWORD_MIN_LENGTH } from "@/lib/validation";
 
 export function UpdatePasswordForm() {
-  const [state, action] = useActionState(updatePassword, idleState);
+  const { state, pending, formProps } = useServerForm(updatePassword);
 
   if (state.status === "success") {
     return (
@@ -22,7 +20,7 @@ export function UpdatePasswordForm() {
   }
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form {...formProps} className="space-y-5">
       <TextField
         label="New password"
         name="password"
@@ -42,7 +40,7 @@ export function UpdatePasswordForm() {
         errors={state.fieldErrors?.confirm}
       />
       <FormMessage state={state} />
-      <SubmitButton size="lg" className="w-full" pendingLabel="Saving…">
+      <SubmitButton pending={pending} size="lg" className="w-full" pendingLabel="Saving…">
         Save new password
       </SubmitButton>
     </form>

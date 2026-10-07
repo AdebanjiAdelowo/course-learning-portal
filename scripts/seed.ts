@@ -518,13 +518,14 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
         project_id: project("verified-heat-solver"),
         user_id: people.student,
         status: "submitted",
+        submitted_at: daysFromNow(-12),
         work_url: "https://github.com/example/heat-equation-solver",
         notes: "Convergence table is in the README. I was unsure whether to measure the error at t = 0.1 or after a fixed number of steps.",
       })
       .select("id")
       .single(),
   );
-  check("mark reviewed", await db.from("submissions").update({ status: "reviewed" }).eq("id", reviewed.id));
+  check("mark reviewed", await db.from("submissions").update({ status: "reviewed", reviewed_at: daysFromNow(-4) }).eq("id", reviewed.id));
 
   check(
     "insert draft submission",
@@ -609,6 +610,7 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
       project_id: project("verified-heat-solver"),
       user_id: people.second,
       status: "submitted",
+      submitted_at: daysFromNow(-6),
       work_url: "https://github.com/example/ftcs-heat",
       notes: "Submitted late, sorry. The order I measure is 1.6 and I could not find out why.",
     }),

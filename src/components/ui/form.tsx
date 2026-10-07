@@ -1,13 +1,45 @@
 "use client";
 
 import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, type ComponentProps, type FormEvent, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
 import { cn } from "@/lib/cn";
-import type { FormState } from "@/lib/validation";
+import { idleState, type FormState } from "@/lib/validation";
 
 import { buttonClass } from "./button";
+
+type FormAction = (previous: FormState, formData: FormData) => Promise<FormState>;
+
+/**
+ * Connects a form to a server action that returns a `FormState`.
+ *
+ * With JavaScript the submission is dispatched by hand rather than through the form's `action`,
+ * because React clears uncontrolled fields after a form action runs, and nobody should lose a
+ * long lesson or a feedback draft to a validation error. Without JavaScript the same action
+ * still works as an ordinary form post.
+ */
+export function useServerForm(
+  action: FormAction,
+  options: { initialState?: FormState; resetOnSuccess?: boolean } = {},
+) {
+  const [state, dispatch, pending] = useActionState(action, options.initialState ?? idleState);
+  const ref = useRef<HTMLFormElement>(null);
+  const { resetOnSuccess = false } = options;
+
+  useEffect(() => {
+    if (resetOnSuccess && state.status === "success") ref.current?.reset();
+  }, [state, resetOnSuccess]);
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const data = new FormData(event.currentTarget, submitter);
+    startTransition(() => dispatch(data));
+  }
+
+  return { state, pending, formProps: { ref, action: dispatch, onSubmit, noValidate: true } };
+}
 
 interface FieldShellProps {
   label: string;
@@ -143,16 +175,20 @@ export function Checkbox({
 export function SubmitButton({
   children,
   pendingLabel,
+  pending: formPending,
   variant = "primary",
   size = "md",
   className,
   ...props
 }: Omit<ComponentProps<"button">, "type"> & {
   pendingLabel?: string;
+  /** Pass the value from `useServerForm`; plain server-action forms are detected automatically. */
+  pending?: boolean;
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
 }) {
-  const { pending } = useFormStatus();
+  const status = useFormStatus();
+  const pending = Boolean(formPending) || status.pending;
   return (
     <button
       type="submit"

@@ -101,8 +101,14 @@ alter table public.feedback enable row level security;
 alter table public.contact_messages enable row level security;
 
 -- profiles
+-- Students see their own profile and those of staff (so feedback can show who wrote it),
+-- never each other's.
 create policy profiles_select on public.profiles for select to authenticated
-  using (id = (select auth.uid()) or (select public.is_staff()));
+  using (
+    id = (select auth.uid())
+    or role in ('instructor', 'admin')
+    or (select public.is_staff())
+  );
 create policy profiles_update_own on public.profiles for update to authenticated
   using (id = (select auth.uid())) with check (id = (select auth.uid()));
 

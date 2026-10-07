@@ -18,14 +18,25 @@ export const metadata: Metadata = { title: "Quiz result" };
 
 type Props = { params: Promise<{ slug: string; attemptId: string }> };
 
-function describe(result: StoredResult, value: AnswerValue): string {
-  if (value === null || value === "" || (Array.isArray(value) && value.length === 0)) return "No answer";
-  if (typeof value === "boolean") return value ? "True" : "False";
-  const textOf = (id: string) => result.options.find((option) => option.id === id)?.text ?? id;
-  if (Array.isArray(value)) {
-    return result.type === "short_answer" ? value.join(" / ") : value.map(textOf).join("; ");
-  }
-  return result.type === "short_answer" ? value : textOf(value);
+/** An answer in words. Option texts may contain LaTeX, so they go through the Markdown renderer. */
+function Answer({ result, value }: { result: StoredResult; value: AnswerValue }) {
+  if (value === null || value === "" || (Array.isArray(value) && value.length === 0)) return <>No answer</>;
+  if (typeof value === "boolean") return <>{value ? "True" : "False"}</>;
+  if (result.type === "short_answer") return <>{Array.isArray(value) ? value.join(" / ") : value}</>;
+
+  const ids = Array.isArray(value) ? value : [value];
+  return (
+    <>
+      {ids.map((id, index) => (
+        <span key={id}>
+          {index > 0 ? "; " : null}
+          <Markdown className="inline text-[length:inherit] leading-[inherit] [&_p]:inline">
+            {result.options.find((option) => option.id === id)?.text ?? id}
+          </Markdown>
+        </span>
+      ))}
+    </>
+  );
 }
 
 export default async function AttemptPage({ params }: Props) {
@@ -119,13 +130,13 @@ export default async function AttemptPage({ params }: Props) {
                     <div className="flex flex-wrap gap-x-2">
                       <dt className="text-ink-faint">Your answer:</dt>
                       <dd className={result.correct ? "font-semibold text-accent" : "font-semibold text-danger"}>
-                        {describe(result, result.given)}
+                        <Answer result={result} value={result.given} />
                       </dd>
                     </div>
                     {result.correct ? null : (
                       <div className="flex flex-wrap gap-x-2">
                         <dt className="text-ink-faint">Correct answer:</dt>
-                        <dd className="font-semibold">{describe(result, result.correctAnswer)}</dd>
+                        <dd className="font-semibold"><Answer result={result} value={result.correctAnswer} /></dd>
                       </div>
                     )}
                   </dl>

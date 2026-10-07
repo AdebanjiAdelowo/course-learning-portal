@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 
 import { signIn } from "@/app/learn/actions/auth";
-import { FormMessage, SubmitButton, TextField } from "@/components/ui/form";
-import { idleState } from "@/lib/validation";
+import { FormMessage, SubmitButton, TextField, useServerForm } from "@/components/ui/form";
 
 export function LoginForm({ next }: { next: string }) {
-  const [state, action] = useActionState(signIn, idleState);
+  const { state, pending, formProps } = useServerForm(signIn);
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form {...formProps} className="space-y-5">
       <input type="hidden" name="next" value={next} />
       <TextField
         label="Email address"
@@ -37,7 +35,7 @@ export function LoginForm({ next }: { next: string }) {
         </p>
       </div>
       <FormMessage state={state} />
-      <SubmitButton size="lg" className="w-full" pendingLabel="Signing in…">
+      <SubmitButton pending={pending} size="lg" className="w-full" pendingLabel="Signing in…">
         Sign in
       </SubmitButton>
     </form>

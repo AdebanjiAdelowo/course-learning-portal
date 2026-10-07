@@ -1,10 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-
 import { saveSubmission } from "@/app/learn/actions/projects";
-import { FormMessage, SubmitButton, TextArea, TextField } from "@/components/ui/form";
-import { idleState } from "@/lib/validation";
+import { FormMessage, SubmitButton, TextArea, TextField, useServerForm } from "@/components/ui/form";
 
 export function SubmissionForm({
   projectId,
@@ -17,10 +14,10 @@ export function SubmissionForm({
   notes: string;
   submitted: boolean;
 }) {
-  const [state, action] = useActionState(saveSubmission, idleState);
+  const { state, pending, formProps } = useServerForm(saveSubmission);
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form {...formProps} className="space-y-5">
       <input type="hidden" name="project_id" value={projectId} />
       <TextField
         label="Link to your work"
@@ -42,11 +39,11 @@ export function SubmissionForm({
       />
       <FormMessage state={state} />
       <div className="flex flex-wrap gap-3">
-        <SubmitButton name="intent" value="submit" pendingLabel="Saving…">
+        <SubmitButton pending={pending} name="intent" value="submit" pendingLabel="Saving…">
           {submitted ? "Update submission" : "Submit for review"}
         </SubmitButton>
         {submitted ? null : (
-          <SubmitButton name="intent" value="save" variant="secondary" pendingLabel="Saving…">
+          <SubmitButton pending={pending} name="intent" value="save" variant="secondary" pendingLabel="Saving…">
             Save draft
           </SubmitButton>
         )}

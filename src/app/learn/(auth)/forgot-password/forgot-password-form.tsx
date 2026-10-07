@@ -1,10 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
-
 import { requestPasswordReset } from "@/app/learn/actions/auth";
-import { FormMessage, SubmitButton, TextField } from "@/components/ui/form";
-import { idleState, type FormState } from "@/lib/validation";
+import { FormMessage, SubmitButton, TextField, useServerForm } from "@/components/ui/form";
+import type { FormState } from "@/lib/validation";
 
 const expiredState: FormState = {
   status: "error",
@@ -12,10 +10,10 @@ const expiredState: FormState = {
 };
 
 export function ForgotPasswordForm({ linkExpired }: { linkExpired: boolean }) {
-  const [state, action] = useActionState(requestPasswordReset, linkExpired ? expiredState : idleState);
+  const { state, pending, formProps } = useServerForm(requestPasswordReset, linkExpired ? { initialState: expiredState } : {});
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form {...formProps} className="space-y-5">
       <TextField
         label="Email address"
         name="email"
@@ -25,7 +23,7 @@ export function ForgotPasswordForm({ linkExpired }: { linkExpired: boolean }) {
         errors={state.fieldErrors?.email}
       />
       <FormMessage state={state} />
-      <SubmitButton size="lg" className="w-full" pendingLabel="Sending…">
+      <SubmitButton pending={pending} size="lg" className="w-full" pendingLabel="Sending…">
         Send reset link
       </SubmitButton>
     </form>
