@@ -1,0 +1,398 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Components only ever use the semantic names below (paper, ink, line, accent...),
+ * so re-theming the portal means editing this block and nothing else.
+ */
+:root {
+  --paper: #faf9f6;
+  --surface: #ffffff;
+  --sunken: #f2f0ea;
+  --ink: #1a1d1c;
+  --ink-soft: #454b49;
+  --ink-faint: #666c6a;
+  --line: #e3e0d7;
+  --line-strong: #c8c4b7;
+  --accent: #0d5c52;
+  --accent-strong: #094840;
+  --accent-soft: #e2efec;
+  --on-accent: #ffffff;
+  --clay: #a3441c;
+  --clay-soft: #f8e9e1;
+  --warn: #7d5200;
+  --warn-soft: #f7edd6;
+  --danger: #a12525;
+  --danger-soft: #f9e5e3;
+  --focus: #0d5c52;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #101413;
+  --surface: #171c1b;
+  --sunken: #0b0e0d;
+  --ink: #ecebe6;
+  --ink-soft: #b9bfbc;
+  --ink-faint: #8d9491;
+  --line: #262d2b;
+  --line-strong: #3b4542;
+  --accent: #62c4b2;
+  --accent-strong: #84d6c6;
+  --accent-soft: #15302b;
+  --on-accent: #06201c;
+  --clay: #e88f64;
+  --clay-soft: #33201a;
+  --warn: #e3b655;
+  --warn-soft: #2f2714;
+  --danger: #f18e88;
+  --danger-soft: #371c1b;
+  --focus: #84d6c6;
+  color-scheme: dark;
+}
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-clay: var(--clay);
+  --color-clay-soft: var(--clay-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-display), ui-serif, Georgia, serif;
+  --font-mono: var(--font-code), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    scroll-padding-top: 6rem;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+
+  button,
+  [role="button"],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  dialog {
+    color: inherit;
+  }
+
+  dialog::backdrop {
+    background: rgb(10 14 13 / 0.55);
+  }
+}
+
+@layer components {
+  /* Small uppercase label used above headings and for metadata. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.875rem;
+  }
+
+  .field {
+    width: 100%;
+    border: 1px solid var(--line-strong);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    padding: 0.625rem 0.875rem;
+    color: var(--ink);
+    font-size: 1rem;
+    transition: border-color 120ms ease;
+  }
+
+  .field::placeholder {
+    color: var(--ink-faint);
+  }
+
+  .field:hover {
+    border-color: var(--ink-faint);
+  }
+
+  .field[aria-invalid="true"] {
+    border-color: var(--danger);
+  }
+
+  /* Long-form reading: lesson bodies, project briefs, feedback, announcements. */
+  .prose {
+    color: var(--ink);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    overflow-wrap: break-word;
+  }
+
+  .prose > * + * {
+    margin-top: 1.15em;
+  }
+
+  .prose h2 {
+    font-size: 1.6rem;
+    line-height: 1.25;
+    font-weight: 600;
+    margin-top: 2.4em;
+    padding-top: 0.2em;
+  }
+
+  .prose h3 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+    font-weight: 600;
+    margin-top: 1.9em;
+  }
+
+  .prose h4 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    margin-top: 1.6em;
+  }
+
+  .prose > :first-child {
+    margin-top: 0;
+  }
+
+  .prose a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  .prose a:hover {
+    color: var(--accent-strong);
+    text-decoration-thickness: 2px;
+  }
+
+  .prose strong {
+    font-weight: 600;
+  }
+
+  .prose ul,
+  .prose ol {
+    padding-left: 1.4em;
+  }
+
+  .prose ul {
+    list-style: disc;
+  }
+
+  .prose ol {
+    list-style: decimal;
+  }
+
+  .prose li + li {
+    margin-top: 0.35em;
+  }
+
+  .prose li::marker {
+    color: var(--ink-faint);
+  }
+
+  .prose blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 0.5rem 0.5rem 0;
+    padding: 0.85em 1.1em;
+    color: var(--ink);
+  }
+
+  .prose blockquote > * + * {
+    margin-top: 0.6em;
+  }
+
+  .prose hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 2.5em 0;
+  }
+
+  .prose :not(pre) > code {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    background: var(--sunken);
+    border: 1px solid var(--line);
+    border-radius: 0.3rem;
+    padding: 0.1em 0.35em;
+  }
+
+  .prose pre {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.65;
+    background: var(--sunken);
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    tab-size: 4;
+  }
+
+  .prose figure img,
+  .prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    border: 1px solid var(--line);
+    background: #ffffff;
+  }
+
+  .prose figcaption {
+    margin-top: 0.6em;
+    font-size: 0.9rem;
+    color: var(--ink-faint);
+    text-align: center;
+  }
+
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+
+  .prose th,
+  .prose td {
+    border-bottom: 1px solid var(--line);
+    padding: 0.55em 0.8em;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .prose thead th {
+    border-bottom: 1px solid var(--line-strong);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .prose .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.35em 0;
+  }
+
+  .prose .katex {
+    font-size: 1.08em;
+  }
+
+  .prose input[type="checkbox"] {
+    margin-right: 0.45em;
+    accent-color: var(--accent);
+  }
+
+  .prose .contains-task-list {
+    list-style: none;
+    padding-left: 0.2em;
+  }
+
+  /* Syntax highlighting (highlight.js class names), themed through the tokens above. */
+  .hljs-comment,
+  .hljs-quote {
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-literal,
+  .hljs-meta {
+    color: var(--clay);
+  }
+
+  .hljs-string,
+  .hljs-regexp,
+  .hljs-addition {
+    color: var(--accent);
+  }
+
+  .hljs-number,
+  .hljs-symbol,
+  .hljs-bullet {
+    color: var(--warn);
+  }
+
+  .hljs-title,
+  .hljs-section,
+  .hljs-built_in,
+  .hljs-type {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .hljs-deletion {
+    color: var(--danger);
+  }
+
+  .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .hljs-strong {
+    font-weight: 700;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
