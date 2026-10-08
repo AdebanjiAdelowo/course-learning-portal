@@ -18,10 +18,17 @@ function isProtected(pathname: string): boolean {
 
 /** Only same-site paths are accepted as a post-login destination. */
 export function safeNextPath(value: string | null | undefined, fallback = "/learn"): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+  if (!value || !value.startsWith("/") || /[\\\x00-\x20\x7f]/.test(value)) return fallback;
+  try {
+    const base = "https://portal.invalid";
+    const destination = new URL(value, base);
+    if (destination.origin !== base || destination.pathname.startsWith("//")) return fallback;
+    // Return the canonical path: dot segments cannot turn an apparently local path into
+    // a protocol-relative redirect when another URL parser processes it later.
+    return destination.pathname + destination.search + destination.hash;
+  } catch {
     return fallback;
   }
-  return value;
 }
 
 /**
