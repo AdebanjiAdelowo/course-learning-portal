@@ -225,6 +225,47 @@ describe.skipIf(!configured)("row-level security", () => {
     });
   });
 
+  describe("module locks", () => {
+    it("exposes previews but blocks locked bodies, questions, resources and progress writes", async () => {
+      const { data: module_ } = await admin.from("modules").select("id").eq("course_id", courseId).eq("position", 2).single();
+      const { data: lesson } = await admin.from("lessons").select("id").eq("module_id", module_!.id).limit(1).single();
+      const { data: quiz } = await admin.from("quizzes").select("id").eq("module_id", module_!.id).limit(1).single();
+      expect((await bob.db.from("lesson_outline").select("id").eq("id", lesson!.id)).data).toHaveLength(1);
+      expect((await bob.db.from("lesson_outline").select("body_md")).error).not.toBeNull();
+      expect((await bob.db.from("lessons").select("*").eq("id", lesson!.id)).data).toEqual([]);
+      expect((await bob.db.from("questions").select("*").eq("quiz_id", quiz!.id)).data).toEqual([]);
+      expect((await bob.db.from("resources").select("*").eq("module_id", module_!.id)).data).toEqual([]);
+      expect((await bob.db.from("lesson_progress").insert({ user_id: bob.id, lesson_id: lesson!.id })).error).not.toBeNull();
+      expect((await anon.from("lesson_outline").select("*")).error).not.toBeNull();
+      expect((await instructor.db.from("lessons").select("id").eq("id", lesson!.id)).data).toHaveLength(1);
+    });
+
+    it("date gates apply even when prerequisites are complete", async () => {
+      const { data: mod } = await admin.from("modules").select("id,available_from").eq("course_id", courseId).eq("position", 1).single();
+      try {
+        await admin.from("modules").update({ available_from: "2099-01-01T00:00:00Z" }).eq("id", mod!.id);
+        expect((await alice.db.from("lessons").select("id").eq("module_id", mod!.id)).data).toEqual([]);
+        expect((await alice.db.from("lesson_outline").select("id").eq("module_id", mod!.id)).data!.length).toBeGreaterThan(0);
+      } finally {
+        await admin.from("modules").update({ available_from: mod!.available_from }).eq("id", mod!.id);
+      }
+    });
+
+    it("paused enrolments lose previews, content and submission editing without losing history", async () => {
+      const { data: target } = await admin.from("submissions").select("id,notes").eq("user_id", bob.id).limit(1).single();
+      try {
+        await admin.from("enrollments").update({ status: "paused" }).eq("user_id", bob.id).eq("course_id", courseId);
+        expect((await bob.db.from("lesson_outline").select("id").eq("course_id", courseId)).data).toEqual([]);
+        expect((await bob.db.from("lessons").select("id").eq("course_id", courseId)).data).toEqual([]);
+        await bob.db.from("submissions").update({ notes: "changed while paused" }).eq("id", target!.id);
+        expect((await admin.from("submissions").select("notes").eq("id", target!.id).single()).data?.notes).toBe(target!.notes);
+        expect((await bob.db.from("lesson_progress").select("lesson_id")).data!.length).toBeGreaterThan(0);
+      } finally {
+        await admin.from("enrollments").update({ status: "active" }).eq("user_id", bob.id).eq("course_id", courseId);
+      }
+    });
+  });
+
   describe("search", () => {
     it("finds lessons, modules, projects and resources for an enrolled student", async () => {
       const { data, error } = await alice.db.rpc("search_course", { p_course_id: courseId, p_query: "stability" });

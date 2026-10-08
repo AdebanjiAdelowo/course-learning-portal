@@ -157,7 +157,9 @@ test.describe("learning", () => {
 
   test("a quiz is graded on the server, explained, and recorded in the history", async ({ page }) => {
     await page.goto("/learn/quizzes/numerical-foundations-quiz");
-    const attemptsBefore = await page.getByRole("row").count();
+    await expect(page.getByText("Question 1 of 5")).toBeVisible();
+    const history = page.getByRole("region", { name: "Attempt history" });
+    const attemptsBefore = await history.getByRole("row").count();
 
     // The page must not contain the answer key before submission.
     expect(await page.content()).not.toContain("The odd-order terms of the two Taylor expansions cancel");
@@ -194,7 +196,7 @@ test.describe("learning", () => {
 
     await page.getByRole("link", { name: "Try again" }).click();
     await expect(page.getByText("Question 1 of 5")).toBeVisible();
-    expect(await page.getByRole("row").count()).toBe(attemptsBefore + 1);
+    await expect(history.getByRole("row")).toHaveCount(attemptsBefore + 1);
   });
 
   test("a project can be saved as a draft and needs a link to be submitted", async ({ page }) => {

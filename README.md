@@ -47,6 +47,7 @@ The repository ships with a complete demo course, "Foundations of Scientific Mac
 
 **Instructor area** (`/admin`, instructor or admin role required)
 
+- Student account creation and course enrolment management, including pausing and restoring access
 - Cohort overview with per-student completion
 - Submission queue, review form with score and written feedback
 - General feedback to individual students
@@ -127,7 +128,7 @@ tests/
 
 ## Local installation
 
-Requirements: Node.js 20.9 or newer, and Docker (for the local Supabase stack).
+Requirements: Node.js 22 or newer, and Docker (for the local Supabase stack).
 
 ```bash
 npm install
@@ -227,7 +228,7 @@ Content is upserted by slug, so re-running either command updates lessons, quizz
 ## Authentication
 
 - Students sign in with email and password. There is no public sign-up: accounts are issued by the course team (`enable_signup = false` in `supabase/config.toml`).
-- Sessions are stored in HTTP-only cookies and refreshed on every request by `src/proxy.ts`.
+- Sessions are stored in Supabase SSR cookies and refreshed on every request by `src/proxy.ts`.
 - Requests to `/learn/*` and `/admin/*` without a session are redirected to `/learn/login`, and the visitor is returned to the page they asked for after signing in. Only same-site paths are accepted as a return target.
 - Every protected page, layout and server action also verifies the session itself (`requireViewer`, `requireStaff`), so the proxy is not the only gate.
 - **Password reset:** `/learn/forgot-password` sends an email containing a one-time link to `/auth/confirm`, which verifies the token, creates a session and forwards to `/learn/update-password`. The form gives the same answer whether or not the address is registered. Links are single use and expire after one hour.
@@ -254,6 +255,8 @@ The value is rounded down, so 100% appears only when every item is done. Module 
 
 A module is locked while its `available_from` date is in the future, or while it has `requires_previous` set and the previous module still has incomplete lessons. Quizzes and projects never block the next module. Instructors preview the course with nothing locked.
 
+Database policies enforce the same rules for lesson and project bodies, quiz questions, progress writes, submissions and attached resources. The `lesson_outline`, `quiz_outline` and `project_outline` views expose only preview metadata for published courses with an active enrolment, so locked titles remain visible in the curriculum. Staff can preview protected content. Search cannot return locked lesson bodies or project bodies. Static demo downloads in `public/resources` are public assets; confidential files need authenticated storage or a protected download route.
+
 ## Development
 
 ```bash
@@ -272,9 +275,9 @@ npm run db:status    # print local URLs and keys
 
 | Suite | Command | Needs | Covers |
 | --- | --- | --- | --- |
-| Unit (53 tests) | `npm run test` | Nothing | Completion formula, unlocking, next step, quiz grading for every question type, session status, time-zone conversion, redirect safety, video embed allow-list, form validation |
-| Integration (24 tests) | `npm run test:integration` | Running, seeded local stack | Row-level security through the real API: cross-student isolation, hidden answer keys, forged attempts, role escalation, reviewed submissions, unpublished content, search, constraints |
-| End to end (18 tests) | `npm run test:e2e` | Running, seeded local stack | Route protection, sign-in and sign-out, password-reset handling, lesson rendering, completion that persists across reloads and sign-out, module unlocking, a full quiz attempt, project submission, search, mobile drawers, the instructor area, the public site |
+| Unit | `npm run test` | Nothing | Completion formula, unlocking, next step, quiz grading for every question type, session status, time-zone conversion, redirect safety, video embed allow-list, form validation |
+| Integration | `npm run test:integration` | Running, seeded local stack | Row-level security through the real API: cross-student isolation, hidden answer keys, forged attempts, role escalation, reviewed submissions, unpublished content, search, constraints |
+| End to end | `npm run test:e2e` | Running, seeded local stack | Route protection, sign-in and sign-out, password-reset handling, lesson rendering, completion that persists across reloads and sign-out, module unlocking, a full quiz attempt, project submission, search, mobile drawers, the instructor area, the public site |
 
 The end-to-end suite needs a browser. Either install the bundled one or use an installed Chrome:
 
@@ -430,7 +433,11 @@ Both can be defined in `seed/course.ts` (`liveSessions`, `announcements`) or cre
 
 ## Managing students and instructors
 
-Accounts are created by the course team, in the Supabase dashboard or with SQL.
+The instructor area at `/admin/students` creates student accounts with an initial password and enrols them in a selected course. Share the password privately; students can change it in Settings. No email is sent by this action.
+
+Existing students can be assigned to additional courses or moved between active, paused, completed and withdrawn enrolment states. Active and completed enrolments grant access. Paused and withdrawn enrolments remove access without deleting progress or submissions. The page also lists current enrolments.
+
+Staff roles are assigned using the Supabase dashboard or SQL. The student-management forms cannot create instructors or administrators. For email invitations instead of initial passwords:
 
 1. **Create the user** under Authentication, Users, with "Invite user". They receive an email with a link to set their password. A profile row is created automatically.
 
@@ -463,10 +470,8 @@ Roles can only be changed with database access, never through the application. A
 ## Limitations
 
 - **One active course per student in the interface.** The schema supports several courses and enrolments, but the portal shows a student's most recent active enrolment and the instructor area manages the first course. There is no course switcher.
-- **No enrolment or account management screen.** Creating users, enrolling them and assigning roles is done in the Supabase dashboard or with SQL.
 - **Quizzes and projects are authored in the seed files.** The instructor area edits lessons, modules, sessions and announcements, but has no quiz or project editor, and cannot reorder or delete lessons and modules.
 - **Project submissions are links, not uploads.** There is no file storage for student work.
-- **Unlocking is enforced by the application, not by row-level security.** The pages and server actions refuse locked lessons, quizzes and projects, but an enrolled student calling the database API directly could read a published lesson in a locked module. Answer keys and other students' data are protected at the database level regardless.
 - **Quizzes are submitted as a whole.** Answers are held in the browser until the final submission, so a closed tab loses an unfinished attempt. There is no time limit and no manually graded question type.
 - **No rate limiting on the contact form** beyond a honeypot field, and no notification email when a message arrives. Messages are counted on the instructor overview and read in the database.
 - **No Content-Security-Policy header.** Basic security headers are set in `next.config.ts`.
@@ -481,6 +486,5 @@ Roles can only be changed with database access, never through the application. A
 - A course switcher for students enrolled in several courses
 - Email notifications for feedback, announcements and session reminders
 - Calendar export (`.ics`) for live sessions
-- Row-level enforcement of module locking
 - Per-criterion rubric scoring in reviews
 - Saving quiz answers between sessions

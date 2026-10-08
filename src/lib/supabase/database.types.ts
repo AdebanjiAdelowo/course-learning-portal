@@ -119,7 +119,19 @@ isOneToOne: false
       foreignKeyName: "feedback_project_id_fkey"
       columns: ["project_id"]
 isOneToOne: false
+      referencedRelation: "project_outline"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "feedback_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
       referencedRelation: "projects"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "feedback_quiz_id_fkey"
+      columns: ["quiz_id"]
+isOneToOne: false
+      referencedRelation: "quiz_outline"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "feedback_quiz_id_fkey"
@@ -154,6 +166,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "lesson_progress_lesson_id_fkey"
+      columns: ["lesson_id"]
+isOneToOne: false
+      referencedRelation: "lesson_outline"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "lesson_progress_lesson_id_fkey"
       columns: ["lesson_id"]
 isOneToOne: false
@@ -315,6 +333,12 @@ isOneToOne: true
       foreignKeyName: "questions_quiz_id_fkey"
       columns: ["quiz_id"]
 isOneToOne: false
+      referencedRelation: "quiz_outline"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "questions_quiz_id_fkey"
+      columns: ["quiz_id"]
+isOneToOne: false
       referencedRelation: "quizzes"
       referencedColumns: ["id"]
     }
@@ -332,6 +356,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "quiz_attempts_quiz_id_fkey"
+      columns: ["quiz_id"]
+isOneToOne: false
+      referencedRelation: "quiz_outline"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "quiz_attempts_quiz_id_fkey"
       columns: ["quiz_id"]
 isOneToOne: false
@@ -393,6 +423,12 @@ isOneToOne: false
       foreignKeyName: "resources_lesson_id_fkey"
       columns: ["lesson_id"]
 isOneToOne: false
+      referencedRelation: "lesson_outline"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "resources_lesson_id_fkey"
+      columns: ["lesson_id"]
+isOneToOne: false
       referencedRelation: "lessons"
       referencedColumns: ["id"]
     },{
@@ -406,6 +442,12 @@ isOneToOne: false
       columns: ["module_id"]
 isOneToOne: false
       referencedRelation: "modules"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "resources_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "project_outline"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "resources_project_id_fkey"
@@ -431,6 +473,12 @@ isOneToOne: false
       foreignKeyName: "submissions_project_id_fkey"
       columns: ["project_id"]
 isOneToOne: false
+      referencedRelation: "project_outline"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submissions_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
       referencedRelation: "projects"
       referencedColumns: ["id"]
     },{
@@ -444,10 +492,73 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "lesson_outline": {
+                  Row: {
+                    "course_id": string | null,"duration_minutes": number | null,"id": string | null,"module_id": string | null,"position": number | null,"slug": string | null,"summary": string | null,"title": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "lessons_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "lessons_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id","course_id"]
+    }
+                  ]
+                },"project_outline": {
+                  Row: {
+                    "course_id": string | null,"due_at": string | null,"id": string | null,"max_points": number | null,"module_id": string | null,"slug": string | null,"summary": string | null,"title": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "projects_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "projects_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id","course_id"]
+    }
+                  ]
+                },"quiz_outline": {
+                  Row: {
+                    "course_id": string | null,"description": string | null,"id": string | null,"max_attempts": number | null,"module_id": string | null,"pass_percent": number | null,"slug": string | null,"title": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "quizzes_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "quizzes_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id","course_id"]
+    }
+                  ]
+                }
           }
           Functions: {
-            "is_enrolled":
+            "can_access_module":
+{ Args: { "p_module_id": string }; Returns: boolean
+                           },
+"is_enrolled":
 { Args: { "p_course_id": string }; Returns: boolean
                            },
 "is_staff":

@@ -23,6 +23,7 @@ export const portalNav = [
 ] as const;
 
 export const adminNav = [
+  { href: "/admin/students", label: "Students" },
   { href: "/admin", label: "Overview" },
   { href: "/admin/submissions", label: "Submissions" },
   { href: "/admin/content", label: "Content" },

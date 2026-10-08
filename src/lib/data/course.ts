@@ -169,22 +169,19 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
         .eq("is_published", true)
         .order("position"),
       supabase
-        .from("lessons")
+        .from("lesson_outline")
         .select("id, module_id, slug, title, summary, duration_minutes, position")
         .eq("course_id", course.id)
-        .eq("is_published", true)
         .order("position"),
       supabase
-        .from("quizzes")
+        .from("quiz_outline")
         .select("id, module_id, slug, title, description, pass_percent, max_attempts")
         .eq("course_id", course.id)
-        .eq("is_published", true)
         .order("title"),
       supabase
-        .from("projects")
+        .from("project_outline")
         .select("id, module_id, slug, title, summary, due_at, max_points")
         .eq("course_id", course.id)
-        .eq("is_published", true)
         .order("due_at", { nullsFirst: false }),
       // Staff can read every student's rows, so always scope to the viewer explicitly.
       supabase.from("lesson_progress").select("lesson_id, completed_at").eq("user_id", viewer.id),
@@ -208,9 +205,11 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
   if (submissions.error) fail("your submissions", submissions.error.message);
 
   const publishedModuleIds = new Set(modules.data.map((m) => m.id));
-  const visibleLessons = lessons.data.filter((l) => publishedModuleIds.has(l.module_id));
-  const visibleQuizzes = quizzes.data.filter((q) => publishedModuleIds.has(q.module_id));
-  const visibleProjects = projects.data.filter((p) => publishedModuleIds.has(p.module_id));
+  // The preview views project non-null base columns; Postgres view introspection
+  // conservatively marks every column nullable. Base-table constraints still apply.
+  const visibleLessons = (lessons.data as LessonMeta[]).filter((l) => publishedModuleIds.has(l.module_id));
+  const visibleQuizzes = (quizzes.data as QuizMeta[]).filter((q) => publishedModuleIds.has(q.module_id));
+  const visibleProjects = (projects.data as ProjectMeta[]).filter((p) => publishedModuleIds.has(p.module_id));
   const lessonIds = new Set(visibleLessons.map((l) => l.id));
   const quizIds = new Set(visibleQuizzes.map((q) => q.id));
   const projectIds = new Set(visibleProjects.map((p) => p.id));
