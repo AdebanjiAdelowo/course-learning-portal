@@ -35,3 +35,9 @@ export function zonedDateTimeToUtc(local: string, zone: string): Date {
 export function dateInZone(instant: Date, zone: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(instant);
 }
+
+/** The inverse of `zonedDateTimeToUtc`: an instant as a datetime-local value in `zone`. */
+export function toZonedInputValue(instant: Date, zone: string): string {
+  const time = new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(instant);
+  return `${dateInZone(instant, zone)}T${time}`;
+}

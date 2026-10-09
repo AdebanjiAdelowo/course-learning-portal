@@ -152,6 +152,65 @@ export const liveSessionSchema = z
     meeting_url: optionalHttpsUrl,
   });
 
+export const quizSchema = z.object({
+  module_id: z.uuid("Choose a module."),
+  title: z.string().trim().min(1, "Enter a title.").max(160),
+  slug,
+  description: z.string().trim().max(600),
+  pass_percent: z.coerce.number().int("Use a whole number.").min(0).max(100),
+  // Empty means unlimited retakes.
+  max_attempts: z.union([z.literal(""), z.coerce.number().int().min(1).max(50)]).transform((v) => (v === "" ? null : v)),
+  is_published: checkbox,
+});
+
+export const questionSchema = z.object({
+  quiz_id: z.uuid(),
+  type: z.enum(["multiple_choice", "multiple_select", "true_false", "short_answer"]),
+  prompt_md: z.string().trim().min(1, "Write the question.").max(5000),
+  options_text: z.string().max(8000),
+  true_false: z.string().max(5),
+  accepted_text: z.string().max(4000),
+  explanation_md: z.string().trim().max(5000),
+  points: z.coerce.number().int("Use a whole number.").min(1).max(100),
+});
+
+export const projectSchema = z.object({
+  module_id: z.uuid("Choose a module."),
+  title: z.string().trim().min(1, "Enter a title.").max(160),
+  slug,
+  summary: z.string().trim().max(400),
+  description_md: z.string().max(50_000),
+  objectives: lines,
+  requirements: lines,
+  submission_instructions_md: z.string().trim().max(5000),
+  rubric_text: z.string().max(8000),
+  // datetime-local value interpreted in the instructor's time zone; empty means no deadline.
+  due_at: z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Choose a date and time.")]),
+  is_published: checkbox,
+});
+
+/** An https link, or a path to a file shipped in /public such as "/resources/sheet.pdf". */
+const resourceUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((value) => {
+    if (/^\/(?!\/)[\w\-./%]+$/.test(value)) return !value.includes("..");
+    try {
+      return new URL(value).protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, "Enter an https:// link, or a path such as /resources/file.pdf.");
+
+export const resourceSchema = z.object({
+  title: z.string().trim().min(1, "Enter a title.").max(160),
+  description: z.string().trim().max(400),
+  kind: z.enum(["pdf", "notebook", "dataset", "code", "video", "slides", "reading", "link"]),
+  url: resourceUrl,
+  attachment: z.string().max(60),
+});
+
 export type FieldErrors = Record<string, string[] | undefined>;
 
 export interface FormState {

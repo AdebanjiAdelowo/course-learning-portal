@@ -567,8 +567,17 @@ isOneToOne: false
 "mark_feedback_read":
 { Args: { "p_feedback_ids": (string)[] }; Returns: number
                            },
+"move_lesson":
+{ Args: { "p_direction": number,"p_lesson_id": string }; Returns: undefined
+                           },
+"move_quiz_question":
+{ Args: { "p_direction": number,"p_question_id": string }; Returns: undefined
+                           },
 "public_course_outline":
 { Args: { "p_slug": string }; Returns: Json
+                           },
+"save_quiz_question":
+{ Args: { "p_correct": Json,"p_explanation_md": string,"p_options": Json,"p_points": number,"p_prompt_md": string,"p_question_id": string,"p_quiz_id": string,"p_type": Database["public"]['Enums']["question_type"] }; Returns: string
                            },
 "search_course":
 { Args: { "p_course_id": string,"p_limit"?: number,"p_query": string }; Returns: {

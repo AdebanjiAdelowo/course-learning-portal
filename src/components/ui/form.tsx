@@ -44,6 +44,8 @@ export function useServerForm(
 interface FieldShellProps {
   label: string;
   name: string;
+  /** Element id. Defaults to `name`; set it when the same field appears more than once on a page. */
+  id?: string;
   hint?: ReactNode;
   errors?: string[];
 }
@@ -51,23 +53,24 @@ interface FieldShellProps {
 function FieldShell({
   label,
   name,
+  id = name,
   hint,
   errors,
   children,
 }: FieldShellProps & { children: ReactNode }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-semibold text-ink">
+      <label htmlFor={id} className="block text-sm font-semibold text-ink">
         {label}
       </label>
       {hint ? (
-        <p id={`${name}-hint`} className="mt-1 text-sm text-ink-faint">
+        <p id={`${id}-hint`} className="mt-1 text-sm text-ink-faint">
           {hint}
         </p>
       ) : null}
       <div className="mt-2">{children}</div>
       {errors?.length ? (
-        <p id={`${name}-error`} className="mt-1.5 text-sm font-medium text-danger">
+        <p id={`${id}-error`} className="mt-1.5 text-sm font-medium text-danger">
           {errors.join(" ")}
         </p>
       ) : null}
@@ -75,26 +78,27 @@ function FieldShell({
   );
 }
 
-function describedBy(name: string, hint: ReactNode, errors?: string[]) {
-  const ids = [hint ? `${name}-hint` : null, errors?.length ? `${name}-error` : null].filter(Boolean);
+function describedBy(id: string, hint: ReactNode, errors?: string[]) {
+  const ids = [hint ? `${id}-hint` : null, errors?.length ? `${id}-error` : null].filter(Boolean);
   return ids.length ? ids.join(" ") : undefined;
 }
 
 export function TextField({
   label,
   name,
+  id = name,
   hint,
   errors,
   className,
   ...props
-}: FieldShellProps & Omit<ComponentProps<"input">, "name">) {
+}: FieldShellProps & Omit<ComponentProps<"input">, "name" | "id">) {
   return (
-    <FieldShell label={label} name={name} hint={hint} errors={errors}>
+    <FieldShell label={label} name={name} id={id} hint={hint} errors={errors}>
       <input
-        id={name}
+        id={id}
         name={name}
         aria-invalid={errors?.length ? true : undefined}
-        aria-describedby={describedBy(name, hint, errors)}
+        aria-describedby={describedBy(id, hint, errors)}
         className={cn("field", className)}
         {...props}
       />
@@ -105,18 +109,19 @@ export function TextField({
 export function TextArea({
   label,
   name,
+  id = name,
   hint,
   errors,
   className,
   ...props
-}: FieldShellProps & Omit<ComponentProps<"textarea">, "name">) {
+}: FieldShellProps & Omit<ComponentProps<"textarea">, "name" | "id">) {
   return (
-    <FieldShell label={label} name={name} hint={hint} errors={errors}>
+    <FieldShell label={label} name={name} id={id} hint={hint} errors={errors}>
       <textarea
-        id={name}
+        id={id}
         name={name}
         aria-invalid={errors?.length ? true : undefined}
-        aria-describedby={describedBy(name, hint, errors)}
+        aria-describedby={describedBy(id, hint, errors)}
         className={cn("field min-h-28 leading-relaxed", className)}
         {...props}
       />
@@ -127,19 +132,20 @@ export function TextArea({
 export function SelectField({
   label,
   name,
+  id = name,
   hint,
   errors,
   className,
   children,
   ...props
-}: FieldShellProps & Omit<ComponentProps<"select">, "name">) {
+}: FieldShellProps & Omit<ComponentProps<"select">, "name" | "id">) {
   return (
-    <FieldShell label={label} name={name} hint={hint} errors={errors}>
+    <FieldShell label={label} name={name} id={id} hint={hint} errors={errors}>
       <select
-        id={name}
+        id={id}
         name={name}
         aria-invalid={errors?.length ? true : undefined}
-        aria-describedby={describedBy(name, hint, errors)}
+        aria-describedby={describedBy(id, hint, errors)}
         className={cn("field", className)}
         {...props}
       >

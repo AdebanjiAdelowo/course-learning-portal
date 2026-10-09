@@ -351,4 +351,90 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(error?.message).toMatch(/foreign key/);
     });
   });
+  describe("authoring functions", () => {
+    const saveArgs = (quizId: string, questionId: string | null, prompt: string) => ({
+      p_quiz_id: quizId,
+      p_question_id: questionId as unknown as string,
+      p_type: "multiple_choice" as const,
+      p_prompt_md: prompt,
+      p_options: [
+        { id: "a", text: "First" },
+        { id: "b", text: "Second" },
+      ],
+      p_correct: "b",
+      p_explanation_md: "Because.",
+      p_points: 2,
+    });
+
+    it("lets an instructor save a question and its key together, and edit it in place", async () => {
+      const { data: module_ } = await admin.from("modules").select("id").eq("course_id", courseId).eq("position", 1).single();
+      const { data: quiz } = await admin
+        .from("quizzes")
+        .insert({ course_id: courseId, module_id: module_!.id, slug: "authoring-test-quiz", title: "Authoring test", is_published: false })
+        .select("id")
+        .single();
+      cleanup.push(() => admin.from("quizzes").delete().eq("id", quiz!.id));
+
+      const first = await instructor.db.rpc("save_quiz_question", saveArgs(quiz!.id, null, "First prompt"));
+      expect(first.error).toBeNull();
+      const second = await instructor.db.rpc("save_quiz_question", saveArgs(quiz!.id, null, "Second prompt"));
+      expect(second.error).toBeNull();
+
+      const stored = await admin.from("questions").select("id, position, prompt_md, points, key:question_keys(correct, explanation_md)").eq("quiz_id", quiz!.id).order("position");
+      expect(stored.data!.map((q) => [q.position, q.prompt_md])).toEqual([[1, "First prompt"], [2, "Second prompt"]]);
+      expect(stored.data![0]!.key).toEqual({ correct: "b", explanation_md: "Because." });
+
+      const edited = await instructor.db.rpc("save_quiz_question", { ...saveArgs(quiz!.id, first.data, "Edited prompt"), p_correct: "a" });
+      expect(edited.data).toBe(first.data);
+      const after = await admin.from("questions").select("prompt_md, position, key:question_keys(correct)").eq("id", first.data!).single();
+      expect(after.data).toEqual({ prompt_md: "Edited prompt", position: 1, key: { correct: "a" } });
+      expect((await admin.from("questions").select("id", { count: "exact", head: true }).eq("quiz_id", quiz!.id)).count).toBe(2);
+
+      // Reordering swaps neighbours and is a no-op at either end.
+      expect((await instructor.db.rpc("move_quiz_question", { p_question_id: first.data!, p_direction: 1 })).error).toBeNull();
+      const moved = await admin.from("questions").select("id, position").eq("quiz_id", quiz!.id).order("position");
+      expect(moved.data!.map((q) => q.id)).toEqual([second.data, first.data]);
+      expect(moved.data!.map((q) => q.position)).toEqual([1, 2]);
+      await instructor.db.rpc("move_quiz_question", { p_question_id: first.data!, p_direction: 1 });
+      const still = await admin.from("questions").select("id").eq("quiz_id", quiz!.id).order("position");
+      expect(still.data!.map((q) => q.id)).toEqual([second.data, first.data]);
+
+      // A question cannot be saved into a different quiz than the one it belongs to.
+      const { data: other } = await admin.from("quizzes").select("id").eq("slug", "numerical-foundations-quiz").single();
+      const crossed = await instructor.db.rpc("save_quiz_question", saveArgs(other!.id, first.data, "Hijacked"));
+      expect(crossed.error).not.toBeNull();
+      expect((await admin.from("questions").select("prompt_md").eq("id", first.data!).single()).data?.prompt_md).toBe("Edited prompt");
+    });
+
+    it("refuses students, and leaves nothing behind when it does", async () => {
+      const { data: quiz } = await admin.from("quizzes").select("id").eq("slug", "numerical-foundations-quiz").single();
+      const before = await admin.from("questions").select("id, position").eq("quiz_id", quiz!.id).order("position");
+
+      const saved = await alice.db.rpc("save_quiz_question", saveArgs(quiz!.id, null, "Injected"));
+      expect(saved.error?.code).toBe("42501");
+      const overwritten = await alice.db.rpc("save_quiz_question", saveArgs(quiz!.id, before.data![0]!.id, "Overwritten"));
+      expect(overwritten.error?.code).toBe("42501");
+      expect((await alice.db.rpc("move_quiz_question", { p_question_id: before.data![0]!.id, p_direction: 1 })).error?.code).toBe("42501");
+
+      const { data: lesson } = await admin.from("lessons").select("id").eq("slug", "finite-differences").single();
+      expect((await alice.db.rpc("move_lesson", { p_lesson_id: lesson!.id, p_direction: -1 })).error?.code).toBe("42501");
+      expect((await anon.rpc("move_lesson", { p_lesson_id: lesson!.id, p_direction: -1 })).error).not.toBeNull();
+
+      const after = await admin.from("questions").select("id, position").eq("quiz_id", quiz!.id).order("position");
+      expect(after.data).toEqual(before.data);
+      expect((await admin.from("questions").select("id").eq("prompt_md", "Injected")).data).toEqual([]);
+    });
+
+    it("lets an instructor reorder lessons within a module", async () => {
+      const order = async () =>
+        (await admin.from("lessons").select("slug, module:modules!inner(position)").eq("module.position", 1).eq("course_id", courseId).order("position")).data!.map((l) => l.slug);
+      const original = await order();
+      const { data: lesson } = await admin.from("lessons").select("id").eq("slug", original[0]!).eq("course_id", courseId).single();
+
+      expect((await instructor.db.rpc("move_lesson", { p_lesson_id: lesson!.id, p_direction: 1 })).error).toBeNull();
+      expect(await order()).toEqual([original[1], original[0], ...original.slice(2)]);
+      expect((await instructor.db.rpc("move_lesson", { p_lesson_id: lesson!.id, p_direction: -1 })).error).toBeNull();
+      expect(await order()).toEqual(original);
+    });
+  });
 });

@@ -51,7 +51,8 @@ The repository ships with a complete demo course, "Foundations of Scientific Mac
 - Cohort overview with per-student completion
 - Submission queue, review form with score and written feedback
 - General feedback to individual students
-- Lesson creation and editing, module creation
+- Lesson, quiz and project editors with drafts and publishing, module creation, and lesson and question reordering
+- Resource management: links and files attached to the course, a module, a lesson, a project or a live session
 - Live session scheduling and announcements
 
 ## Technology stack
@@ -116,7 +117,7 @@ src/
     auth/                      email-link confirmation and sign-out routes
   components/                  shared UI
   lib/
-    domain/                    progress, quiz grading, session status (pure, unit tested)
+    domain/                    progress, quiz grading, session status, editor parsing (pure, unit tested)
     data/                      server-side queries
     supabase/                  clients, session handling, generated database types
     validation.ts              Zod schemas for every form
@@ -204,7 +205,7 @@ The schema is defined entirely by the SQL files in `supabase/migrations`. Nothin
 - A student cannot edit a submission after review, and cannot mark one as reviewed.
 - Instructors and admins can read and manage everything.
 
-**Functions.** `search_course` performs full-text search over lessons, modules, projects and resources and runs with the caller's privileges. `mark_feedback_read` lets a student mark their own feedback as read without update rights on the table.
+**Functions.** `search_course` performs full-text search over lessons, modules, projects and resources and runs with the caller's privileges. `mark_feedback_read` lets a student mark their own feedback as read without update rights on the table. `save_quiz_question` writes a question and its answer key in one transaction, and `move_quiz_question` and `move_lesson` swap an item with its neighbour; all three are restricted to instructors.
 
 ### Migrations
 
@@ -275,9 +276,9 @@ npm run db:status    # print local URLs and keys
 
 | Suite | Command | Needs | Covers |
 | --- | --- | --- | --- |
-| Unit | `npm run test` | Nothing | Completion formula, unlocking, next step, quiz grading for every question type, session status, time-zone conversion, redirect safety, video embed allow-list, form validation |
-| Integration | `npm run test:integration` | Running, seeded local stack | Row-level security through the real API: cross-student isolation, hidden answer keys, forged attempts, role escalation, reviewed submissions, unpublished content, search, constraints |
-| End to end | `npm run test:e2e` | Running, seeded local stack | Route protection, sign-in and sign-out, password-reset handling, lesson rendering, completion that persists across reloads and sign-out, module unlocking, a full quiz attempt, project submission, search, mobile drawers, the instructor area, the public site |
+| Unit | `npm run test` | Nothing | Completion formula, unlocking, next step, quiz grading for every question type, session status, time-zone conversion, redirect safety, video embed allow-list, form validation, question and rubric parsing for the editors |
+| Integration | `npm run test:integration` | Running, seeded local stack | Row-level security through the real API: cross-student isolation, hidden answer keys, forged attempts, role escalation, reviewed submissions, unpublished content, search, constraints, and the question-saving and reordering functions |
+| End to end | `npm run test:e2e` | Running, seeded local stack | Route protection, sign-in and sign-out, password-reset handling, lesson rendering, completion that persists across reloads and sign-out, module unlocking, a full quiz attempt, project submission, search, mobile drawers, the instructor area, the public site, and the quiz, project and resource editors together with what a student then sees |
 
 The end-to-end suite needs a browser. Either install the bundled one or use an installed Chrome:
 
@@ -327,9 +328,25 @@ Files in `public/resources` are served to anyone who knows the URL. Keep materia
 
 ## Authoring course content
 
-Course structure lives in `seed/course.ts` and lesson bodies in `seed/lessons/*.md`. Edit them, then run `npm run seed:content`. The types in `seed/types.ts` describe every field, and TypeScript reports mistakes before anything is written.
+There are two ways to author a course, and they write to the same tables.
 
-Lessons can also be created and edited in the browser at `/admin/content`. If you use both, treat one as the source of truth for lessons, because `seed:content` overwrites lesson text with the files.
+**In the browser**, at `/admin/content`. Instructors create and edit lessons, quizzes with their questions, and projects with their rubrics, reorder lessons and questions, and manage resources at `/admin/content/resources`. New quizzes start as drafts and can be published once they have a question. See [Editing in the browser](#editing-in-the-browser).
+
+**In files**, as described in the rest of this section. Course structure lives in `seed/course.ts` and lesson bodies in `seed/lessons/*.md`. Edit them, then run `npm run seed:content`. The types in `seed/types.ts` describe every field, and TypeScript reports mistakes before anything is written.
+
+Choose one as the source of truth for each course. `seed:content` overwrites lessons, quizzes (including all their questions), projects and course resources with what the files say, so running it after editing in the browser discards the browser edits to anything the files also define.
+
+### Editing in the browser
+
+- **Lessons.** Markdown body, objectives, duration, optional video, and a Published switch. Use the arrows on the content page to reorder lessons within a module.
+- **Quizzes.** Title, module, pass mark, optional attempt limit. Each question has a type, a prompt, points, an explanation, and its answer:
+  - multiple choice and multiple select: one option per line, with an asterisk at the start of each correct line, for example `* Central difference`;
+  - true or false: pick the correct value;
+  - short answer: accepted answers, one per line.
+- **Projects.** Brief, objectives and requirements (one per line), deadline in the instructor's time zone, and a rubric written one criterion per line as `Criterion | what you look for | points`. The maximum score is the sum of the points.
+- **Resources.** An https link, or the path of a file in `public/` such as `/resources/notes.pdf`, attached to the whole course or to one module, lesson, project or live session.
+
+Quizzes and projects cannot be deleted from the browser, because that would also delete every student's attempts or submissions. Unpublish them instead. Editing a quiz after students have taken it affects new attempts only: past scores and the questions shown in a student's history are stored with the attempt.
 
 ### Adding a new course
 
@@ -470,7 +487,8 @@ Roles can only be changed with database access, never through the application. A
 ## Limitations
 
 - **One active course per student in the interface.** The schema supports several courses and enrolments, but the portal shows a student's most recent active enrolment and the instructor area manages the first course. There is no course switcher.
-- **Quizzes and projects are authored in the seed files.** The instructor area edits lessons, modules, sessions and announcements, but has no quiz or project editor, and cannot reorder or delete lessons and modules.
+- **Some editing still needs the database or the seed files.** Modules cannot be renamed, reordered or deleted in the browser, lessons cannot be deleted (only unpublished), and existing resources cannot be edited (only removed and added again). There is no live preview while editing.
+- **Downloadable files are public.** A resource is a link or a file in `public/`, which anyone with the address can open. There is no access-controlled file storage.
 - **Project submissions are links, not uploads.** There is no file storage for student work.
 - **Quizzes are submitted as a whole.** Answers are held in the browser until the final submission, so a closed tab loses an unfinished attempt. There is no time limit and no manually graded question type.
 - **No rate limiting on the contact form** beyond a honeypot field, and no notification email when a message arrives. Messages are counted on the instructor overview and read in the database.
@@ -480,8 +498,9 @@ Roles can only be changed with database access, never through the application. A
 
 ## Possible extensions
 
-- Account and enrolment management in the instructor area, including bulk invitations
-- Quiz and project editors, and drag-and-drop reordering of modules and lessons
+- Bulk enrolment and emailed invitations for new students
+- Module editing and reordering, lesson deletion, and a live Markdown preview in the editors
+- Access-controlled storage for course files, with signed download links for enrolled students
 - File uploads for submissions through Supabase Storage, with per-student access policies
 - A course switcher for students enrolled in several courses
 - Email notifications for feedback, announcements and session reminders
