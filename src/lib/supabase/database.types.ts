@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "announcements": {
                   Row: {
-                    "author_id": string | null,"body_md": string,"course_id": string,"id": string,"pinned": boolean,"published_at": string,"title": string
+                    "author_id": string | null,"body_md": string,"cohort_id": string | null,"course_id": string,"id": string,"pinned": boolean,"published_at": string,"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_id"?: string | null,"body_md"?: string,"course_id": string,"id"?: string,"pinned"?: boolean,"published_at"?: string,"title": string
+                    "author_id"?: string | null,"body_md"?: string,"cohort_id"?: string | null,"course_id": string,"id"?: string,"pinned"?: boolean,"published_at"?: string,"title": string
                   }
                   Update: {
-                    "author_id"?: string | null,"body_md"?: string,"course_id"?: string,"id"?: string,"pinned"?: boolean,"published_at"?: string,"title"?: string
+                    "author_id"?: string | null,"body_md"?: string,"cohort_id"?: string | null,"course_id"?: string,"id"?: string,"pinned"?: boolean,"published_at"?: string,"title"?: string
                   }
                   Relationships: [
                     {
@@ -24,7 +24,117 @@ isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "announcements_cohort_id_fkey"
+      columns: ["cohort_id"]
+isOneToOne: false
+      referencedRelation: "cohorts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "announcements_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"code_submissions": {
+                  Row: {
+                    "code": string,"created_at": string,"id": string,"language": string,"problem_id": string,"results": Json | null,"status": Database["public"]['Enums']["code_submission_status"],"updated_at": string,"user_id": string,"verdict": Database["public"]['Enums']["code_verdict"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "code": string,"created_at"?: string,"id"?: string,"language"?: string,"problem_id": string,"results"?: Json | null,"status"?: Database["public"]['Enums']["code_submission_status"],"updated_at"?: string,"user_id": string,"verdict"?: Database["public"]['Enums']["code_verdict"]
+                  }
+                  Update: {
+                    "code"?: string,"created_at"?: string,"id"?: string,"language"?: string,"problem_id"?: string,"results"?: Json | null,"status"?: Database["public"]['Enums']["code_submission_status"],"updated_at"?: string,"user_id"?: string,"verdict"?: Database["public"]['Enums']["code_verdict"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "code_submissions_problem_id_fkey"
+      columns: ["problem_id"]
+isOneToOne: false
+      referencedRelation: "coding_problem_outline"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "code_submissions_problem_id_fkey"
+      columns: ["problem_id"]
+isOneToOne: false
+      referencedRelation: "coding_problems"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "code_submissions_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"coding_problem_solutions": {
+                  Row: {
+                    "editorial_md": string,"hidden_tests": NonNullable<Json>,"problem_id": string,"reference_solution": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "editorial_md"?: string,"hidden_tests"?: NonNullable<Json>,"problem_id": string,"reference_solution"?: string
+                  }
+                  Update: {
+                    "editorial_md"?: string,"hidden_tests"?: NonNullable<Json>,"problem_id"?: string,"reference_solution"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "coding_problem_solutions_problem_id_fkey"
+      columns: ["problem_id"]
+isOneToOne: true
+      referencedRelation: "coding_problem_outline"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "coding_problem_solutions_problem_id_fkey"
+      columns: ["problem_id"]
+isOneToOne: true
+      referencedRelation: "coding_problems"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"coding_problems": {
+                  Row: {
+                    "constraints": (string)[],"course_id": string,"created_at": string,"difficulty": Database["public"]['Enums']["problem_difficulty"],"examples": NonNullable<Json>,"hints": (string)[],"id": string,"is_published": boolean,"module_id": string,"position": number,"search": unknown,"slug": string,"starter_code": string,"statement_md": string,"summary": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "constraints"?: (string)[],"course_id": string,"created_at"?: string,"difficulty"?: Database["public"]['Enums']["problem_difficulty"],"examples"?: NonNullable<Json>,"hints"?: (string)[],"id"?: string,"is_published"?: boolean,"module_id": string,"position": number,"search"?: never,"slug": string,"starter_code"?: string,"statement_md"?: string,"summary"?: string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "constraints"?: (string)[],"course_id"?: string,"created_at"?: string,"difficulty"?: Database["public"]['Enums']["problem_difficulty"],"examples"?: NonNullable<Json>,"hints"?: (string)[],"id"?: string,"is_published"?: boolean,"module_id"?: string,"position"?: number,"search"?: never,"slug"?: string,"starter_code"?: string,"statement_md"?: string,"summary"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "coding_problems_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "coding_problems_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id","course_id"]
+    }
+                  ]
+                },"cohorts": {
+                  Row: {
+                    "capacity": number | null,"course_id": string,"created_at": string,"description": string,"ends_on": string | null,"id": string,"is_public": boolean,"name": string,"slug": string,"starts_on": string | null,"status": Database["public"]['Enums']["cohort_status"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "capacity"?: number | null,"course_id": string,"created_at"?: string,"description"?: string,"ends_on"?: string | null,"id"?: string,"is_public"?: boolean,"name": string,"slug": string,"starts_on"?: string | null,"status"?: Database["public"]['Enums']["cohort_status"]
+                  }
+                  Update: {
+                    "capacity"?: number | null,"course_id"?: string,"created_at"?: string,"description"?: string,"ends_on"?: string | null,"id"?: string,"is_public"?: boolean,"name"?: string,"slug"?: string,"starts_on"?: string | null,"status"?: Database["public"]['Enums']["cohort_status"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cohorts_course_id_fkey"
       columns: ["course_id"]
 isOneToOne: false
       referencedRelation: "courses"
@@ -67,17 +177,23 @@ isOneToOne: false
                   ]
                 },"enrollments": {
                   Row: {
-                    "course_id": string,"enrolled_at": string,"id": string,"status": Database["public"]['Enums']["enrollment_status"],"user_id": string
+                    "cohort_id": string | null,"course_id": string,"enrolled_at": string,"id": string,"status": Database["public"]['Enums']["enrollment_status"],"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "course_id": string,"enrolled_at"?: string,"id"?: string,"status"?: Database["public"]['Enums']["enrollment_status"],"user_id": string
+                    "cohort_id"?: string | null,"course_id": string,"enrolled_at"?: string,"id"?: string,"status"?: Database["public"]['Enums']["enrollment_status"],"user_id": string
                   }
                   Update: {
-                    "course_id"?: string,"enrolled_at"?: string,"id"?: string,"status"?: Database["public"]['Enums']["enrollment_status"],"user_id"?: string
+                    "cohort_id"?: string | null,"course_id"?: string,"enrolled_at"?: string,"id"?: string,"status"?: Database["public"]['Enums']["enrollment_status"],"user_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "enrollments_cohort_id_fkey"
+      columns: ["cohort_id"]
+isOneToOne: false
+      referencedRelation: "cohorts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "enrollments_course_id_fkey"
       columns: ["course_id"]
 isOneToOne: false
@@ -88,6 +204,32 @@ isOneToOne: false
       columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"enrolment_requests": {
+                  Row: {
+                    "cohort_id": string | null,"course_id": string,"created_at": string,"email": string,"id": string,"kind": Database["public"]['Enums']["enrolment_request_kind"],"message": string,"name": string,"status": Database["public"]['Enums']["enrolment_request_status"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cohort_id"?: string | null,"course_id": string,"created_at"?: string,"email": string,"id"?: string,"kind"?: Database["public"]['Enums']["enrolment_request_kind"],"message"?: string,"name": string,"status"?: Database["public"]['Enums']["enrolment_request_status"]
+                  }
+                  Update: {
+                    "cohort_id"?: string | null,"course_id"?: string,"created_at"?: string,"email"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["enrolment_request_kind"],"message"?: string,"name"?: string,"status"?: Database["public"]['Enums']["enrolment_request_status"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "enrolment_requests_cohort_id_fkey"
+      columns: ["cohort_id"]
+isOneToOne: false
+      referencedRelation: "cohorts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "enrolment_requests_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
       referencedColumns: ["id"]
     }
                   ]
@@ -213,17 +355,23 @@ isOneToOne: false
                   ]
                 },"live_sessions": {
                   Row: {
-                    "course_id": string,"created_at": string,"description": string,"ends_at": string,"id": string,"instructor_name": string,"meeting_url": string | null,"module_id": string | null,"notes_md": string,"recording_url": string | null,"slides_url": string | null,"starts_at": string,"timezone": string,"title": string,"updated_at": string
+                    "cohort_id": string | null,"course_id": string,"created_at": string,"description": string,"ends_at": string,"id": string,"instructor_name": string,"meeting_url": string | null,"module_id": string | null,"notes_md": string,"recording_url": string | null,"slides_url": string | null,"starts_at": string,"timezone": string,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "course_id": string,"created_at"?: string,"description"?: string,"ends_at": string,"id"?: string,"instructor_name": string,"meeting_url"?: string | null,"module_id"?: string | null,"notes_md"?: string,"recording_url"?: string | null,"slides_url"?: string | null,"starts_at": string,"timezone"?: string,"title": string,"updated_at"?: string
+                    "cohort_id"?: string | null,"course_id": string,"created_at"?: string,"description"?: string,"ends_at": string,"id"?: string,"instructor_name": string,"meeting_url"?: string | null,"module_id"?: string | null,"notes_md"?: string,"recording_url"?: string | null,"slides_url"?: string | null,"starts_at": string,"timezone"?: string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "course_id"?: string,"created_at"?: string,"description"?: string,"ends_at"?: string,"id"?: string,"instructor_name"?: string,"meeting_url"?: string | null,"module_id"?: string | null,"notes_md"?: string,"recording_url"?: string | null,"slides_url"?: string | null,"starts_at"?: string,"timezone"?: string,"title"?: string,"updated_at"?: string
+                    "cohort_id"?: string | null,"course_id"?: string,"created_at"?: string,"description"?: string,"ends_at"?: string,"id"?: string,"instructor_name"?: string,"meeting_url"?: string | null,"module_id"?: string | null,"notes_md"?: string,"recording_url"?: string | null,"slides_url"?: string | null,"starts_at"?: string,"timezone"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "live_sessions_cohort_id_fkey"
+      columns: ["cohort_id"]
+isOneToOne: false
+      referencedRelation: "cohorts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "live_sessions_course_id_fkey"
       columns: ["course_id"]
 isOneToOne: false
@@ -239,14 +387,14 @@ isOneToOne: false
                   ]
                 },"modules": {
                   Row: {
-                    "available_from": string | null,"course_id": string,"created_at": string,"description": string,"id": string,"is_published": boolean,"position": number,"requires_previous": boolean,"search": unknown,"slug": string,"title": string,"updated_at": string
+                    "available_from": string | null,"course_id": string,"created_at": string,"description": string,"id": string,"is_published": boolean,"phase_id": string | null,"position": number,"requires_previous": boolean,"search": unknown,"slug": string,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "available_from"?: string | null,"course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"position": number,"requires_previous"?: boolean,"search"?: never,"slug": string,"title": string,"updated_at"?: string
+                    "available_from"?: string | null,"course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"position": number,"requires_previous"?: boolean,"search"?: never,"slug": string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "available_from"?: string | null,"course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"position"?: number,"requires_previous"?: boolean,"search"?: never,"slug"?: string,"title"?: string,"updated_at"?: string
+                    "available_from"?: string | null,"course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"position"?: number,"requires_previous"?: boolean,"search"?: never,"slug"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -255,18 +403,44 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "courses"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "modules_phase_fkey"
+      columns: ["phase_id","course_id"]
+isOneToOne: false
+      referencedRelation: "phases"
+      referencedColumns: ["id","course_id"]
+    }
+                  ]
+                },"phases": {
+                  Row: {
+                    "course_id": string,"created_at": string,"description": string,"id": string,"position": number,"slug": string,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"position": number,"slug": string,"title": string
+                  }
+                  Update: {
+                    "course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"position"?: number,"slug"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "phases_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
+      referencedColumns: ["id"]
     }
                   ]
                 },"profiles": {
                   Row: {
-                    "bio": string | null,"created_at": string,"email": string,"full_name": string,"id": string,"role": Database["public"]['Enums']["user_role"],"timezone": string,"updated_at": string
+                    "avatar_url": string | null,"bio": string | null,"created_at": string,"email": string,"full_name": string,"headline": string | null,"id": string,"links": NonNullable<Json>,"role": Database["public"]['Enums']["user_role"],"timezone": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "bio"?: string | null,"created_at"?: string,"email": string,"full_name": string,"id": string,"role"?: Database["public"]['Enums']["user_role"],"timezone"?: string,"updated_at"?: string
+                    "avatar_url"?: string | null,"bio"?: string | null,"created_at"?: string,"email": string,"full_name": string,"headline"?: string | null,"id": string,"links"?: NonNullable<Json>,"role"?: Database["public"]['Enums']["user_role"],"timezone"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "bio"?: string | null,"created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"role"?: Database["public"]['Enums']["user_role"],"timezone"?: string,"updated_at"?: string
+                    "avatar_url"?: string | null,"bio"?: string | null,"created_at"?: string,"email"?: string,"full_name"?: string,"headline"?: string | null,"id"?: string,"links"?: NonNullable<Json>,"role"?: Database["public"]['Enums']["user_role"],"timezone"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -492,7 +666,27 @@ isOneToOne: false
                 }
           }
           Views: {
-            "lesson_outline": {
+            "coding_problem_outline": {
+                  Row: {
+                    "course_id": string | null,"difficulty": Database["public"]['Enums']["problem_difficulty"] | null,"id": string | null,"module_id": string | null,"position": number | null,"slug": string | null,"summary": string | null,"title": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "coding_problems_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "coding_problems_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id","course_id"]
+    }
+                  ]
+                },"lesson_outline": {
                   Row: {
                     "course_id": string | null,"duration_minutes": number | null,"id": string | null,"module_id": string | null,"position": number | null,"slug": string | null,"summary": string | null,"title": string | null
                   }
@@ -558,6 +752,9 @@ isOneToOne: false
             "can_access_module":
 { Args: { "p_module_id": string }; Returns: boolean
                            },
+"in_cohort":
+{ Args: { "p_cohort_id": string }; Returns: boolean
+                           },
 "is_enrolled":
 { Args: { "p_course_id": string }; Returns: boolean
                            },
@@ -573,6 +770,11 @@ isOneToOne: false
 "move_quiz_question":
 { Args: { "p_direction": number,"p_question_id": string }; Returns: undefined
                            },
+"problem_editorial":
+{ Args: { "p_problem_id": string }; Returns: {
+              "editorial_md": string,"reference_solution": string
+            }[]
+                           },
 "public_course_outline":
 { Args: { "p_slug": string }; Returns: Json
                            },
@@ -586,7 +788,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "enrollment_status": "active"|"paused"|"completed"|"withdrawn","feedback_kind": "project"|"quiz"|"general","question_type": "multiple_choice"|"multiple_select"|"true_false"|"short_answer","resource_kind": "pdf"|"notebook"|"dataset"|"code"|"video"|"slides"|"reading"|"link","submission_status": "in_progress"|"submitted"|"reviewed","user_role": "student"|"instructor"|"admin"
+            "code_submission_status": "draft"|"submitted","code_verdict": "not_evaluated"|"passed"|"failed"|"error","cohort_status": "planned"|"open"|"waitlist"|"running"|"completed","enrollment_status": "active"|"paused"|"completed"|"withdrawn","enrolment_request_kind": "enrolment"|"waitlist","enrolment_request_status": "new"|"contacted"|"enrolled"|"declined","feedback_kind": "project"|"quiz"|"general","problem_difficulty": "warm_up"|"core"|"challenge","question_type": "multiple_choice"|"multiple_select"|"true_false"|"short_answer","resource_kind": "pdf"|"notebook"|"dataset"|"code"|"video"|"slides"|"reading"|"link","submission_status": "in_progress"|"submitted"|"reviewed","user_role": "student"|"instructor"|"admin"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -702,7 +904,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "enrollment_status": ["active", "paused", "completed", "withdrawn"],"feedback_kind": ["project", "quiz", "general"],"question_type": ["multiple_choice", "multiple_select", "true_false", "short_answer"],"resource_kind": ["pdf", "notebook", "dataset", "code", "video", "slides", "reading", "link"],"submission_status": ["in_progress", "submitted", "reviewed"],"user_role": ["student", "instructor", "admin"]
+            "code_submission_status": ["draft", "submitted"],"code_verdict": ["not_evaluated", "passed", "failed", "error"],"cohort_status": ["planned", "open", "waitlist", "running", "completed"],"enrollment_status": ["active", "paused", "completed", "withdrawn"],"enrolment_request_kind": ["enrolment", "waitlist"],"enrolment_request_status": ["new", "contacted", "enrolled", "declined"],"feedback_kind": ["project", "quiz", "general"],"problem_difficulty": ["warm_up", "core", "challenge"],"question_type": ["multiple_choice", "multiple_select", "true_false", "short_answer"],"resource_kind": ["pdf", "notebook", "dataset", "code", "video", "slides", "reading", "link"],"submission_status": ["in_progress", "submitted", "reviewed"],"user_role": ["student", "instructor", "admin"]
           }
         }
 } as const

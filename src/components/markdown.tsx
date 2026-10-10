@@ -8,6 +8,9 @@ import remarkMath from "remark-math";
 
 import { cn } from "@/lib/cn";
 
+import { parseVizBlock } from "@/lib/viz/parse";
+
+import { AlgorithmPlayer } from "./algorithm-player";
 import { CodeBlock } from "./code-block";
 
 function isExternal(href: string | undefined): boolean {
@@ -37,6 +40,21 @@ const components: Components = {
     const code = node?.children.find((child) => child.type === "element" && child.tagName === "code");
     const className = code && "properties" in code ? code.properties.className : undefined;
     const language = languageOf(Array.isArray(className) ? className.join(" ") : className);
+
+    // ```viz blocks embed an interactive algorithm visualization (see src/lib/viz).
+    if (language === "viz" && code && "children" in code) {
+      const source = code.children.map((child) => ("value" in child ? child.value : "")).join("");
+      const spec = parseVizBlock(source);
+      if (!spec.ok) {
+        return (
+          <p role="alert" className="rounded-lg border border-danger/25 bg-danger-soft px-3.5 py-3 text-sm font-medium text-danger">
+            This visualization could not be shown: {spec.error}
+          </p>
+        );
+      }
+      return <AlgorithmPlayer algorithmId={spec.value.algorithm.id} initialInput={spec.value.input} />;
+    }
+
     return <CodeBlock language={language}>{children}</CodeBlock>;
   },
   // Wide tables scroll inside their own container instead of breaking the page on mobile.
@@ -74,7 +92,7 @@ export function Markdown({
     <div className={cn("prose", className)} {...props}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeSlug, [rehypeKatex, { strict: false }], [rehypeHighlight, { detect: false }]]}
+        rehypePlugins={[rehypeSlug, [rehypeKatex, { strict: false }], [rehypeHighlight, { detect: false, plainText: ["viz", "text"] }]]}
         components={components}
       >
         {children}

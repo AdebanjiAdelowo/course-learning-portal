@@ -1,6 +1,8 @@
 /**
  * Shape of the course definition consumed by `scripts/seed.ts`.
- * To publish your own course, replace `seed/course.ts` and the Markdown files in `seed/lessons`.
+ * The course is data: phases, modules, lessons, quizzes, projects and coding problems are defined
+ * in `seed/course.ts`, lesson bodies in `seed/lessons`, and each coding problem in its own folder
+ * under `seed/problems`. Everything here can also be edited in the instructor area afterwards.
  */
 
 export type ResourceKind = "pdf" | "notebook" | "dataset" | "code" | "video" | "slides" | "reading" | "link";
@@ -77,17 +79,67 @@ export interface SeedProject {
   resources?: SeedResource[];
 }
 
+export type ProblemDifficulty = "warm_up" | "core" | "challenge";
+
+/**
+ * A coding problem. Its statement, editorial, starter code, reference solution and tests live
+ * in `seed/problems/<slug>/` (problem.md, editorial.md, starter.py, solution.py, tests.json),
+ * where `python3 scripts/verify_content.py` runs the reference solution against every test.
+ */
+export interface SeedProblem {
+  slug: string;
+  title: string;
+  summary: string;
+  difficulty: ProblemDifficulty;
+  constraints: string[];
+  /** Revealed one at a time, from a gentle nudge to nearly the whole idea. */
+  hints: string[];
+}
+
 export interface SeedModule {
   slug: string;
   title: string;
   description: string;
+  /**
+   * false marks a planned module: it appears in the learning path by title and description,
+   * but has no content yet and students cannot open it. Defaults to true.
+   */
+  published?: boolean;
   /** Opens this many days from now; omit for no date gate. */
   availableInDays?: number;
   requiresPrevious?: boolean;
-  lessons: SeedLesson[];
+  lessons?: SeedLesson[];
   quiz?: SeedQuiz;
   project?: SeedProject;
+  problems?: SeedProblem[];
   resources?: SeedResource[];
+}
+
+/** A phase groups consecutive modules into one stage of the learning path. */
+export interface SeedPhase {
+  slug: string;
+  title: string;
+  description: string;
+  modules: SeedModule[];
+}
+
+export type CohortStatus = "planned" | "open" | "waitlist" | "running" | "completed";
+
+/**
+ * One run of the course. Cohorts share all course material; they differ only in dates,
+ * students, and any live sessions or announcements addressed to them.
+ */
+export interface SeedCohort {
+  slug: string;
+  name: string;
+  description: string;
+  status: CohortStatus;
+  /** Start, in days from now. Omit when the dates are not decided. */
+  startsInDays?: number;
+  durationWeeks?: number;
+  capacity?: number;
+  /** Listed on the public website. */
+  isPublic: boolean;
 }
 
 export interface SeedLiveSession {
@@ -100,6 +152,8 @@ export interface SeedLiveSession {
   durationMinutes: number;
   timezone: string;
   moduleSlug?: string;
+  /** Limits the session to one cohort. Omit for everyone on the course. */
+  cohortSlug?: string;
   meetingUrl?: string;
   recordingUrl?: string;
   slidesUrl?: string;
@@ -114,17 +168,31 @@ export interface SeedAnnouncement {
   publishedDaysAgo: number;
 }
 
+export interface SeedInstructor {
+  email: string;
+  fullName: string;
+  timezone: string;
+  /** One line under the name on the public site, for example a role. Optional. */
+  headline?: string;
+  /** Leave empty rather than inventing one; it can be written later in Settings. */
+  bio?: string;
+  /** https URL, or a path to an image in /public. */
+  avatarUrl?: string;
+  links?: { label: string; url: string }[];
+}
+
 export interface SeedCourse {
   slug: string;
   title: string;
   subtitle: string;
   description: string;
   level: string;
-  durationWeeks: number;
+  durationWeeks?: number;
   outcomes: string[];
   prerequisites: string[];
-  instructor: { email: string; fullName: string; bio: string; timezone: string };
-  modules: SeedModule[];
+  instructor: SeedInstructor;
+  phases: SeedPhase[];
+  cohorts: SeedCohort[];
   liveSessions: SeedLiveSession[];
   announcements: SeedAnnouncement[];
   resources?: SeedResource[];

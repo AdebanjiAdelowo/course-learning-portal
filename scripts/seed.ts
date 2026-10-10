@@ -17,7 +17,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 
 import { course } from "../seed/course";
-import type { SeedQuestion, SeedResource } from "../seed/types";
+import type { SeedInstructor, SeedModule, SeedProblem, SeedQuestion, SeedResource } from "../seed/types";
 import { gradeQuiz, toStoredResults, type AnswerKey, type AnswerValue, type SnapshotQuestion } from "../src/lib/domain/quiz";
 import type { Database, Json } from "../src/lib/supabase/database.types";
 import { dateInZone, zonedDateTimeToUtc } from "../src/lib/timezone";
@@ -86,7 +86,17 @@ function questionRow(question: SeedQuestion) {
 
 async function ensureUser(
   db: Db,
-  input: { email: string; fullName: string; password: string; role: "student" | "instructor" | "admin"; timezone: string; bio?: string },
+  input: {
+    email: string;
+    fullName: string;
+    password: string;
+    role: "student" | "instructor" | "admin";
+    timezone: string;
+    bio?: string;
+    headline?: string;
+    avatarUrl?: string;
+    links?: SeedInstructor["links"];
+  },
 ): Promise<string> {
   const list = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (list.error) throw new Error(`list users: ${list.error.message}`);
@@ -113,7 +123,15 @@ async function ensureUser(
     `update profile of ${input.email}`,
     await db
       .from("profiles")
-      .update({ full_name: input.fullName, role: input.role, timezone: input.timezone, bio: input.bio ?? null })
+      .update({
+        full_name: input.fullName,
+        role: input.role,
+        timezone: input.timezone,
+        bio: input.bio ?? null,
+        headline: input.headline ?? null,
+        avatar_url: input.avatarUrl ?? null,
+        links: input.links ?? [],
+      })
       .eq("id", id),
   );
   return id;
@@ -129,6 +147,42 @@ interface ContentIds {
   lessons: Map<string, string>;
   quizzes: Map<string, string>;
   projects: Map<string, string>;
+  problems: Map<string, string>;
+  cohorts: Map<string, string>;
+}
+
+/** Python literal for a JSON value, as it should appear in a problem's examples. */
+function pyRepr(value: unknown): string {
+  if (value === null) return "None";
+  if (typeof value === "boolean") return value ? "True" : "False";
+  if (Array.isArray(value)) return `[${value.map(pyRepr).join(", ")}]`;
+  if (typeof value === "string") return JSON.stringify(value);
+  return String(value);
+}
+
+interface ProblemTests {
+  function: string;
+  sample: { args: unknown[]; expected: unknown; explanation?: string }[];
+  hidden: { args: unknown[]; expected: unknown }[];
+}
+
+function readProblemFiles(slug: string) {
+  const directory = path.join("seed", "problems", slug);
+  const read = (name: string) => readFileSync(path.join(directory, name), "utf8").trim();
+  const tests = JSON.parse(read("tests.json")) as ProblemTests;
+  const call = (args: unknown[]) => `${tests.function}(${args.map(pyRepr).join(", ")})`;
+  return {
+    statement: read("problem.md"),
+    editorial: read("editorial.md"),
+    starter: read("starter.py"),
+    solution: read("solution.py"),
+    examples: tests.sample.map((test) => ({
+      input: call(test.args),
+      output: pyRepr(test.expected),
+      explanation: test.explanation ?? "",
+    })),
+    hiddenTests: tests.hidden.map((test) => ({ function: tests.function, args: test.args, expected: test.expected })),
+  };
 }
 
 async function seedContent(db: Db, instructorId: string | null): Promise<ContentIds> {
@@ -143,7 +197,7 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
           subtitle: course.subtitle,
           description: course.description,
           level: course.level,
-          duration_weeks: course.durationWeeks,
+          duration_weeks: course.durationWeeks ?? null,
           outcomes: course.outcomes,
           prerequisites: course.prerequisites,
           is_published: true,
@@ -167,12 +221,46 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
     check("shift lesson", await db.from("lessons").update({ position: row.position + 10_000 }).eq("id", row.id));
   }
 
-  const ids: ContentIds = { courseId, modules: new Map(), lessons: new Map(), quizzes: new Map(), projects: new Map() };
+  const existingProblems = unwrap("read problems", await db.from("coding_problems").select("id, position").eq("course_id", courseId));
+  for (const row of existingProblems) {
+    check("shift problem", await db.from("coding_problems").update({ position: row.position + 10_000 }).eq("id", row.id));
+  }
+  const existingPhases = unwrap("read phases", await db.from("phases").select("id, position").eq("course_id", courseId));
+  for (const row of existingPhases) {
+    check("shift phase", await db.from("phases").update({ position: row.position + 10_000 }).eq("id", row.id));
+  }
+
+  const ids: ContentIds = {
+    courseId,
+    modules: new Map(),
+    lessons: new Map(),
+    quizzes: new Map(),
+    projects: new Map(),
+    problems: new Map(),
+    cohorts: new Map(),
+  };
+
+  // Phases first, then their modules, numbered consecutively through the whole course.
+  const orderedModules: { mod: SeedModule; phaseId: string }[] = [];
+  for (const [phaseIndex, phase] of course.phases.entries()) {
+    const phaseRow = unwrap(
+      `upsert phase ${phase.slug}`,
+      await db
+        .from("phases")
+        .upsert(
+          { course_id: courseId, slug: phase.slug, title: phase.title, description: phase.description, position: phaseIndex + 1 },
+          { onConflict: "course_id,slug" },
+        )
+        .select("id")
+        .single(),
+    );
+    for (const mod of phase.modules) orderedModules.push({ mod, phaseId: phaseRow.id });
+  }
   const resources: (SeedResource & { module_id?: string; lesson_id?: string; project_id?: string })[] = [
     ...(course.resources ?? []),
   ];
 
-  for (const [moduleIndex, mod] of course.modules.entries()) {
+  for (const [moduleIndex, { mod, phaseId }] of orderedModules.entries()) {
     const moduleRow = unwrap(
       `upsert module ${mod.slug}`,
       await db
@@ -183,10 +271,11 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
             slug: mod.slug,
             title: mod.title,
             description: mod.description,
+            phase_id: phaseId,
             position: moduleIndex + 1,
             available_from: mod.availableInDays === undefined ? null : daysFromNow(mod.availableInDays),
             requires_previous: mod.requiresPrevious ?? true,
-            is_published: true,
+            is_published: mod.published ?? true,
           },
           { onConflict: "course_id,slug" },
         )
@@ -197,7 +286,7 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
     ids.modules.set(mod.slug, moduleId);
     for (const resource of mod.resources ?? []) resources.push({ ...resource, module_id: moduleId });
 
-    for (const [lessonIndex, lesson] of mod.lessons.entries()) {
+    for (const [lessonIndex, lesson] of (mod.lessons ?? []).entries()) {
       const file = path.join("seed", "lessons", `${lesson.file ?? lesson.slug}.md`);
       const lessonRow = unwrap(
         `upsert lesson ${lesson.slug}`,
@@ -309,6 +398,9 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
       ids.projects.set(project.slug, projectRow.id);
       for (const resource of project.resources ?? []) resources.push({ ...resource, project_id: projectRow.id });
     }
+    for (const [problemIndex, problem] of (mod.problems ?? []).entries()) {
+      ids.problems.set(problem.slug, await upsertProblem(db, courseId, moduleId, problem, problemIndex + 1));
+    }
   }
 
   // Resources attached to course material are owned by the seed files: replace them.
@@ -335,6 +427,81 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
   return ids;
 }
 
+async function upsertProblem(db: Db, courseId: string, moduleId: string, problem: SeedProblem, position: number): Promise<string> {
+  const files = readProblemFiles(problem.slug);
+  const row = unwrap(
+    `upsert problem ${problem.slug}`,
+    await db
+      .from("coding_problems")
+      .upsert(
+        {
+          course_id: courseId,
+          module_id: moduleId,
+          slug: problem.slug,
+          title: problem.title,
+          summary: problem.summary,
+          difficulty: problem.difficulty,
+          position,
+          statement_md: files.statement,
+          constraints: problem.constraints,
+          examples: files.examples,
+          starter_code: files.starter,
+          hints: problem.hints,
+          is_published: true,
+        },
+        { onConflict: "course_id,slug" },
+      )
+      .select("id")
+      .single(),
+  );
+  check(
+    `upsert solution ${problem.slug}`,
+    await db.from("coding_problem_solutions").upsert(
+      {
+        problem_id: row.id,
+        editorial_md: files.editorial,
+        reference_solution: files.solution,
+        hidden_tests: files.hiddenTests as NonNullable<Json>,
+      },
+      { onConflict: "problem_id" },
+    ),
+  );
+  return row.id;
+}
+
+/** Cohorts are upserted by slug, so re-seeding never detaches students from their cohort. */
+async function seedCohorts(db: Db, ids: ContentIds): Promise<void> {
+  for (const cohort of course.cohorts) {
+    const startsOn = cohort.startsInDays === undefined ? null : daysFromNow(cohort.startsInDays).slice(0, 10);
+    const endsOn =
+      cohort.startsInDays === undefined || cohort.durationWeeks === undefined
+        ? null
+        : daysFromNow(cohort.startsInDays + cohort.durationWeeks * 7).slice(0, 10);
+    const row = unwrap(
+      `upsert cohort ${cohort.slug}`,
+      await db
+        .from("cohorts")
+        .upsert(
+          {
+            course_id: ids.courseId,
+            slug: cohort.slug,
+            name: cohort.name,
+            description: cohort.description,
+            status: cohort.status,
+            starts_on: startsOn,
+            ends_on: endsOn,
+            capacity: cohort.capacity ?? null,
+            is_public: cohort.isPublic,
+          },
+          { onConflict: "course_id,slug" },
+        )
+        .select("id")
+        .single(),
+    );
+    ids.cohorts.set(cohort.slug, row.id);
+  }
+}
+
 /**
  * Live sessions and announcements can also be created in the instructor area, so the seed only
  * writes them when asked to replace (demo mode) or when the course has none yet.
@@ -356,6 +523,7 @@ async function seedSchedule(db: Db, ids: ContentIds, authorId: string | null, re
           .insert({
             course_id: courseId,
             module_id: session.moduleSlug ? (ids.modules.get(session.moduleSlug) ?? null) : null,
+            cohort_id: session.cohortSlug ? (ids.cohorts.get(session.cohortSlug) ?? null) : null,
             title: session.title,
             description: session.description,
             starts_at: startsAt.toISOString(),
@@ -416,6 +584,7 @@ async function clearStudentActivity(db: Db, userId: string): Promise<void> {
   check("clear submissions", await db.from("submissions").delete().eq("user_id", userId));
   check("clear attempts", await db.from("quiz_attempts").delete().eq("user_id", userId));
   check("clear progress", await db.from("lesson_progress").delete().eq("user_id", userId));
+  check("clear code", await db.from("code_submissions").delete().eq("user_id", userId));
 }
 
 /** Records an attempt graded by the same function the application uses. */
@@ -475,8 +644,10 @@ async function recordAttempt(
 async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: string; student: string; second: string }) {
   const { courseId } = ids;
   const lesson = (slug: string) => ids.lessons.get(slug)!;
-  const quiz = (slug: string) => ids.quizzes.get(slug)!;
-  const project = (slug: string) => ids.projects.get(slug)!;
+  const quizId = ids.quizzes.get("correctness-and-cost-quiz")!;
+  const projectId = ids.projects.get("measuring-growth")!;
+  const problem = (slug: string) => ids.problems.get(slug)!;
+  const cohortId = ids.cohorts.get("pilot") ?? null;
 
   for (const userId of [people.student, people.second]) {
     check(
@@ -484,20 +655,19 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
       await db
         .from("enrollments")
         .upsert(
-          { user_id: userId, course_id: courseId, status: "active", enrolled_at: daysFromNow(-24) },
+          { user_id: userId, course_id: courseId, cohort_id: cohortId, status: "active", enrolled_at: daysFromNow(-24) },
           { onConflict: "user_id,course_id" },
         ),
     );
     await clearStudentActivity(db, userId);
   }
 
-  // --- First student: Module 1 finished, part-way through Module 2 -----------------------
+  // --- First student: four of five lessons, quiz passed on a retake, project reviewed -----
   const completed: [string, number][] = [
-    ["differential-equations-as-models", 22],
-    ["finite-differences", 20],
-    ["stability-and-cfl", 17],
-    ["universal-approximation", 6],
-    ["automatic-differentiation", 3],
+    ["algorithms-and-correctness", 21],
+    ["counting-cost", 18],
+    ["asymptotic-notation", 13],
+    ["binary-search", 6],
   ];
   check(
     "insert progress",
@@ -506,36 +676,35 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
     ),
   );
 
-  const firstQuiz = quiz("numerical-foundations-quiz");
-  await recordAttempt(db, { quizId: firstQuiz, userId: people.student, attemptNumber: 1, wrong: [2, 3], daysAgo: 16, passPercent: 70 });
-  await recordAttempt(db, { quizId: firstQuiz, userId: people.student, attemptNumber: 2, wrong: [], daysAgo: 15, passPercent: 70 });
+  await recordAttempt(db, { quizId, userId: people.student, attemptNumber: 1, wrong: [2, 3, 6], daysAgo: 5, passPercent: 70 });
+  await recordAttempt(db, { quizId, userId: people.student, attemptNumber: 2, wrong: [], daysAgo: 4, passPercent: 70 });
 
   const reviewed = unwrap(
     "insert reviewed submission",
     await db
       .from("submissions")
       .insert({
-        project_id: project("verified-heat-solver"),
+        project_id: projectId,
         user_id: people.student,
         status: "submitted",
-        submitted_at: daysFromNow(-12),
-        work_url: "https://github.com/example/heat-equation-solver",
-        notes: "Convergence table is in the README. I was unsure whether to measure the error at t = 0.1 or after a fixed number of steps.",
+        submitted_at: daysFromNow(-5),
+        work_url: "https://github.com/example/measuring-growth",
+        notes: "Counts match the formulas exactly. Timing for binary search was too noisy to say much below n = 10 000.",
       })
       .select("id")
       .single(),
   );
-  check("mark reviewed", await db.from("submissions").update({ status: "reviewed", reviewed_at: daysFromNow(-4) }).eq("id", reviewed.id));
+  check("mark reviewed", await db.from("submissions").update({ status: "reviewed", reviewed_at: daysFromNow(-3) }).eq("id", reviewed.id));
 
+  const firstOccurrence = readProblemFiles("first-occurrence");
+  const lowerBound = readProblemFiles("lower-bound");
   check(
-    "insert draft submission",
-    await db.from("submissions").insert({
-      project_id: project("fit-a-function-and-its-derivative"),
-      user_id: people.student,
-      status: "in_progress",
-      work_url: "https://github.com/example/spectral-bias-experiment",
-      notes: "Baseline is trained. Fourier features still to do.",
-    }),
+    "insert code submissions",
+    await db.from("code_submissions").insert([
+      { problem_id: problem("first-occurrence"), user_id: people.student, code: firstOccurrence.solution, status: "submitted", created_at: daysFromNow(-19) },
+      { problem_id: problem("is-sorted"), user_id: people.student, code: readProblemFiles("is-sorted").solution, status: "submitted", created_at: daysFromNow(-17) },
+      { problem_id: problem("lower-bound"), user_id: people.student, code: lowerBound.starter, status: "draft", created_at: daysFromNow(-2) },
+    ]),
   );
 
   check(
@@ -546,40 +715,40 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
         student_id: people.student,
         author_id: people.instructor,
         kind: "project",
-        project_id: project("verified-heat-solver"),
+        project_id: projectId,
         submission_id: reviewed.id,
-        title: "Project 1 review: a convincing convergence study",
-        body_md: String.raw`Strong work. The convergence table is exactly what the brief asked for: four grids, the observed order between each pair, and the norm stated.
+        title: "Project 1 review: careful measurements",
+        body_md: String.raw`Your comparison counts agree with the derived formulas for every size you tried, and you constructed the worst cases deliberately instead of searching for them. That is the core of the project.
 
 **What went well**
 
-- Observed order of 2.00 to three digits, with $r$ held fixed across grids.
-- The stability experiment brackets the limit tightly ($r = 0.50$ stable, $r = 0.51$ growing).
+- Each implementation is tested against a trusted method on all small inputs before any measurement is taken.
+- The worst case for binary search is obtained by searching for an absent value larger than every element, with the reason stated.
 
 **To improve**
 
-1. You measured the error after a fixed *number of steps*, so each grid was compared at a different physical time. Measure at a fixed final time instead: the order you report is then unambiguous.
-2. The README lists the commands but not the Python and NumPy versions.
+1. The random trials are not seeded, so the averages cannot be reproduced exactly. Fix the seed and report it.
+2. The timing discussion stops at "too noisy". Say *why*: for $n = 10^4$ binary search performs about 14 iterations, far below the resolution of a single timer reading. Repeating the call many times, as the timeit module does, would have given a usable figure.
 
 | Criterion | Points |
 | --- | --- |
-| Correctness | 28 / 30 |
-| Convergence study | 24 / 30 |
-| Stability experiment | 19 / 20 |
-| Reproducibility | 15 / 20 |`,
-        score: 86,
+| Correctness | 25 / 25 |
+| Experimental method | 18 / 25 |
+| Analysis | 24 / 30 |
+| Presentation | 17 / 20 |`,
+        score: 84,
         max_score: 100,
-        read_at: daysFromNow(-3.5),
-        created_at: daysFromNow(-4),
+        read_at: daysFromNow(-2.5),
+        created_at: daysFromNow(-3),
       },
       {
         course_id: courseId,
         student_id: people.student,
         author_id: people.instructor,
         kind: "quiz",
-        quiz_id: firstQuiz,
-        title: "On your Module 1 quiz retake",
-        body_md: String.raw`Good recovery on the second attempt. The question you missed first time, the FTCS limit, is worth being able to derive rather than remember: substitute a Fourier mode and require $|G| \le 1$. It comes back in Module 4 when we look at rollout stability.`,
+        quiz_id: quizId,
+        title: "On your Module 1 assessment",
+        body_md: String.raw`A clear improvement on the retake. On the first attempt you missed the question on what a loop invariant must satisfy. Remember that an invariant is still **true** when the loop ends: the proof uses it together with the exit condition, as in binary search, where $lo > hi$ and the invariant together give "not present".`,
         created_at: daysFromNow(-2),
       },
       {
@@ -587,32 +756,31 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
         student_id: people.student,
         author_id: people.instructor,
         kind: "general",
-        title: "Mid-course check-in",
+        title: "Before you start insertion sort",
         body_md:
-          "You are on schedule and your written explanations are clear. For Project 2, plan the evaluation grid and the seeds **before** you train anything. It makes the comparison much easier to defend.",
+          "You are one lesson from finishing the module. When you reach the section on inversions, work the small example by hand before running the visualization: predicting the number of shifts first is what makes the result stick.",
         created_at: daysFromNow(-1),
       },
     ]),
   );
 
-  // --- Second student: just starting, with one project waiting for review ---------------
+  // --- Second student: same lessons, quiz not yet passed, project waiting for review ------
   check(
     "insert second progress",
-    await db.from("lesson_progress").insert([
-      { user_id: people.second, lesson_id: lesson("differential-equations-as-models"), completed_at: daysFromNow(-12) },
-      { user_id: people.second, lesson_id: lesson("finite-differences"), completed_at: daysFromNow(-8) },
-    ]),
+    await db.from("lesson_progress").insert(
+      completed.map(([slug, daysAgo]) => ({ user_id: people.second, lesson_id: lesson(slug), completed_at: daysFromNow(-daysAgo + 1) })),
+    ),
   );
-  await recordAttempt(db, { quizId: firstQuiz, userId: people.second, attemptNumber: 1, wrong: [0, 1, 4], daysAgo: 7, passPercent: 70 });
+  await recordAttempt(db, { quizId, userId: people.second, attemptNumber: 1, wrong: [0, 1, 4, 5], daysAgo: 3, passPercent: 70 });
   check(
     "insert pending submission",
     await db.from("submissions").insert({
-      project_id: project("verified-heat-solver"),
+      project_id: projectId,
       user_id: people.second,
       status: "submitted",
-      submitted_at: daysFromNow(-6),
-      work_url: "https://github.com/example/ftcs-heat",
-      notes: "Submitted late, sorry. The order I measure is 1.6 and I could not find out why.",
+      submitted_at: daysFromNow(-1),
+      work_url: "https://github.com/example/growth-study",
+      notes: "My insertion sort counts are one higher than the formula for some inputs and I could not find out why.",
     }),
   );
 }
@@ -626,12 +794,15 @@ async function main() {
   });
 
   const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url);
+  const summary = (ids: ContentIds) =>
+    `Done: ${course.phases.length} phases, ${ids.modules.size} modules (${ids.lessons.size} lessons, ${ids.quizzes.size} quizzes, ${ids.projects.size} projects and ${ids.problems.size} coding problems in the published ones).`;
 
   if (contentOnly) {
     console.log(`Syncing course content to ${url}`);
     const ids = await seedContent(db, null);
+    await seedCohorts(db, ids);
     await seedSchedule(db, ids, null, false);
-    console.log(`Done: ${ids.modules.size} modules, ${ids.lessons.size} lessons, ${ids.quizzes.size} quizzes, ${ids.projects.size} projects.`);
+    console.log(summary(ids));
     return;
   }
 
@@ -648,7 +819,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Seeding demo course and accounts into ${url}`);
+  console.log(`Seeding the course and demo accounts into ${url}`);
   const instructor = await ensureUser(db, {
     email: course.instructor.email,
     fullName: course.instructor.fullName,
@@ -656,31 +827,22 @@ async function main() {
     role: "instructor",
     timezone: course.instructor.timezone,
     bio: course.instructor.bio,
+    headline: course.instructor.headline,
+    avatarUrl: course.instructor.avatarUrl,
+    links: course.instructor.links,
   });
-  const student = await ensureUser(db, {
-    email: "student@example.com",
-    fullName: "Amina Yusuf",
-    password,
-    role: "student",
-    timezone: "Europe/Rome",
-    bio: "Second-year PhD student in mechanical engineering, working on heat transfer.",
-  });
-  const second = await ensureUser(db, {
-    email: "student2@example.com",
-    fullName: "Lukas Weber",
-    password,
-    role: "student",
-    timezone: "Europe/Berlin",
-  });
+  const student = await ensureUser(db, { email: "student@example.com", fullName: "Amina Yusuf", password, role: "student", timezone: "Europe/Rome" });
+  const second = await ensureUser(db, { email: "student2@example.com", fullName: "Lukas Weber", password, role: "student", timezone: "Europe/Berlin" });
 
   const ids = await seedContent(db, instructor);
+  await seedCohorts(db, ids);
   await seedSchedule(db, ids, instructor, true);
   await seedDemoActivity(db, ids, { instructor, student, second });
 
-  console.log(`Done: ${ids.modules.size} modules, ${ids.lessons.size} lessons, ${ids.quizzes.size} quizzes, ${ids.projects.size} projects.`);
+  console.log(summary(ids));
   console.log("\nDemo accounts (password: the value of SEED_DEMO_PASSWORD)");
-  console.log("  student@example.com      student, part-way through the course");
-  console.log("  student2@example.com     student, just starting");
+  console.log("  student@example.com      student, one lesson from finishing Module 1");
+  console.log("  student2@example.com     student, quiz not yet passed, project awaiting review");
   console.log(`  ${course.instructor.email}   instructor`);
 }
 
