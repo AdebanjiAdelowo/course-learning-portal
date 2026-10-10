@@ -356,7 +356,7 @@ export function ResourceForm({ targets }: { targets: ResourceTargetGroup[] }) {
         name="url"
         required
         placeholder="https://"
-        hint="An https:// link. For a file only enrolled students may download, upload it to the private course-files bucket and enter /learn/files/ followed by its path, such as /learn/files/module-1/notes.pdf. A path such as /figures/chart.svg points at a file in the site's public folder, which anyone can open."
+        hint="An https:// link. For a file only enrolled students may download, upload it to the private course-files bucket inside the folder named after the course slug, and enter /learn/files/ followed by its path within that folder, such as /learn/files/module-1/notes.pdf. A path such as /figures/chart.svg points at a file in the site's public folder, which anyone can open."
         errors={state.fieldErrors?.url}
       />
       <div className="grid gap-5 sm:grid-cols-2">

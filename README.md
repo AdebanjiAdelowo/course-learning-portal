@@ -388,7 +388,7 @@ A published module is locked while its `available_from` date is in the future, o
 
 - **Content-Security-Policy.** Set per request in `src/proxy.ts`. Scripts run only with the request's nonce. Frames are limited to the two video hosts that lesson embeds use. Inline styles are allowed, because KaTeX positions mathematics with style attributes; styles cannot execute code.
 - **Contact form.** A honeypot field, strict validation, and three rate limits counted in PostgreSQL: 5 messages an hour per address, 3 per email address, and 60 for the whole site. Only hashes of addresses and emails are stored. If the limiter cannot be reached, the message is refused.
-- **Private course files.** Files in `public/` can be opened by anyone with the address, so that folder holds only lesson figures. Files for enrolled students belong in the private `course-files` storage bucket. A resource whose address is `/learn/files/<path>` is served through a route that requires a session and returns a signed link valid for one minute. Storage policies allow staff to write, and staff and students with an active enrolment to read.
+- **Private course files.** Files in `public/` can be opened by anyone with the address, so that folder holds only lesson figures. Files for enrolled students belong in the private `course-files` storage bucket, under a folder named after the course slug: `course-files/<course-slug>/<path>`. A resource whose address is `/learn/files/<path>` is served through a route that requires a session and returns a signed link, valid for one minute, to that course's file. Storage policies allow staff to write, and allow reading by staff and by students with an active or completed enrolment in the course the file belongs to.
 - **Profile links.** Restricted to `https://` addresses by the form, by the renderer and by a database constraint.
 - **Headers.** `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy` are set in `next.config.ts`.
 
@@ -463,7 +463,7 @@ The app is a standard Next.js application and needs a Node.js host (for example 
 
 6. **Build and start:** `npm run build`, then `npm run start`, or let your platform do so.
 
-Before going live, also set `NEXT_PUBLIC_SUPPORT_EMAIL` if you want an address shown, fill in the instructor's public profile, and upload any private course files to the `course-files` bucket.
+Before going live, also set `NEXT_PUBLIC_SUPPORT_EMAIL` if you want an address shown, fill in the instructor's public profile, and upload any private course files to the `course-files` bucket, inside a folder named after the course slug.
 
 ## Authoring course content
 
@@ -567,7 +567,7 @@ Add an entry to the module's `problems` (slug, title, summary, difficulty, const
 
 ### Resources
 
-A resource is an `https://` link, or `/learn/files/<path>` for a file in the private `course-files` bucket, or a path such as `/figures/chart.svg` for a public file. It can be attached to the course, a module, a lesson, a project or a live session.
+A resource is an `https://` link, or `/learn/files/<path>` for the file stored at `<course-slug>/<path>` in the private `course-files` bucket, or a path such as `/figures/chart.svg` for a public file. It can be attached to the course, a module, a lesson, a project or a live session.
 
 ## Rebranding
 
@@ -586,7 +586,7 @@ A resource is an `https://` link, or `/learn/files/<path>` for a file in the pri
 - **Cohorts are stored but not managed in the interface.** The seed assigns students to a cohort, and sessions and announcements can be limited to one, but there is no screen for creating cohorts or assigning students. Enrolment requests have a table and no form or inbox.
 - **One course per deployment.** The schema supports several courses, and the interface uses the one named by `NEXT_PUBLIC_COURSE_SLUG`.
 - **Modules cannot be deleted in the browser**, lessons cannot be deleted (only unpublished), and existing resources cannot be edited (only removed and added again). There is no live preview while editing.
-- **No upload screen for private files.** They are uploaded to the bucket with the Supabase dashboard or CLI. Access is by enrolment, not by module lock.
+- **No upload screen for private files.** They are uploaded to the bucket with the Supabase dashboard or CLI, into the course's folder. Access is by enrolment in the course, not by module lock.
 - **Project submissions are links, not uploads.**
 - **Quizzes are submitted as a whole.** A closed tab loses an unfinished attempt. There is no time limit and no manually graded question type.
 - **Contact messages are counted on the instructor overview and read in the database.** No notification email is sent.

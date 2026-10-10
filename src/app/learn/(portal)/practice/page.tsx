@@ -87,7 +87,9 @@ export default async function PracticePage({
         <EmptyState title="No practice problems yet">Problems appear here when your instructor publishes them.</EmptyState>
       ) : (
         <>
-          <form action="/learn/practice" role="search" aria-label="Filter problems" className="card grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end sm:p-5">
+          {/* Keyed by the applied filter: the fields are uncontrolled, so without a new key they
+              would keep showing the old values after "Clear" or the browser's back button. */}
+          <form key={`${filter.query}|${filter.difficulty}|${filter.status}`} action="/learn/practice" role="search" aria-label="Filter problems" className="card grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end sm:p-5">
             <div>
               <label htmlFor="practice-q" className="block text-sm font-semibold">
                 Search
