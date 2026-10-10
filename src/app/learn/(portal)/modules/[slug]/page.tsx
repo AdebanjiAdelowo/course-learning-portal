@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ModuleOutline } from "@/components/module-outline";
+import { DifficultyBadge, PracticeStatusBadge } from "@/components/practice-status";
 import { ResourceList } from "@/components/resource-list";
 import { ModuleStateBadge } from "@/components/status";
 import { ButtonLink } from "@/components/ui/button";
@@ -24,9 +25,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ModulePage({ params }: Props) {
   const { slug } = await params;
-  const { progress, record } = await requireCourseState();
+  const { progress, record, problems, practice, path } = await requireCourseState();
   const item = progress.moduleProgress.find((m) => m.module.slug === slug);
   if (!item) notFound();
+  const moduleProblems = problems.filter((problem) => problem.module_id === item.module.id);
+  const phase = path.phases.find((p) => p.modules.some((m) => m.slug === slug));
 
   const { module: mod } = item;
   const locked = item.state === "locked";
@@ -50,7 +53,9 @@ export default async function ModulePage({ params }: Props) {
           Curriculum
         </Link>
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <p className="eyebrow">Module {mod.position}</p>
+          <p className="eyebrow">
+            {phase && phase.number > 0 ? `Phase ${phase.number}: ${phase.title} · ` : ""}Module {mod.position}
+          </p>
           <ModuleStateBadge state={item.state} />
         </div>
         <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">{mod.title}</h1>
@@ -97,6 +102,36 @@ export default async function ModulePage({ params }: Props) {
               <ButtonLink href={nextInModule.href} size="lg">
                 Continue: {nextInModule.title}
               </ButtonLink>
+            ) : null}
+
+            {moduleProblems.length > 0 ? (
+              <div className="space-y-4 pt-6">
+                <SectionHeading
+                  id="module-practice"
+                  title="Practice problems"
+                  action={
+                    <Link href="/learn/practice" className="font-semibold text-accent underline-offset-4 hover:underline">
+                      All practice
+                    </Link>
+                  }
+                />
+                <p className="text-sm text-ink-faint">
+                  For practice: your code is saved for your own review and does not count towards module completion.
+                </p>
+                <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+                  {moduleProblems.map((problem) => (
+                    <li key={problem.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+                      <Link href={`/learn/practice/${problem.slug}`} className="font-semibold hover:text-accent">
+                        {problem.title}
+                      </Link>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <DifficultyBadge difficulty={problem.difficulty} />
+                        <PracticeStatusBadge status={practice.get(problem.id)?.status ?? "not_attempted"} />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
           </section>
           <section aria-labelledby="module-resources" className="space-y-4">

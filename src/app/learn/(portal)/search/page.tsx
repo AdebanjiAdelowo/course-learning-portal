@@ -1,4 +1,4 @@
-import { BookOpenText, ExternalLink, FlaskConical, Layers, Paperclip, Search } from "lucide-react";
+import { BookOpenText, Code2, ExternalLink, FlaskConical, Layers, Paperclip, Search } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ComponentType } from "react";
@@ -7,25 +7,20 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { requireCourseState } from "@/lib/data/course";
 import { createClient } from "@/lib/supabase/server";
+import { isSearchKind, searchKindOrder, searchResultHref, type SearchKind } from "@/lib/domain/search";
 import { searchQuerySchema } from "@/lib/validation";
 
 export const metadata: Metadata = { title: "Search" };
 
-type Kind = "lesson" | "module" | "project" | "resource";
+type Kind = SearchKind;
 
 const kinds: Record<Kind, { label: string; plural: string; icon: ComponentType<{ className?: string }> }> = {
   lesson: { label: "Lesson", plural: "Lessons", icon: BookOpenText },
   module: { label: "Module", plural: "Modules", icon: Layers },
+  problem: { label: "Practice problem", plural: "Practice problems", icon: Code2 },
   project: { label: "Project", plural: "Projects", icon: FlaskConical },
   resource: { label: "Resource", plural: "Resources", icon: Paperclip },
 };
-
-function hrefFor(kind: Kind, slug: string | null, url: string | null): string {
-  if (kind === "lesson") return `/learn/lessons/${slug}`;
-  if (kind === "module") return `/learn/modules/${slug}`;
-  if (kind === "project") return `/learn/projects/${slug}`;
-  return url ?? "/learn/resources";
-}
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
   const { q } = await searchParams;
@@ -38,10 +33,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("search_course", { p_course_id: course.id, p_query: parsed.data });
     if (error) throw new Error(`Search failed: ${error.message}`);
-    results = data.filter((row): row is typeof row & { kind: Kind } => row.kind in kinds);
+    // Rows of an unknown kind, or without the slug their link needs, are dropped, not guessed at.
+    results = data.filter(
+      (row): row is typeof row & { kind: Kind } => isSearchKind(row.kind) && searchResultHref(row.kind, row.slug, row.url) !== null,
+    );
   }
 
-  const order: Kind[] = ["lesson", "module", "project", "resource"];
+  const order = searchKindOrder;
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
@@ -50,8 +48,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         title={parsed.success ? `Results for “${parsed.data}”` : "Search the course"}
         description={
           parsed.success
-            ? `${results.length} ${results.length === 1 ? "match" : "matches"} in lessons, modules, projects and resources.`
-            : "Find lessons, modules, projects and resources by keyword."
+            ? `${results.length} ${results.length === 1 ? "match" : "matches"} in lessons, modules, practice problems, projects and resources.`
+            : "Find lessons, modules, practice problems, projects and resources by keyword."
         }
       />
 
@@ -69,7 +67,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             minLength={2}
             maxLength={100}
             required
-            placeholder="For example: stability, automatic differentiation, Darcy"
+            placeholder="For example: invariant, binary search, lower bound"
             className="field h-12 pl-10"
           />
         </div>
@@ -102,7 +100,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </h2>
             <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
               {group.map((result) => {
-                const href = hrefFor(kind, result.slug, result.url);
+                const href = searchResultHref(kind, result.slug, result.url) ?? "/learn";
                 const external = /^https?:\/\//.test(href);
                 const body = (
                   <>
