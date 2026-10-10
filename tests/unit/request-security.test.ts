@@ -27,7 +27,7 @@ describe("redirect canonicalisation", () => {
   });
 
   it("canonicalises dot segments and preserves queries", () => {
-    expect(safeNextPath("/learn/../learn/curriculum?q=heat%20flow")).toBe("/learn/curriculum?q=heat%20flow");
+    expect(safeNextPath("/learn/../learn/curriculum?q=binary%20search")).toBe("/learn/curriculum?q=binary%20search");
     expect(safeNextPath("//attacker.example")).toBe("/learn");
     expect(safeNextPath("/a/..//attacker.example")).toBe("/learn");
   });

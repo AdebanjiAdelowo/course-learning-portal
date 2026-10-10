@@ -45,7 +45,7 @@ for n in range(0, 5000):
 
 The difference $hi - lo$ starts at $n + 1$ and roughly halves each time, so there are at most $\lceil \log_2 (n + 1) \rceil$ iterations: 60 for $n = 10^{18}$. Extra space is $\Theta(1)$.
 
-Each iteration multiplies two integers. For numbers of this size that is a single machine operation. For integers with thousands of digits the multiplication itself is no longer constant time, which is the limit of the RAM model mentioned in the lesson on counting cost.
+Each iteration multiplies two integers. For numbers of this size the product fits in a few machine words, so the multiplication costs a small, bounded number of machine operations. For integers with thousands of digits the multiplication itself is no longer constant time, which is the limit of the RAM model mentioned in the lesson on counting cost.
 
 ## Why not floating point
 

@@ -2,7 +2,7 @@
 
 The answer is a boundary. Every index to its left holds a value smaller than the target and every index from it onward holds a value at least the target. Binary search can find a boundary directly, without ever testing for equality.
 
-Use a half-open candidate range for the **answer**: it lies in $[lo, hi]$ with $lo = 0$ and $hi = n$. Note that $hi$ starts at $n$, not $n - 1$, because $n$ is a possible answer.
+Keep two indices that bracket the **answer**: it always satisfies $lo \le \text{answer} \le hi$, starting from $lo = 0$ and $hi = n$. Note that $hi$ starts at $n$, not $n - 1$, because $n$ is a possible answer. The indices still to be examined are $lo, \dots, hi - 1$, a half-open range.
 
 ## Solution
 

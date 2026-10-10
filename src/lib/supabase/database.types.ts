@@ -411,6 +411,20 @@ isOneToOne: false
       referencedColumns: ["id","course_id"]
     }
                   ]
+                },"rate_limit_hits": {
+                  Row: {
+                    "bucket": string,"created_at": string,"id": number,"key_hash": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bucket": string,"created_at"?: string,"id"?: never,"key_hash": string
+                  }
+                  Update: {
+                    "bucket"?: string,"created_at"?: string,"id"?: never,"key_hash"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"phases": {
                   Row: {
                     "course_id": string,"created_at": string,"description": string,"id": string,"position": number,"slug": string,"title": string
