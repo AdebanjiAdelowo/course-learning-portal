@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { requireCourseState } from "@/lib/data/course";
 import { requireViewer } from "@/lib/data/viewer";
+import { linksToText, safeProfileLinks } from "@/lib/domain/profile";
 import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
-import { PasswordForm, ProfileForm } from "./settings-forms";
+import { PasswordForm, ProfileForm, PublicProfileForm } from "./settings-forms";
 
 export const metadata: Metadata = { title: "Profile and settings" };
 
@@ -66,6 +67,22 @@ export default async function SettingsPage() {
           <ProfileForm fullName={profile.full_name} timezone={profile.timezone} bio={profile.bio ?? ""} zones={zoneOptions} />
         </div>
       </section>
+
+      {viewer.isStaff ? (
+        <section aria-labelledby="public-profile" className="card p-6 sm:p-7">
+          <h2 id="public-profile" className="text-xl font-semibold">Public profile</h2>
+          <p className="mt-1 text-ink-soft">
+            Shown in the instructor section of the public website, together with your name and the text under “About you”.
+          </p>
+          <div className="mt-5">
+            <PublicProfileForm
+              headline={profile.headline ?? ""}
+              avatarUrl={profile.avatar_url ?? ""}
+              linksText={linksToText(safeProfileLinks(profile.links))}
+            />
+          </div>
+        </section>
+      ) : null}
 
       <section aria-labelledby="password" className="card p-6 sm:p-7">
         <h2 id="password" className="text-xl font-semibold">Password</h2>

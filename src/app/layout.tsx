@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Source_Sans_3, Source_Serif_4 } from "next/font/google";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 
 import { InlineScript } from "@/components/inline-script";
 import { siteConfig } from "@/config/site";
+import { NONCE_HEADER } from "@/lib/csp";
+import { publicEnv } from "@/lib/env";
 
 import "katex/dist/katex.min.css";
 import "./globals.css";
@@ -12,10 +15,22 @@ const display = Source_Serif_4({ variable: "--font-display", subsets: ["latin"],
 const body = Source_Sans_3({ variable: "--font-body", subsets: ["latin"], display: "swap" });
 const code = JetBrains_Mono({ variable: "--font-code", subsets: ["latin"], display: "swap" });
 
-export const metadata: Metadata = {
-  title: { default: siteConfig.name, template: `%s · ${siteConfig.name}` },
-  description: siteConfig.description,
-};
+export function generateMetadata(): Metadata {
+  return {
+    metadataBase: new URL(publicEnv().siteUrl),
+    title: { default: siteConfig.name, template: `%s · ${siteConfig.name}` },
+    description: siteConfig.description,
+    applicationName: siteConfig.name,
+    openGraph: {
+      title: siteConfig.name,
+      description: siteConfig.description,
+      siteName: siteConfig.name,
+      type: "website",
+      locale: "en_GB",
+    },
+    twitter: { card: "summary", title: siteConfig.name, description: siteConfig.description },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -27,7 +42,10 @@ export const viewport: Viewport = {
 // Applies the saved theme (or the system preference) before first paint, so there is no flash.
 const themeScript = `(function(){try{var s=localStorage.getItem("theme");var t=s==="light"||s==="dark"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Set by the proxy for this request. Reading it also makes every page render per request,
+  // which a nonce-based Content-Security-Policy requires.
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined;
   return (
     <html
       lang="en"
@@ -36,7 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${display.variable} ${body.variable} ${code.variable} h-full antialiased`}
     >
       <head>
-        <InlineScript html={themeScript} />
+        <InlineScript html={themeScript} nonce={nonce} />
       </head>
       <body className="flex min-h-full flex-col">
         <a
