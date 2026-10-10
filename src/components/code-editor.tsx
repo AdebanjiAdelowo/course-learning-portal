@@ -24,6 +24,7 @@ export function CodeEditor({
   maxLength,
   invalid = false,
   describedBy,
+  heightClass = "h-[26rem]",
 }: {
   id: string;
   name: string;
@@ -33,6 +34,8 @@ export function CodeEditor({
   maxLength: number;
   invalid?: boolean;
   describedBy?: string;
+  /** Tailwind height of the editing area. */
+  heightClass?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const layerRef = useRef<HTMLPreElement>(null);
@@ -108,7 +111,8 @@ export function CodeEditor({
     <div>
       <div
         className={cn(
-          "relative h-[26rem] overflow-hidden rounded-lg border bg-sunken focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(--focus)",
+          heightClass,
+          "relative overflow-hidden rounded-lg border bg-sunken focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(--focus)",
           invalid ? "border-danger" : "border-line-strong",
         )}
       >

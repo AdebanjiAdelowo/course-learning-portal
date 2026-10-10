@@ -29,8 +29,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      // Every page and route handler. Static assets need no policy and no session.
-      source: "/((?!_next/static|_next/image|favicon.ico|figures/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|woff2?)$).*)",
+      // Every page and route handler. Static assets need no policy and no session. The Python
+      // worker and its runtime are excluded because the worker is served with a policy of its own.
+      source: "/((?!_next/static|_next/image|favicon.ico|figures/|pyodide/|pyodide-worker$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|woff2?)$).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

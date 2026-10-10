@@ -46,6 +46,9 @@ next-env.d.ts
 /playwright-report/
 /playwright/.cache/
 
+# pyodide runtime, copied from node_modules by scripts/copy-pyodide.mjs
+/public/pyodide/
+
 # supabase
 supabase/.temp/
 supabase/.branches/
