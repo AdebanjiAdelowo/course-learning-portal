@@ -25,6 +25,49 @@ export interface PathPhaseInput {
   title: string;
   description: string;
   position: number;
+  /** Preparation for the course proper (Python foundations): numbered apart from the core. */
+  isPreparatory?: boolean;
+}
+
+/**
+ * How a module is numbered for display. Numbering is presentation only: it is derived from
+ * the order of the curriculum and never stored, so reordering or inserting a module can never
+ * leave a stale number anywhere.
+ */
+export interface ModuleLabel {
+  /** "P1" for a preparatory module, "1" for a core one. */
+  code: string;
+  /** "Python Module P1" or "DSA Module 1". */
+  text: string;
+  preparatory: boolean;
+}
+
+export const PREPARATORY_LABEL = "Python Module";
+export const CORE_LABEL = "DSA Module";
+
+/**
+ * Numbers every module of the course, by slug. Preparatory modules count P1, P2, ... in course
+ * order; all other modules count 1, 2, ... in course order, skipping the preparatory ones. A
+ * planned module takes a number like any other, so numbers do not shift when it is published.
+ */
+export function moduleLabels(
+  phases: readonly Pick<PathPhaseInput, "id" | "isPreparatory">[],
+  modules: readonly Pick<PathModuleInput, "slug" | "position" | "phaseId">[],
+): Map<string, ModuleLabel> {
+  const preparatoryPhases = new Set(phases.filter((phase) => phase.isPreparatory).map((phase) => phase.id));
+  const labels = new Map<string, ModuleLabel>();
+  let preparatory = 0;
+  let core = 0;
+  for (const mod of [...modules].sort((a, b) => a.position - b.position)) {
+    if (mod.phaseId !== null && preparatoryPhases.has(mod.phaseId)) {
+      preparatory += 1;
+      labels.set(mod.slug, { code: `P${preparatory}`, text: `${PREPARATORY_LABEL} P${preparatory}`, preparatory: true });
+    } else {
+      core += 1;
+      labels.set(mod.slug, { code: String(core), text: `${CORE_LABEL} ${core}`, preparatory: false });
+    }
+  }
+  return labels;
 }
 
 export interface PathModuleInput {
@@ -40,6 +83,7 @@ export interface PathModuleInput {
 export interface PathModule extends PathModuleInput {
   /** Titles of the prerequisite modules, in the order the plan lists them. */
   prerequisiteTitles: string[];
+  label: ModuleLabel;
 }
 
 export interface PathPhase {
@@ -47,6 +91,7 @@ export interface PathPhase {
   id: string | null;
   /** 1-based number shown to students; 0 for the unassigned group. */
   number: number;
+  isPreparatory: boolean;
   title: string;
   description: string;
   modules: PathModule[];
@@ -98,19 +143,22 @@ export function hasPlan(plan: ModulePlan): boolean {
  */
 export function buildLearningPath(phases: readonly PathPhaseInput[], modules: readonly PathModuleInput[]): LearningPath {
   const titles = new Map(modules.map((mod) => [mod.slug, mod.title]));
+  const labels = moduleLabels(phases, modules);
   const ordered = [...modules]
     .sort((a, b) => a.position - b.position)
     .map((mod): PathModule => ({
       ...mod,
+      label: labels.get(mod.slug)!,
       prerequisiteTitles: mod.plan.prerequisites.flatMap((slug) => {
         const title = titles.get(slug);
         return title ? [title] : [];
       }),
     }));
 
-  const group = (id: string | null, number: number, title: string, description: string, members: PathModule[]): PathPhase => ({
+  const group = (id: string | null, number: number, title: string, description: string, members: PathModule[], isPreparatory = false): PathPhase => ({
     id,
     number,
+    isPreparatory,
     title,
     description,
     modules: members,
@@ -122,7 +170,7 @@ export function buildLearningPath(phases: readonly PathPhaseInput[], modules: re
   const result = [...phases]
     .sort((a, b) => a.position - b.position)
     .map((phase, index) =>
-      group(phase.id, index + 1, phase.title, phase.description, ordered.filter((mod) => mod.phaseId === phase.id)),
+      group(phase.id, index + 1, phase.title, phase.description, ordered.filter((mod) => mod.phaseId === phase.id), phase.isPreparatory ?? false),
     );
 
   const unassigned = ordered.filter((mod) => mod.phaseId === null || !known.has(mod.phaseId));

@@ -68,7 +68,7 @@ export default async function QuizPage({ params }: Props) {
         </Link>
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <p className="eyebrow">
-            Module {owner.module.position} · {owner.module.title}
+            {owner.module.label} · {owner.module.title}
           </p>
           {standing?.passed ? <Badge tone="accent">Passed</Badge> : null}
         </div>

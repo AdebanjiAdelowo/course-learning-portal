@@ -2,7 +2,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { getAdminCourse, NIL_UUID } from "@/lib/data/admin";
+import { getAdminCourse, getModuleLabels, NIL_UUID } from "@/lib/data/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import { LessonForm, type LessonFormValues } from "../../forms";
@@ -27,6 +27,8 @@ export async function LessonEditor({
     .eq("course_id", course?.id ?? NIL_UUID)
     .order("position");
 
+  const labels = await getModuleLabels();
+
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <header className="border-b border-line pb-8">
@@ -46,7 +48,7 @@ export async function LessonEditor({
       </header>
       <LessonForm
         values={values}
-        modules={(modules ?? []).map((mod) => ({ id: mod.id, label: `Module ${mod.position}: ${mod.title}` }))}
+        modules={(modules ?? []).map((mod) => ({ id: mod.id, label: labels.describe(mod) }))}
         notice={notice}
       />
     </div>

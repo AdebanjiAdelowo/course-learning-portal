@@ -35,7 +35,7 @@ function AvailableModule({
       <div className="grid gap-6 p-6 sm:p-7 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-10">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <p className="eyebrow">Module {mod.position}</p>
+            <p className="eyebrow">{mod.label}</p>
             <ModuleStateBadge state={item.state} />
           </div>
           <h3 id={headingId} className="mt-3 text-2xl font-semibold">
@@ -53,7 +53,7 @@ function AvailableModule({
             {problemCount > 0 ? ` · ${problemCount} practice ${problemCount === 1 ? "problem" : "problems"}` : ""}
           </p>
           <div className="mt-4 flex items-center gap-3">
-            <ProgressBar value={item.percent} label={`Module ${mod.position} completion`} />
+            <ProgressBar value={item.percent} label={`${mod.label} completion`} />
             <span className="w-11 shrink-0 text-right text-sm font-semibold tabular-nums">{item.percent}%</span>
           </div>
           {item.lockReason ? (

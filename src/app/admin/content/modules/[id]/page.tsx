@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { getAdminCourse } from "@/lib/data/admin";
+import { getAdminCourse, getModuleLabels } from "@/lib/data/admin";
 import { requireStaff } from "@/lib/data/viewer";
 import { hasPlan, parseModulePlan } from "@/lib/domain/path";
 import { createClient } from "@/lib/supabase/server";
@@ -32,10 +32,11 @@ export default async function EditModulePage({ params }: { params: Promise<{ id:
   ]);
   if (!mod) notFound();
   const plan = parseModulePlan(mod.plan);
+  const labels = await getModuleLabels();
 
   return (
     <EditorShell
-      eyebrow={`Module ${mod.position} · ${mod.is_published ? "published" : "planned"}`}
+      eyebrow={`${labels.byId.get(mod.id)?.text ?? `Module ${mod.position}`} · ${mod.is_published ? "published" : "planned"}`}
       heading={mod.title}
       previewHref={mod.is_published ? `/learn/modules/${mod.slug}` : "/learn/curriculum"}
     >

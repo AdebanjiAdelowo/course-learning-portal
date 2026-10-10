@@ -157,6 +157,11 @@ export interface SeedPhase {
   slug: string;
   title: string;
   description: string;
+  /**
+   * Preparation for the course proper. Its modules are numbered P1, P2, ... and the remaining
+   * modules are numbered from 1, so "DSA Module 1" is the first module after the preparation.
+   */
+  preparatory?: boolean;
   modules: SeedModule[];
 }
 

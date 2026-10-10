@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const { progress } = await requireCourseState();
   const item = progress.moduleProgress.find((m) => m.module.slug === slug);
-  return { title: item ? `Module ${item.module.position}: ${item.module.title}` : "Module" };
+  return { title: item ? `${item.module.label}: ${item.module.title}` : "Module" };
 }
 
 export default async function ModulePage({ params }: Props) {
@@ -54,7 +54,7 @@ export default async function ModulePage({ params }: Props) {
         </Link>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <p className="eyebrow">
-            {phase && phase.number > 0 ? `Phase ${phase.number}: ${phase.title} · ` : ""}Module {mod.position}
+            {phase && phase.number > 0 ? `Phase ${phase.number}: ${phase.title} · ` : ""}{mod.label}
           </p>
           <ModuleStateBadge state={item.state} />
         </div>

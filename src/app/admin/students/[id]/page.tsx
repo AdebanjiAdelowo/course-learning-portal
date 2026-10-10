@@ -60,7 +60,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
               <li key={item.module.id} className="card p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold">
-                    {item.module.position}. {item.module.title}
+                    {item.module.label}: {item.module.title}
                   </p>
                   <ModuleStateBadge state={item.state} />
                 </div>

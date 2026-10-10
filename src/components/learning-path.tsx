@@ -63,7 +63,7 @@ export function PlannedModule({ module: mod }: { module: PathModule }) {
   return (
     <div className="rounded-lg border border-dashed border-line-strong bg-paper p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <p className="eyebrow">Module {mod.position}</p>
+        <p className="eyebrow">{mod.label.text}</p>
         <Badge>Planned</Badge>
       </div>
       <h3 className="mt-2 text-xl font-semibold">{mod.title}</h3>

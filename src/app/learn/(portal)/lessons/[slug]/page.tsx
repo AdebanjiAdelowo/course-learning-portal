@@ -46,7 +46,7 @@ export default async function LessonPage({ params }: Props) {
       </div>
       {progress.moduleProgress.map((item) => (
         <div key={item.module.id}>
-          <p className="eyebrow">Module {item.module.position}</p>
+          <p className="eyebrow">{item.module.label}</p>
           <p className="mb-2 mt-1 font-serif text-base font-semibold leading-snug">{item.module.title}</p>
           <ModuleOutline
             progress={item}
@@ -69,7 +69,7 @@ export default async function LessonPage({ params }: Props) {
           </span>
           <h1 className="mt-4 text-2xl font-semibold">{meta.title}</h1>
           <p className="mt-2 text-ink-soft">
-            This lesson belongs to Module {owner.module.position}, which is still locked. {owner.lockReason}.
+            This lesson belongs to {owner.module.label}, which is still locked. {owner.lockReason}.
           </p>
           {progress.nextStep ? (
             <ButtonLink href={progress.nextStep.href} className="mt-6">
@@ -117,7 +117,7 @@ export default async function LessonPage({ params }: Props) {
               <li aria-hidden="true">/</li>
               <li>
                 <Link href={`/learn/modules/${owner.module.slug}`} className="hover:text-accent">
-                  Module {owner.module.position}: {owner.module.title}
+                  {owner.module.label}: {owner.module.title}
                 </Link>
               </li>
             </ol>

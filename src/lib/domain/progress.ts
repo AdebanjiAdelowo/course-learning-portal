@@ -51,6 +51,8 @@ export interface OutlineProject {
 export interface OutlineModule {
   id: string;
   slug: string;
+  /** Display number, for example "DSA Module 1" or "Python Module P1". Never used for ordering. */
+  label: string;
   title: string;
   description: string;
   position: number;
@@ -92,6 +94,7 @@ export interface NextStep {
   title: string;
   href: string;
   moduleTitle: string;
+  moduleLabel: string;
   modulePosition: number;
   durationMinutes: number | null;
 }
@@ -257,6 +260,7 @@ function findNextStep(unlocked: readonly ModuleProgress[], record: StudentRecord
         title: lesson.title,
         href: `/learn/lessons/${lesson.slug}`,
         moduleTitle: mod.title,
+        moduleLabel: mod.label,
         modulePosition: mod.position,
         durationMinutes: lesson.durationMinutes,
       };
@@ -270,6 +274,7 @@ function findNextStep(unlocked: readonly ModuleProgress[], record: StudentRecord
         title: quiz.title,
         href: `/learn/quizzes/${quiz.slug}`,
         moduleTitle: mod.title,
+        moduleLabel: mod.label,
         modulePosition: mod.position,
         durationMinutes: null,
       };
@@ -283,6 +288,7 @@ function findNextStep(unlocked: readonly ModuleProgress[], record: StudentRecord
         title: project.title,
         href: `/learn/projects/${project.slug}`,
         moduleTitle: mod.title,
+        moduleLabel: mod.label,
         modulePosition: mod.position,
         durationMinutes: null,
       };

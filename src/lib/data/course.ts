@@ -11,7 +11,7 @@ import {
   type StudentRecord,
   type SubmissionStatus,
 } from "@/lib/domain/progress";
-import { buildLearningPath, parseModulePlan, type LearningPath } from "@/lib/domain/path";
+import { buildLearningPath, moduleLabels, parseModulePlan, type LearningPath, type ModuleLabel } from "@/lib/domain/path";
 import { practiceStanding, type PracticeRow, type PracticeStanding } from "@/lib/domain/practice";
 import { summariseAttempts } from "@/lib/domain/quiz";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -98,12 +98,15 @@ export function buildOutline(
   lessons: LessonMeta[],
   quizzes: QuizMeta[],
   projects: ProjectMeta[],
+  /** Display numbers by module slug. Without one, a module falls back to its course position. */
+  labels?: ReadonlyMap<string, ModuleLabel>,
 ): OutlineModule[] {
   return [...modules]
     .sort((a, b) => a.position - b.position)
     .map((m) => ({
       id: m.id,
       slug: m.slug,
+      label: labels?.get(m.slug)?.text ?? `Module ${m.position}`,
       title: m.title,
       description: m.description,
       position: m.position,
@@ -195,7 +198,7 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
         .from("submissions")
         .select("id, project_id, status, submitted_at, reviewed_at, updated_at")
         .eq("user_id", viewer.id),
-      supabase.from("phases").select("id, title, description, position").eq("course_id", course.id).order("position"),
+      supabase.from("phases").select("id, title, description, position, is_preparatory").eq("course_id", course.id).order("position"),
       // Titles and plans of every module, published or not. Lesson content stays behind RLS.
       supabase
         .from("module_path")
@@ -232,7 +235,33 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
   const quizIds = new Set(visibleQuizzes.map((q) => q.id));
   const projectIds = new Set(visibleProjects.map((p) => p.id));
 
-  const outline = buildOutline(modules.data, visibleLessons, visibleQuizzes, visibleProjects);
+  const pathPhases = phases.data.map((phase) => ({
+    id: phase.id,
+    title: phase.title,
+    description: phase.description,
+    position: phase.position,
+    isPreparatory: phase.is_preparatory,
+  }));
+  const pathInputs = pathModules.data.flatMap((row) =>
+    row.slug === null || row.title === null || row.position === null
+      ? []
+      : [
+          {
+            slug: row.slug,
+            title: row.title,
+            description: row.description ?? "",
+            position: row.position,
+            phaseId: row.phase_id,
+            isPublished: row.is_published ?? false,
+            plan: parseModulePlan(row.plan),
+          },
+        ],
+  );
+  const path = buildLearningPath(pathPhases, pathInputs);
+  // Numbering counts planned modules too, so it comes from the whole path, not the published part.
+  const labels = moduleLabels(pathPhases, pathInputs);
+
+  const outline = buildOutline(modules.data, visibleLessons, visibleQuizzes, visibleProjects, labels);
 
   const modulePosition = new Map(modules.data.map((m) => [m.id, m.position]));
   const visibleProblems = (problems.data as ProblemMeta[])
@@ -252,24 +281,6 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
     }),
   );
 
-  const path = buildLearningPath(
-    phases.data,
-    pathModules.data.flatMap((row) =>
-      row.slug === null || row.title === null || row.position === null
-        ? []
-        : [
-            {
-              slug: row.slug,
-              title: row.title,
-              description: row.description ?? "",
-              position: row.position,
-              phaseId: row.phase_id,
-              isPublished: row.is_published ?? false,
-              plan: parseModulePlan(row.plan),
-            },
-          ],
-    ),
-  );
   const courseProgress = progressRows.data.filter((row) => lessonIds.has(row.lesson_id));
   const courseAttempts = attempts.data.filter((a) => quizIds.has(a.quiz_id));
   const courseSubmissions = submissions.data.filter((s) => projectIds.has(s.project_id));

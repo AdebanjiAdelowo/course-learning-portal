@@ -42,7 +42,7 @@ export default async function QuizzesPage() {
             return (
               <li key={quiz.id} className="card flex flex-col p-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="eyebrow">Module {item.module.position}</p>
+                  <p className="eyebrow">{item.module.label}</p>
                   {locked ? (
                     <Badge>
                       <Lock className="size-3" aria-hidden="true" />

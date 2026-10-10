@@ -57,6 +57,7 @@ export const course: SeedCourse = {
     {
       slug: "python-foundations",
       title: "Python foundations",
+      preparatory: true,
       description:
         "The Python this course is written in, and nothing more: enough to read, write, test and debug every implementation that follows.",
       modules: [

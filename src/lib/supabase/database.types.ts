@@ -431,14 +431,14 @@ isOneToOne: false
                   ]
                 },"phases": {
                   Row: {
-                    "course_id": string,"created_at": string,"description": string,"id": string,"position": number,"slug": string,"title": string
+                    "course_id": string,"created_at": string,"description": string,"id": string,"is_preparatory": boolean,"position": number,"slug": string,"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"position": number,"slug": string,"title": string
+                    "course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"is_preparatory"?: boolean,"position": number,"slug": string,"title": string
                   }
                   Update: {
-                    "course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"position"?: number,"slug"?: string,"title"?: string
+                    "course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"is_preparatory"?: boolean,"position"?: number,"slug"?: string,"title"?: string
                   }
                   Relationships: [
                     {

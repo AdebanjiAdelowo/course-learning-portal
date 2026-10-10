@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildLearningPath, hasPlan, parseModulePlan, pathSummary, type PathModuleInput, type PathPhaseInput } from "@/lib/domain/path";
+import { buildLearningPath, hasPlan, moduleLabels, parseModulePlan, pathSummary, type PathModuleInput, type PathPhaseInput } from "@/lib/domain/path";
 
 const emptyPlan = parseModulePlan({});
 
@@ -124,5 +124,73 @@ describe("parseModulePlan", () => {
 
   it("drops entries that are not non-empty strings", () => {
     expect(parseModulePlan({ objectives: ["ok", "", "  ", 4, null, "also ok"] }).objectives).toEqual(["ok", "also ok"]);
+  });
+});
+
+describe("module numbering", () => {
+  const numbered = (phaseList: PathPhaseInput[], moduleList: PathModuleInput[]) =>
+    [...moduleLabels(phaseList, moduleList)].sort((a, b) => moduleList.find((m) => m.slug === a[0])!.position - moduleList.find((m) => m.slug === b[0])!.position).map(([slug, label]) => [slug, label.text]);
+
+  const course: PathPhaseInput[] = [
+    { id: "prep", title: "Python foundations", description: "", position: 1, isPreparatory: true },
+    { id: "core1", title: "Foundations", description: "", position: 2 },
+    { id: "core2", title: "Sorting", description: "", position: 3 },
+  ];
+  const courseModules = [
+    mod("python-essentials", 1, "prep", false),
+    mod("python-collections", 2, "prep", false),
+    mod("correctness-and-cost", 3, "core1", true),
+    mod("recursion", 4, "core1", false),
+    mod("two-pointers", 5, "core2", false),
+  ];
+
+  it("numbers preparatory modules P1, P2 and core modules from 1", () => {
+    expect(numbered(course, courseModules)).toEqual([
+      ["python-essentials", "Python Module P1"],
+      ["python-collections", "Python Module P2"],
+      ["correctness-and-cost", "DSA Module 1"],
+      ["recursion", "DSA Module 2"],
+      ["two-pointers", "DSA Module 3"],
+    ]);
+  });
+
+  it("gives the first core module number 1 whatever its stored position is", () => {
+    const labels = moduleLabels(course, courseModules);
+    expect(courseModules.find((m) => m.slug === "correctness-and-cost")!.position).toBe(3);
+    expect(labels.get("correctness-and-cost")).toEqual({ code: "1", text: "DSA Module 1", preparatory: false });
+    expect(labels.get("python-essentials")).toEqual({ code: "P1", text: "Python Module P1", preparatory: true });
+  });
+
+  it("depends on course order, not on the order the rows arrive in or on gaps in positions", () => {
+    const shuffled = [courseModules[4]!, courseModules[0]!, courseModules[3]!, courseModules[2]!, courseModules[1]!];
+    expect(numbered(course, shuffled)).toEqual(numbered(course, courseModules));
+    const gapped = courseModules.map((m) => ({ ...m, position: m.position * 10 + 7 }));
+    expect(numbered(course, gapped).map(([, text]) => text)).toEqual(numbered(course, courseModules).map(([, text]) => text));
+  });
+
+  it("does not renumber when a planned module is published", () => {
+    const published = courseModules.map((m) => ({ ...m, isPublished: true }));
+    expect(numbered(course, published)).toEqual(numbered(course, courseModules));
+  });
+
+  it("numbers everything as core when no phase is preparatory, and unassigned modules as core", () => {
+    const plain = course.map((phase) => ({ ...phase, isPreparatory: false }));
+    expect(numbered(plain, courseModules).map(([, text]) => text)).toEqual(["DSA Module 1", "DSA Module 2", "DSA Module 3", "DSA Module 4", "DSA Module 5"]);
+    expect(numbered(course, [...courseModules, mod("loose", 6, null, false)]).at(-1)).toEqual(["loose", "DSA Module 4"]);
+  });
+
+  it("keeps counting P numbers across a second preparatory phase placed later", () => {
+    const phasesWithLatePrep: PathPhaseInput[] = [...course, { id: "prep2", title: "Maths refresher", description: "", position: 4, isPreparatory: true }];
+    const labels = moduleLabels(phasesWithLatePrep, [...courseModules, mod("logs", 6, "prep2", false), mod("after", 7, "core2", false)]);
+    expect(labels.get("logs")!.text).toBe("Python Module P3");
+    expect(labels.get("after")!.text).toBe("DSA Module 4");
+  });
+
+  it("attaches the label to every module of the learning path and marks preparatory phases", () => {
+    const path = buildLearningPath(course, courseModules);
+    expect(path.phases.map((phase) => phase.isPreparatory)).toEqual([true, false, false]);
+    expect(path.phases.flatMap((phase) => phase.modules.map((m) => m.label.code))).toEqual(["P1", "P2", "1", "2", "3"]);
+    // Order is unchanged by numbering: the path still follows stored positions.
+    expect(path.phases.flatMap((phase) => phase.modules.map((m) => m.position))).toEqual([1, 2, 3, 4, 5]);
   });
 });

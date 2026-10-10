@@ -23,7 +23,7 @@ export interface PublicOutline {
     avatar_url: string | null;
     links: { label: string; url: string }[];
   } | null;
-  phases: { id: string; position: number; title: string; description: string }[];
+  phases: { id: string; position: number; title: string; description: string; is_preparatory: boolean }[];
   cohorts: { id: string; name: string; description: string; starts_on: string | null; ends_on: string | null; status: string }[];
   /** Every module on the learning path. Planned ones carry no lessons, only a plan. */
   modules: {

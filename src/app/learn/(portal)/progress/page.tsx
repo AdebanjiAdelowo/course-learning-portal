@@ -95,7 +95,7 @@ export default async function ProgressPage() {
               <li key={mod.id} className="card p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="eyebrow">Module {mod.position}</p>
+                    <p className="eyebrow">{mod.label}</p>
                     <h3 className="mt-1 text-xl font-semibold">
                       {item.state === "locked" ? (
                         mod.title
@@ -109,7 +109,7 @@ export default async function ProgressPage() {
                   <ModuleStateBadge state={item.state} />
                 </div>
                 <div className="mt-4 flex items-center gap-3">
-                  <ProgressBar value={item.percent} label={`Module ${mod.position} completion`} />
+                  <ProgressBar value={item.percent} label={`${mod.label} completion`} />
                   <span className="w-11 shrink-0 text-right text-sm font-semibold tabular-nums">{item.percent}%</span>
                 </div>
                 <dl className="mt-4 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-3">

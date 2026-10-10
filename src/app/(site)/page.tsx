@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const features = [
   { icon: BookOpenText, title: "Rigorous lessons", text: "Every topic goes from intuition to a precise statement, a proof of correctness and a cost analysis, with tested Python." },
   { icon: PlayCircle, title: "Step-through visualizations", text: "Run an algorithm on your own input, one step at a time, beside its pseudocode, variables and operation counts." },
-  { icon: Code2, title: "Coding practice", text: "Problems from warm-up to challenge, with hints you reveal one at a time and a written editorial for each." },
+  { icon: Code2, title: "Coding practice", text: "Problems from warm-up to challenge. Run your Python against sample tests in the browser, reveal hints one at a time, and read a written editorial." },
   { icon: ClipboardCheck, title: "Quizzes", text: "A check at the end of each module, with an explanation for every answer and unlimited retakes." },
   { icon: FlaskConical, title: "Reviewed projects", text: "One project per module, reviewed against a published rubric with written feedback." },
   { icon: CalendarClock, title: "Live sessions", text: "Workshops and office hours. Recordings and notes stay in the portal." },
@@ -47,8 +47,8 @@ const faqs = [
     a: "The course is taught in Python and begins with a Python foundations phase. Modules marked as planned in the curriculum are not published yet, so check there for what is available today.",
   },
   {
-    q: "Is my code run and graded automatically?",
-    a: "Not yet. Practice problems save your solutions for your own review and give you hints and a written editorial. Automated execution and grading are planned.",
+    q: "Can I run my code, and is it graded?",
+    a: "You can run Python in your browser: in the playground, in runnable examples inside lessons, and against the sample tests of each practice problem. Those results are local feedback on your own device, not a grade. Submitting a solution saves it and unlocks a written editorial for self-review.",
   },
   {
     q: "Do I have to follow the course at fixed times?",
@@ -71,7 +71,7 @@ export default async function HomePage() {
   const lessonCount = published.reduce((sum, m) => sum + m.lessons.length, 0);
   const problemCount = published.reduce((sum, m) => sum + m.problem_count, 0);
   const path = buildLearningPath(
-    outline?.phases ?? [],
+    (outline?.phases ?? []).map((phase) => ({ ...phase, isPreparatory: phase.is_preparatory })),
     (outline?.modules ?? []).map((m) => ({
       slug: m.slug,
       title: m.title,
@@ -208,7 +208,7 @@ export default async function HomePage() {
                         return (
                           <li key={mod.slug} className="card p-6 sm:p-7 md:col-span-2">
                             <div className="flex flex-wrap items-center gap-3">
-                              <p className="eyebrow">Module {mod.position}</p>
+                              <p className="eyebrow">{mod.label.text}</p>
                               <Badge tone="accent">Available</Badge>
                             </div>
                             <h3 className="mt-2 text-2xl font-semibold">{mod.title}</h3>

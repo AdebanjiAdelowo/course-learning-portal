@@ -157,7 +157,7 @@ export default async function DashboardPage() {
           {nextStep ? (
             <>
               <p className="eyebrow text-accent">
-                {stepLabel[nextStep.kind]} · Module {nextStep.modulePosition}
+                {stepLabel[nextStep.kind]} · {nextStep.moduleLabel}
               </p>
               <h2 id="next-up" className="mt-3 text-2xl font-semibold leading-snug sm:text-3xl">
                 {nextStep.title}
@@ -201,7 +201,7 @@ export default async function DashboardPage() {
                     {currentPhase && currentPhase.number > 0 ? `Phase ${currentPhase.number}: ${currentPhase.title} · ` : ""}Current module ·{" "}
                   </span>
                   <Link href={`/learn/modules/${currentModule.module.slug}`} className="font-semibold hover:text-accent">
-                    {currentModule.module.position}. {currentModule.module.title}
+                    {currentModule.module.label}: {currentModule.module.title}
                   </Link>
                 </p>
                 <p className="text-sm font-semibold tabular-nums">

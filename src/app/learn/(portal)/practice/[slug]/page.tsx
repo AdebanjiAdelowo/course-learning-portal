@@ -9,7 +9,7 @@ import { HintList, PracticeWorkspace, type AttemptView } from "@/components/prac
 import { ButtonLink } from "@/components/ui/button";
 import { requireCourseState } from "@/lib/data/course";
 import { requireViewer } from "@/lib/data/viewer";
-import { practiceStanding } from "@/lib/domain/practice";
+import { EDITORIAL_NOTICE, practiceStanding } from "@/lib/domain/practice";
 import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,6 +25,8 @@ interface Example {
   input: string;
   output: string;
   explanation: string;
+  /** Present when the example can be run as a sample test in the browser. */
+  test: { functionName: string; args: unknown[]; expected: unknown } | null;
 }
 
 /** Examples are stored as JSON; anything that is not a well-formed example is skipped. */
@@ -32,9 +34,17 @@ function readExamples(value: unknown): Example[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item): Example[] => {
     if (!item || typeof item !== "object") return [];
-    const { input, output, explanation } = item as Record<string, unknown>;
+    const { input, output, explanation, function: functionName, args, expected } = item as Record<string, unknown>;
     if (typeof input !== "string" || typeof output !== "string") return [];
-    return [{ input, output, explanation: typeof explanation === "string" ? explanation : "" }];
+    const runnable = typeof functionName === "string" && /^[A-Za-z_][A-Za-z0-9_]*$/.test(functionName) && Array.isArray(args) && expected !== undefined;
+    return [
+      {
+        input,
+        output,
+        explanation: typeof explanation === "string" ? explanation : "",
+        test: runnable ? { functionName, args, expected } : null,
+      },
+    ];
   });
 }
 
@@ -65,7 +75,7 @@ export default async function ProblemPage({ params }: Props) {
           </span>
           <h1 className="mt-4 text-2xl font-semibold">{meta.title}</h1>
           <p className="mt-2 text-ink-soft">
-            This problem belongs to Module {owner.module.position}, which is still locked. {owner.lockReason}.
+            This problem belongs to {owner.module.label}, which is still locked. {owner.lockReason}.
           </p>
           {progress.nextStep ? (
             <ButtonLink href={progress.nextStep.href} className="mt-6">
@@ -117,6 +127,11 @@ export default async function ProblemPage({ params }: Props) {
   const editorial = editorialRows?.[0] ?? null;
 
   const examples = readExamples(problem.examples);
+  // Only the visible sample tests are sent to the browser. Hidden tests and the reference
+  // solution live in a table students cannot read, and are never part of this page.
+  const runnable = examples.flatMap((example) => (example.test ? [example.test] : []));
+  const functionName = runnable.length > 0 && runnable.every((test) => test.functionName === runnable[0]!.functionName) ? runnable[0]!.functionName : null;
+  const sampleTests = functionName ? runnable.map(({ args, expected }) => ({ args, expected })) : [];
   const previous = problems[index - 1];
   const next = problems[index + 1];
   const unlocked = (moduleId: string) => progress.moduleProgress.find((m) => m.module.id === moduleId)?.state !== "locked";
@@ -127,7 +142,7 @@ export default async function ProblemPage({ params }: Props) {
         {back}
         <p className="eyebrow mt-5">
           <Link href={`/learn/modules/${owner.module.slug}`} className="hover:text-accent">
-            Module {owner.module.position} · {owner.module.title}
+            {owner.module.label} · {owner.module.title}
           </Link>
         </p>
         <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">{problem.title}</h1>
@@ -217,7 +232,7 @@ export default async function ProblemPage({ params }: Props) {
                   <p className="text-sm text-ink-faint">
                     {viewer.isStaff && submitted.length === 0
                       ? "Shown to you as staff. Students see this after submitting an attempt."
-                      : "Open because you have submitted an attempt. Compare the argument here with your own before reading the code."}
+                      : `Unlocked because you have submitted an attempt. ${EDITORIAL_NOTICE} Compare the argument here with your own before reading the code.`}
                   </p>
                   <Markdown>{editorial.editorial_md}</Markdown>
                   {editorial.reference_solution ? (
@@ -232,8 +247,7 @@ export default async function ProblemPage({ params }: Props) {
               <p className="mt-3 flex items-start gap-3 rounded-lg border border-dashed border-line-strong px-4 py-3 text-ink-soft">
                 <Lock className="mt-1 size-4 shrink-0 text-ink-faint" aria-hidden="true" />
                 <span>
-                  The editorial and reference solution open once you have submitted an attempt. Any submitted attempt opens them,
-                  because attempts are not graded yet, so make a real attempt first: it is worth more than the answer.
+                  {EDITORIAL_NOTICE} Run the sample tests first and make a real attempt: it is worth more than the answer.
                 </span>
               </p>
             )}
@@ -248,6 +262,8 @@ export default async function ProblemPage({ params }: Props) {
             starterCode={problem.starter_code}
             draftLabel={draft ? `Draft saved ${formatDateTime(draft.updated_at, zone)}` : null}
             attempts={attempts}
+            functionName={functionName}
+            sampleTests={sampleTests}
           />
         </div>
       </div>

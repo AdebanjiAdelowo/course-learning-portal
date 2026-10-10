@@ -100,7 +100,7 @@ export default async function ProjectPage({ params }: Props) {
           Projects
         </Link>
         <p className="eyebrow mt-5">
-          Module {owner.module.position} · {owner.module.title}
+          {owner.module.label} · {owner.module.title}
         </p>
         <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">{data.title}</h1>
         <p className="mt-3 max-w-2xl text-lg text-ink-soft">{data.summary}</p>

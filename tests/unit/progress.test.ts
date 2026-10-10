@@ -16,6 +16,7 @@ function makeModule(position: number, overrides: Partial<OutlineModule> = {}): O
   return {
     id: `m${position}`,
     slug: `module-${position}`,
+    label: `DSA Module ${position}`,
     title: `Module ${position}`,
     description: "",
     position,

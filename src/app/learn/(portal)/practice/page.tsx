@@ -11,6 +11,7 @@ import { requireCourseState } from "@/lib/data/course";
 import {
   difficultyLabels,
   filterProblems,
+  EDITORIAL_NOTICE,
   PRACTICE_NOTICE,
   practiceStatusLabels,
   type PracticeFilter,
@@ -52,7 +53,7 @@ export default async function PracticePage({
       {
         ...problem,
         moduleTitle: item.module.title,
-        modulePosition: item.module.position,
+        moduleLabel: item.module.label,
         locked: item.state === "locked",
         status: standing.status,
         attempts: standing.attempts,
@@ -78,8 +79,7 @@ export default async function PracticePage({
       <p className="flex items-start gap-2.5 rounded-lg border border-line bg-surface px-4 py-3 text-ink-soft">
         <Info className="mt-1 size-4 shrink-0 text-ink-faint" aria-hidden="true" />
         <span>
-          {PRACTICE_NOTICE} Each problem has hints you can reveal one at a time, and an editorial with a reference solution that
-          opens once you have submitted an attempt.
+          {PRACTICE_NOTICE} Each problem has hints you can reveal one at a time. {EDITORIAL_NOTICE}
         </span>
       </p>
 
@@ -159,7 +159,7 @@ export default async function PracticePage({
                 <li key={row.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                   <div className="min-w-0">
                     <p className="eyebrow">
-                      Module {row.modulePosition} · {row.moduleTitle}
+                      {row.moduleLabel} · {row.moduleTitle}
                     </p>
                     <h2 className="mt-1.5 text-lg font-semibold">
                       {row.locked ? (

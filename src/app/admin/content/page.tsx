@@ -7,7 +7,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SubmitButton } from "@/components/ui/form";
 import { PageHeader, SectionHeading } from "@/components/ui/page-header";
-import { getAdminCourse } from "@/lib/data/admin";
+import { getAdminCourse, getModuleLabels } from "@/lib/data/admin";
 import { requireStaff } from "@/lib/data/viewer";
 import { formatDate, formatDuration } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
@@ -36,6 +36,7 @@ export default async function ContentPage() {
   if (modules.error) throw new Error(`Could not load content: ${modules.error.message}`);
   const phaseLabel = new Map((phases.data ?? []).map((phase, index) => [phase.id, `Phase ${index + 1}: ${phase.title}`]));
   const publishedCount = modules.data.filter((mod) => mod.is_published).length;
+  const labels = await getModuleLabels();
 
   return (
     <div className="space-y-10">
@@ -67,7 +68,8 @@ export default async function ContentPage() {
                   <li key={mod.id} className="card p-5">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="eyebrow mr-auto">
-                        {mod.phase_id && phaseLabel.has(mod.phase_id) ? `${phaseLabel.get(mod.phase_id)} · ` : ""}Module {mod.position}
+                        {mod.phase_id && phaseLabel.has(mod.phase_id) ? `${phaseLabel.get(mod.phase_id)} · ` : ""}
+                        {labels.byId.get(mod.id)?.text ?? `Module ${mod.position}`}
                       </p>
                       {mod.is_published ? <Badge tone="accent">Published</Badge> : <Badge>Planned</Badge>}
                       {(["up", "down"] as const).map((direction) => (
