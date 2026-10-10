@@ -29,7 +29,7 @@ export async function sendContactMessage(_previous: FormState, formData: FormDat
     if (error) throw new Error(error.message);
   } catch (error) {
     console.error("Contact form failed:", error);
-    return { status: "error", message: "Your message could not be sent. Please email us directly instead." };
+    return { status: "error", message: "Your message could not be sent. Please try again in a few minutes." };
   }
   return success;
 }

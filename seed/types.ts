@@ -96,6 +96,42 @@ export interface SeedProblem {
   hints: string[];
 }
 
+/**
+ * A fuller description of a lesson that is not written yet: enough for an author to write it
+ * without redesigning it. It stays in the seed files and is not loaded into the database.
+ */
+export interface SeedLessonSpec {
+  durationMinutes: number;
+  objectives: string[];
+  /** The twelve sections every lesson follows, each with what this lesson puts there. */
+  sections: { heading: string; covers: string }[];
+  workedExamples: string[];
+  exercises: string[];
+  /** What a student must be able to do to count the lesson as understood. */
+  assessment: string[];
+}
+
+export interface SeedPlannedLesson {
+  title: string;
+  summary: string;
+  spec?: SeedLessonSpec;
+}
+
+/**
+ * What a planned module will teach. Shown in the learning path under the module's title, so
+ * students can see where the course is going. It describes intent and contains no content.
+ */
+export interface SeedModulePlan {
+  objectives: string[];
+  lessons: SeedPlannedLesson[];
+  /** Slugs of the modules a student should finish first. */
+  prerequisites: string[];
+  workedExamples?: string[];
+  /** Coding exercises to be written, one line each. */
+  practice?: string[];
+  visualizations?: string[];
+}
+
 export interface SeedModule {
   slug: string;
   title: string;
@@ -113,6 +149,7 @@ export interface SeedModule {
   project?: SeedProject;
   problems?: SeedProblem[];
   resources?: SeedResource[];
+  plan?: SeedModulePlan;
 }
 
 /** A phase groups consecutive modules into one stage of the learning path. */

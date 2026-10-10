@@ -33,14 +33,16 @@ export default function ContactPage() {
             <dt className="font-semibold">No account yet</dt>
             <dd className="text-ink-soft">Accounts are issued when you enrol. Use the form to ask about the next cohort.</dd>
           </div>
-          <div>
-            <dt className="font-semibold">Email</dt>
-            <dd>
-              <a href={`mailto:${siteConfig.supportEmail}`} className="font-semibold text-accent underline underline-offset-4">
-                {siteConfig.supportEmail}
-              </a>
-            </dd>
-          </div>
+          {siteConfig.supportEmail ? (
+            <div>
+              <dt className="font-semibold">Email</dt>
+              <dd>
+                <a href={`mailto:${siteConfig.supportEmail}`} className="font-semibold text-accent underline underline-offset-4">
+                  {siteConfig.supportEmail}
+                </a>
+              </dd>
+            </div>
+          ) : null}
         </dl>
       </div>
       <div className="card p-6 sm:p-8">

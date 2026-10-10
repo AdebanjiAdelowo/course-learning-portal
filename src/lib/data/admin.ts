@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
+import { siteConfig } from "@/config/site";
 import { computeCourseProgress, type CourseProgress, type OutlineModule } from "@/lib/domain/progress";
 import type { Tables } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -26,11 +27,14 @@ export interface Cohort {
   students: StudentProgress[];
 }
 
-/** The course the instructor area manages. One course per deployment for now: the first created. */
+/**
+ * The course the instructor area manages: the one named by the configured slug, the same course
+ * the public website and the student portal use. Other courses in the database are ignored.
+ */
 export const getAdminCourse = cache(async (): Promise<Course | null> => {
   await requireStaff();
   const supabase = await createClient();
-  const { data, error } = await supabase.from("courses").select("*").order("created_at").limit(1).maybeSingle();
+  const { data, error } = await supabase.from("courses").select("*").eq("slug", siteConfig.courseSlug).maybeSingle();
   if (error) throw new Error(`Could not load the course: ${error.message}`);
   return data;
 });

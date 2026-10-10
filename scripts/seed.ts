@@ -185,6 +185,19 @@ function readProblemFiles(slug: string) {
   };
 }
 
+/** The part of a module's plan that is shown to students: titles and intent, never a lesson spec. */
+function planRow(mod: SeedModule): NonNullable<Json> {
+  if (!mod.plan) return {};
+  return {
+    objectives: mod.plan.objectives,
+    lessons: mod.plan.lessons.map((lesson) => ({ title: lesson.title, summary: lesson.summary })),
+    prerequisites: mod.plan.prerequisites,
+    workedExamples: mod.plan.workedExamples ?? [],
+    practice: mod.plan.practice ?? [],
+    visualizations: mod.plan.visualizations ?? [],
+  };
+}
+
 async function seedContent(db: Db, instructorId: string | null): Promise<ContentIds> {
   const courseRow = unwrap(
     "upsert course",
@@ -276,6 +289,7 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
             available_from: mod.availableInDays === undefined ? null : daysFromNow(mod.availableInDays),
             requires_previous: mod.requiresPrevious ?? true,
             is_published: mod.published ?? true,
+            plan: planRow(mod),
           },
           { onConflict: "course_id,slug" },
         )
@@ -747,7 +761,7 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
         author_id: people.instructor,
         kind: "quiz",
         quiz_id: quizId,
-        title: "On your Module 1 assessment",
+        title: "On your correctness and cost assessment",
         body_md: String.raw`A clear improvement on the retake. On the first attempt you missed the question on what a loop invariant must satisfy. Remember that an invariant is still **true** when the loop ends: the proof uses it together with the exit condition, as in binary search, where $lo > hi$ and the invariant together give "not present".`,
         created_at: daysFromNow(-2),
       },
@@ -841,7 +855,7 @@ async function main() {
 
   console.log(summary(ids));
   console.log("\nDemo accounts (password: the value of SEED_DEMO_PASSWORD)");
-  console.log("  student@example.com      student, one lesson from finishing Module 1");
+  console.log("  student@example.com      student, one lesson from finishing the first published module");
   console.log("  student2@example.com     student, quiz not yet passed, project awaiting review");
   console.log(`  ${course.instructor.email}   instructor`);
 }

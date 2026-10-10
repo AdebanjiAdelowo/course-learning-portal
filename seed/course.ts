@@ -1,9 +1,10 @@
-import type { SeedCourse, SeedModule } from "./types";
+import { pythonCollections, pythonEssentials, slidingWindow, twoPointers } from "./plans";
+import type { SeedCourse, SeedModule, SeedModulePlan } from "./types";
 
 /**
  * DSA Academy: Data Structures and Algorithms.
  *
- * This file is the academic blueprint: seven phases and thirty modules. A module marked
+ * This file is the academic blueprint: eight phases and thirty-four modules. A module marked
  * `published: false` is planned. It shows in the learning path by title and description only,
  * and is published once its lessons, visualizations, problems and assessments are written.
  *
@@ -15,11 +16,12 @@ import type { SeedCourse, SeedModule } from "./types";
 const md = String.raw;
 
 /** A module that is on the learning path but not written yet. */
-const planned = (slug: string, title: string, description: string): SeedModule => ({
+const planned = (slug: string, title: string, description: string, plan?: SeedModulePlan): SeedModule => ({
   slug,
   title,
   description,
   published: false,
+  ...(plan ? { plan } : {}),
 });
 
 export const course: SeedCourse = {
@@ -28,7 +30,7 @@ export const course: SeedCourse = {
   subtitle: "A rigorous, visual course in designing, proving and analysing algorithms, taught in Python.",
   description:
     "Every topic is taught the same way: why the problem matters, the central idea, a step-by-step visualization, a precise statement, pseudocode, a tested Python implementation, a correctness argument, a cost analysis, worked examples, and then practice. The aim is to understand why an algorithm works well enough to design a new one, not to memorise a catalogue of solutions.",
-  level: "Introductory to intermediate",
+  level: "Beginner to intermediate",
   outcomes: [
     "State a computational problem precisely and prove that an algorithm solves it",
     "Analyse running time and memory use, and compare algorithms by their growth rates",
@@ -38,7 +40,8 @@ export const course: SeedCourse = {
     "Recognise when a problem is unlikely to have an efficient exact algorithm",
   ],
   prerequisites: [
-    "Comfortable writing small Python programs with functions, loops and lists",
+    "No earlier study of algorithms is assumed",
+    "Python: the course opens with a Python foundations phase. Until those modules are published, you should already be comfortable writing small programs with functions, loops and lists",
     "School-level algebra, including logarithms and summations",
     "Willingness to read and write short mathematical arguments. Proof by induction is taught as part of the course",
   ],
@@ -51,6 +54,26 @@ export const course: SeedCourse = {
   },
 
   phases: [
+    {
+      slug: "python-foundations",
+      title: "Python foundations",
+      description:
+        "The Python this course is written in, and nothing more: enough to read, write, test and debug every implementation that follows.",
+      modules: [
+        planned(
+          "python-essentials",
+          "Python essentials: values, control flow and functions",
+          "Variables and types, operators, conditions, loops, functions, and reading and printing data, taught through small algorithmic tasks.",
+          pythonEssentials,
+        ),
+        planned(
+          "python-collections-and-testing",
+          "Python collections, mutability and testing",
+          "Lists, tuples, strings, dictionaries and sets, how names refer to objects, and how to test and debug a function before trusting it.",
+          pythonCollections,
+        ),
+      ],
+    },
     {
       slug: "foundations",
       title: "Foundations",
@@ -159,7 +182,7 @@ export const course: SeedCourse = {
           ],
           quiz: {
             slug: "correctness-and-cost-quiz",
-            title: "Module 1 assessment: correctness and cost",
+            title: "Assessment: correctness and cost",
             description: "Eight questions on invariants, the cost model, asymptotic notation, binary search and insertion sort.",
             passPercent: 70,
             questions: [
@@ -360,8 +383,20 @@ The purpose is the **explanation**. Where a measurement matches the theory, say 
     {
       slug: "linear-structures-and-sorting",
       title: "Linear structures and sorting",
-      description: "Stacks and queues, then sorting as a case study in algorithm design and in lower bounds.",
+      description: "Array techniques, stacks and queues, then sorting as a case study in algorithm design and in lower bounds.",
       modules: [
+        planned(
+          "two-pointers",
+          "Two pointers",
+          "Two indices moving through one array, towards each other or in the same direction, to replace a quadratic search with a linear scan.",
+          twoPointers,
+        ),
+        planned(
+          "sliding-window",
+          "Sliding window",
+          "Maintaining a contiguous range and a summary of it as it moves: fixed and variable windows, running sums and frequency maps.",
+          slidingWindow,
+        ),
         planned("stacks-and-queues", "Stacks, queues and deques", "Abstract data types and their implementations, with applications from expression evaluation to breadth-first exploration."),
         planned("elementary-sorting", "Elementary sorting and stability", "Selection sort and bubble sort beside insertion sort: what they share, where they differ, and what stability buys."),
         planned("merge-sort-and-divide-and-conquer", "Divide and conquer: merge sort", "The divide-and-conquer pattern, merging, and the master theorem for its recurrences."),
@@ -463,10 +498,10 @@ Motivation, intuition, visualization, formal statement, pseudocode, Python, corr
 **How you are assessed**
 
 - A quiz at the end of each module, with a pass mark of 70% and unlimited retakes.
-- Coding problems, from warm-up to challenge. Read the editorial only after you have submitted an attempt.
+- Coding problems, from warm-up to challenge. They are for practice: your code is saved, not run or graded automatically, and the editorial opens once you have submitted an attempt.
 - One project per module, reviewed against a published rubric.
 
-Completing lessons and demonstrating mastery are tracked separately on your dashboard.`,
+Lessons, quizzes and projects count towards completion. Practice problems are tracked separately on your dashboard.`,
     },
     {
       title: "Workshop: writing loop invariants",
@@ -511,8 +546,8 @@ The most common mistake was an invariant that failed step 3: for example $i \ge 
 
   announcements: [
     {
-      title: "Practice problems for Module 1 are open",
-      body: "Six problems, from warm-up to challenge, are now under **Practice**. Each has hints you can reveal one at a time, and an editorial that opens once you submit an attempt.",
+      title: "Practice problems for correctness and cost are open",
+      body: "Six problems, from warm-up to challenge, are now under **Practice**. Each has hints you can reveal one at a time, and an editorial that opens once you submit an attempt. Your code is saved for your own review: it is not run or graded automatically yet.",
       pinned: true,
       publishedDaysAgo: 2,
     },

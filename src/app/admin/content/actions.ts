@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { siteConfig } from "@/config/site";
 import { getAdminCourse } from "@/lib/data/admin";
 import { requireStaff } from "@/lib/data/viewer";
 import { parseAttachment, parseQuestion, parseRubric, rubricTotal } from "@/lib/domain/authoring";
@@ -42,7 +43,7 @@ function refresh() {
 
 async function courseOrFail() {
   const course = await getAdminCourse();
-  if (!course) throw new Error("There is no course yet. Run the seed script first.");
+  if (!course) throw new Error(`No course with the slug "${siteConfig.courseSlug}" exists yet. Run the seed script first.`);
   return course;
 }
 

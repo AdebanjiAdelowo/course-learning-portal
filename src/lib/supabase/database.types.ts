@@ -387,14 +387,14 @@ isOneToOne: false
                   ]
                 },"modules": {
                   Row: {
-                    "available_from": string | null,"course_id": string,"created_at": string,"description": string,"id": string,"is_published": boolean,"phase_id": string | null,"position": number,"requires_previous": boolean,"search": unknown,"slug": string,"title": string,"updated_at": string
+                    "available_from": string | null,"course_id": string,"created_at": string,"description": string,"id": string,"is_published": boolean,"phase_id": string | null,"plan": Json,"position": number,"requires_previous": boolean,"search": unknown,"slug": string,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "available_from"?: string | null,"course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"position": number,"requires_previous"?: boolean,"search"?: never,"slug": string,"title": string,"updated_at"?: string
+                    "available_from"?: string | null,"course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"plan"?: Json,"position": number,"requires_previous"?: boolean,"search"?: never,"slug": string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "available_from"?: string | null,"course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"position"?: number,"requires_previous"?: boolean,"search"?: never,"slug"?: string,"title"?: string,"updated_at"?: string
+                    "available_from"?: string | null,"course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"plan"?: Json,"position"?: number,"requires_previous"?: boolean,"search"?: never,"slug"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -706,6 +706,26 @@ isOneToOne: false
       referencedColumns: ["id","course_id"]
     }
                   ]
+                },"module_path": {
+                  Row: {
+                    "course_id": string | null,"description": string | null,"id": string | null,"is_published": boolean | null,"phase_id": string | null,"plan": Json | null,"position": number | null,"slug": string | null,"title": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "modules_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "modules_phase_fkey"
+      columns: ["phase_id","course_id"]
+isOneToOne: false
+      referencedRelation: "phases"
+      referencedColumns: ["id","course_id"]
+    }
+                  ]
                 },"project_outline": {
                   Row: {
                     "course_id": string | null,"due_at": string | null,"id": string | null,"max_points": number | null,"module_id": string | null,"slug": string | null,"summary": string | null,"title": string | null
@@ -767,6 +787,9 @@ isOneToOne: false
 "move_lesson":
 { Args: { "p_direction": number,"p_lesson_id": string }; Returns: undefined
                            },
+"move_module":
+{ Args: { "p_direction": number,"p_module_id": string }; Returns: undefined
+                           },
 "move_quiz_question":
 { Args: { "p_direction": number,"p_question_id": string }; Returns: undefined
                            },
@@ -780,6 +803,12 @@ isOneToOne: false
                            },
 "save_quiz_question":
 { Args: { "p_correct": Json,"p_explanation_md": string,"p_options": Json,"p_points": number,"p_prompt_md": string,"p_question_id": string,"p_quiz_id": string,"p_type": Database["public"]['Enums']["question_type"] }; Returns: string
+                           },
+"take_rate_limit":
+{ Args: { "p_bucket": string,"p_key_hash": string,"p_limit": number,"p_window_seconds": number }; Returns: boolean
+                           },
+"has_active_enrolment":
+{ Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "search_course":
 { Args: { "p_course_id": string,"p_limit"?: number,"p_query": string }; Returns: {

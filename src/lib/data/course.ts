@@ -3,6 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
+import { siteConfig } from "@/config/site";
 import {
   computeCourseProgress,
   type CourseProgress,
@@ -10,6 +11,8 @@ import {
   type StudentRecord,
   type SubmissionStatus,
 } from "@/lib/domain/progress";
+import { buildLearningPath, parseModulePlan, type LearningPath } from "@/lib/domain/path";
+import { practiceStanding, type PracticeRow, type PracticeStanding } from "@/lib/domain/practice";
 import { summariseAttempts } from "@/lib/domain/quiz";
 import type { Tables } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -39,8 +42,19 @@ export type SubmissionMeta = Pick<
   "id" | "project_id" | "status" | "submitted_at" | "reviewed_at" | "updated_at"
 >;
 
+export type ProblemMeta = Pick<
+  Tables<"coding_problems">,
+  "id" | "module_id" | "slug" | "title" | "summary" | "difficulty" | "position"
+>;
+
 export interface CourseState {
   course: Course;
+  /** Every module of the course grouped by phase, including the ones that are only planned. */
+  path: LearningPath;
+  /** Published coding problems, in course order. Not part of the completion percentage. */
+  problems: ProblemMeta[];
+  /** problem id -> the viewer's standing on it; absent when never opened. */
+  practice: Map<string, PracticeStanding>;
   modules: OutlineModule[];
   lessons: LessonMeta[];
   quizzes: QuizMeta[];
@@ -58,34 +72,21 @@ function fail(what: string, message: string): never {
 }
 
 /**
- * The course the viewer is working on: their most recent active enrolment. Staff who are not
- * enrolled anywhere preview the first course. Returns null when there is nothing to show.
+ * The course this deployment teaches, selected by its configured slug and never by creation
+ * order. Row-level security decides who may read it: a student only with an active or completed
+ * enrolment in a published course, staff always. Returns null when the viewer has no access,
+ * or when no course with that slug exists.
  */
 export const getActiveCourse = cache(async (): Promise<Course | null> => {
-  const viewer = await requireViewer();
+  await requireViewer();
   const supabase = await createClient();
-
-  const { data: enrolment, error } = await supabase
-    .from("enrollments")
-    .select("course:courses(*)")
-    .eq("user_id", viewer.id)
-    .in("status", ["active", "completed"])
-    .order("enrolled_at", { ascending: false })
-    .limit(1)
+  const { data: course, error } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("slug", siteConfig.courseSlug)
     .maybeSingle();
-  if (error) fail("your enrolment", error.message);
-  if (enrolment?.course) return enrolment.course;
-
-  if (viewer.isStaff) {
-    const { data: course } = await supabase
-      .from("courses")
-      .select("*")
-      .order("created_at")
-      .limit(1)
-      .maybeSingle();
-    return course ?? null;
-  }
-  return null;
+  if (error) fail("your course", error.message);
+  return course;
 });
 
 /** Builds the pure-logic inputs from raw rows. Shared with the instructor views. */
@@ -160,7 +161,7 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
   if (!course) return null;
 
   const supabase = await createClient();
-  const [modules, lessons, quizzes, projects, progressRows, attempts, submissions] =
+  const [modules, lessons, quizzes, projects, progressRows, attempts, submissions, phases, pathModules, problems, codeRows] =
     await Promise.all([
       supabase
         .from("modules")
@@ -194,6 +195,19 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
         .from("submissions")
         .select("id, project_id, status, submitted_at, reviewed_at, updated_at")
         .eq("user_id", viewer.id),
+      supabase.from("phases").select("id, title, description, position").eq("course_id", course.id).order("position"),
+      // Titles and plans of every module, published or not. Lesson content stays behind RLS.
+      supabase
+        .from("module_path")
+        .select("slug, title, description, position, phase_id, is_published, plan")
+        .eq("course_id", course.id)
+        .order("position"),
+      supabase
+        .from("coding_problem_outline")
+        .select("id, module_id, slug, title, summary, difficulty, position")
+        .eq("course_id", course.id)
+        .order("position"),
+      supabase.from("code_submissions").select("problem_id, status, verdict").eq("user_id", viewer.id),
     ]);
 
   if (modules.error) fail("modules", modules.error.message);
@@ -203,6 +217,10 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
   if (progressRows.error) fail("your progress", progressRows.error.message);
   if (attempts.error) fail("your quiz attempts", attempts.error.message);
   if (submissions.error) fail("your submissions", submissions.error.message);
+  if (phases.error) fail("the learning path", phases.error.message);
+  if (pathModules.error) fail("the learning path", pathModules.error.message);
+  if (problems.error) fail("practice problems", problems.error.message);
+  if (codeRows.error) fail("your practice history", codeRows.error.message);
 
   const publishedModuleIds = new Set(modules.data.map((m) => m.id));
   // The preview views project non-null base columns; Postgres view introspection
@@ -215,6 +233,43 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
   const projectIds = new Set(visibleProjects.map((p) => p.id));
 
   const outline = buildOutline(modules.data, visibleLessons, visibleQuizzes, visibleProjects);
+
+  const modulePosition = new Map(modules.data.map((m) => [m.id, m.position]));
+  const visibleProblems = (problems.data as ProblemMeta[])
+    .filter((p) => publishedModuleIds.has(p.module_id))
+    .sort(
+      (a, b) =>
+        (modulePosition.get(a.module_id) ?? 0) - (modulePosition.get(b.module_id) ?? 0) || a.position - b.position,
+    );
+  const rowsByProblem = new Map<string, PracticeRow[]>();
+  for (const row of codeRows.data) {
+    rowsByProblem.set(row.problem_id, [...(rowsByProblem.get(row.problem_id) ?? []), row]);
+  }
+  const practice = new Map(
+    visibleProblems.flatMap((problem) => {
+      const rows = rowsByProblem.get(problem.id);
+      return rows ? [[problem.id, practiceStanding(rows)] as const] : [];
+    }),
+  );
+
+  const path = buildLearningPath(
+    phases.data,
+    pathModules.data.flatMap((row) =>
+      row.slug === null || row.title === null || row.position === null
+        ? []
+        : [
+            {
+              slug: row.slug,
+              title: row.title,
+              description: row.description ?? "",
+              position: row.position,
+              phaseId: row.phase_id,
+              isPublished: row.is_published ?? false,
+              plan: parseModulePlan(row.plan),
+            },
+          ],
+    ),
+  );
   const courseProgress = progressRows.data.filter((row) => lessonIds.has(row.lesson_id));
   const courseAttempts = attempts.data.filter((a) => quizIds.has(a.quiz_id));
   const courseSubmissions = submissions.data.filter((s) => projectIds.has(s.project_id));
@@ -226,6 +281,9 @@ export const getCourseState = cache(async (): Promise<CourseState | null> => {
 
   return {
     course,
+    path,
+    problems: visibleProblems,
+    practice,
     modules: outline,
     lessons: visibleLessons,
     quizzes: visibleQuizzes,
