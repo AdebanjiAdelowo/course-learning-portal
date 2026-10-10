@@ -56,6 +56,8 @@ describe.skipIf(!configured)("row-level security", () => {
   let instructor: { db: Db; id: string };
   let courseId: string;
   let moduleId: string;
+  /** The seeded project of the published module. */
+  let growthProjectId: string;
   /** Content in a published module that is locked for both students (they have one lesson left). */
   let locked: { moduleId: string; lessonId: string; quizId: string; problemId: string; resourceId: string };
   /** An unlocked project with a draft submission by the first student. */
@@ -73,6 +75,7 @@ describe.skipIf(!configured)("row-level security", () => {
     ]);
     courseId = must("course", await admin.from("courses").select("id").eq("slug", COURSE_SLUG).single()).id;
     moduleId = must("module", await admin.from("modules").select("id").eq("course_id", courseId).eq("slug", MODULE_SLUG).single()).id;
+    growthProjectId = must("project", await admin.from("projects").select("id").eq("course_id", courseId).eq("slug", "measuring-growth").single()).id;
     for (const row of must("problems", await admin.from("coding_problems").select("id, slug").eq("course_id", courseId))) {
       problemIds.set(row.slug, row.id);
     }
@@ -330,7 +333,7 @@ describe.skipIf(!configured)("row-level security", () => {
     });
 
     it("cannot change or delete another student's submission", async () => {
-      const { data: target } = await admin.from("submissions").select("id, notes").eq("user_id", alice.id).limit(1).single();
+      const { data: target } = await admin.from("submissions").select("id, notes").eq("user_id", alice.id).eq("project_id", growthProjectId).single();
       await bob.db.from("submissions").update({ notes: "tampered" }).eq("id", target!.id);
       await bob.db.from("submissions").delete().eq("id", target!.id);
       const { data: after } = await admin.from("submissions").select("notes").eq("id", target!.id).single();
@@ -417,7 +420,7 @@ describe.skipIf(!configured)("row-level security", () => {
     });
 
     it("cannot edit a submission once it has been reviewed", async () => {
-      const { data: done } = await alice.db.from("submissions").select("id, notes").eq("status", "reviewed").limit(1).single();
+      const { data: done } = await alice.db.from("submissions").select("id, notes").eq("status", "reviewed").eq("project_id", growthProjectId).single();
       await alice.db.from("submissions").update({ notes: "changed after review" }).eq("id", done!.id);
       const { data: after } = await admin.from("submissions").select("notes, status").eq("id", done!.id).single();
       expect(after).toEqual({ notes: done!.notes, status: "reviewed" });
@@ -516,7 +519,9 @@ describe.skipIf(!configured)("row-level security", () => {
     });
 
     it("paused enrolments lose previews, content, practice and submission editing without losing history", async () => {
-      const { data: target } = await admin.from("submissions").select("id, notes").eq("user_id", bob.id).limit(1).single();
+      // The student's submission in this course: the database may hold other courses too, and an
+      // enrolment paused here says nothing about access to those.
+      const { data: target } = await admin.from("submissions").select("id, notes").eq("user_id", bob.id).eq("project_id", growthProjectId).single();
       try {
         await admin.from("enrollments").update({ status: "paused" }).eq("user_id", bob.id).eq("course_id", courseId);
         expect((await bob.db.from("lesson_outline").select("id").eq("course_id", courseId)).data).toEqual([]);
@@ -727,7 +732,7 @@ describe.skipIf(!configured)("row-level security", () => {
     });
 
     it("lets staff upload, an enrolled student download through a signed link, and nobody else", async () => {
-      const path = `integration-test/${Date.now()}.txt`;
+      const path = `${COURSE_SLUG}/integration-test/${Date.now()}.txt`;
       cleanup.push(() => admin.storage.from("course-files").remove([path]));
 
       expect((await alice.db.storage.from("course-files").upload(path, "student upload")).error).not.toBeNull();
@@ -740,6 +745,7 @@ describe.skipIf(!configured)("row-level security", () => {
       expect((await anon.storage.from("course-files").createSignedUrl(path, 60)).error).not.toBeNull();
       expect((await fetch(`${url}/storage/v1/object/public/course-files/${path}`)).ok).toBe(false);
       expect((await alice.db.storage.from("course-files").remove([path])).data ?? []).toEqual([]);
+      expect((await instructor.db.storage.from("course-files").createSignedUrl(path, 60)).error).toBeNull();
 
       try {
         await admin.from("enrollments").update({ status: "withdrawn" }).eq("user_id", bob.id).eq("course_id", courseId);
@@ -747,6 +753,28 @@ describe.skipIf(!configured)("row-level security", () => {
       } finally {
         await admin.from("enrollments").update({ status: "active" }).eq("user_id", bob.id).eq("course_id", courseId);
       }
+      expect((await bob.db.storage.from("course-files").createSignedUrl(path, 60)).error).toBeNull();
+    });
+
+    it("ties a file to its course: an enrolment in one course does not open another course's files", async () => {
+      const { data: other } = await admin.from("courses").insert({ slug: "rls-files-course", title: "Other", is_published: true }).select("id").single();
+      cleanup.push(() => admin.from("courses").delete().eq("id", other!.id));
+      const foreign = `rls-files-course/notes-${Date.now()}.txt`;
+      const loose = `top-level-${Date.now()}.txt`;
+      cleanup.push(() => admin.storage.from("course-files").remove([foreign, loose]));
+      expect((await instructor.db.storage.from("course-files").upload(foreign, "other course")).error).toBeNull();
+      expect((await instructor.db.storage.from("course-files").upload(loose, "no course folder")).error).toBeNull();
+
+      // Enrolled in the DSA course only: neither the other course's file nor a file outside
+      // any course folder can be signed.
+      expect((await alice.db.storage.from("course-files").createSignedUrl(foreign, 60)).error).not.toBeNull();
+      expect((await alice.db.storage.from("course-files").createSignedUrl(loose, 60)).error).not.toBeNull();
+      expect((await alice.db.storage.from("course-files").list("rls-files-course")).data ?? []).toEqual([]);
+
+      const { data: enrolment } = await admin.from("enrollments").insert({ user_id: alice.id, course_id: other!.id, status: "active" }).select("id").single();
+      cleanup.push(() => admin.from("enrollments").delete().eq("id", enrolment!.id));
+      expect((await alice.db.storage.from("course-files").createSignedUrl(foreign, 60)).error).toBeNull();
+      expect((await alice.db.storage.from("course-files").createSignedUrl(loose, 60)).error).not.toBeNull();
     });
   });
 
@@ -805,7 +833,12 @@ describe.skipIf(!configured)("row-level security", () => {
     });
 
     it("can leave feedback and review a submission, and the student then sees it", async () => {
-      const { data: pending } = await instructor.db.from("submissions").select("id, user_id, project_id").eq("status", "submitted").limit(1).single();
+      const { data: pending } = await instructor.db
+        .from("submissions")
+        .select("id, user_id, project_id")
+        .eq("status", "submitted")
+        .eq("project_id", growthProjectId)
+        .single();
       const { data: created, error } = await instructor.db
         .from("feedback")
         .insert({

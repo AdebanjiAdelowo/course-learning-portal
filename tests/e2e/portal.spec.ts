@@ -175,8 +175,10 @@ test.describe("learning", () => {
     await expect(planned.getByText("Comes after:")).toBeVisible();
 
     // Planned content cannot be reached by guessing its address.
-    const response = await page.goto("/learn/modules/two-pointers");
-    expect(response?.status()).toBe(404);
+    // (The portal streams its pages, so the not-found page arrives with status 200.)
+    await page.goto("/learn/modules/two-pointers");
+    await expect(page.getByRole("heading", { level: 1, name: "That page is not part of your course" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Two pointers" })).toHaveCount(0);
 
     await page.goto("/learn/curriculum");
     await available.click();
@@ -436,7 +438,11 @@ test.describe("coding practice", () => {
     await expect(page.getByRole("link", { name: "Is it sorted?" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lower bound" })).toHaveCount(0);
 
+    // Clearing resets the list and the filter controls themselves.
     await page.getByRole("link", { name: "Clear" }).click();
+    await expect(page).toHaveURL(/\/learn\/practice$/);
+    await expect(page.getByRole("status")).toHaveText("Showing all 6 problems, in course order.");
+    await expect(page.getByLabel("Difficulty")).toHaveValue("all");
     await page.getByLabel("Search", { exact: true }).fill("square root");
     await page.getByRole("button", { name: "Filter" }).click();
     await expect(page.getByRole("status")).toHaveText("Showing 1 of 6 problems.");
@@ -576,9 +582,44 @@ test.describe("coding practice", () => {
     await expect(page.locator("img[src='x']")).toHaveCount(0);
   });
 
-  test("a problem that does not exist is a 404, not an error", async ({ page }) => {
-    const response = await page.goto("/learn/practice/no-such-problem");
-    expect(response?.status()).toBe(404);
+  test("a problem that does not exist shows the not-found page, not an error", async ({ page }) => {
+    await page.goto("/learn/practice/no-such-problem");
+    await expect(page.getByRole("heading", { level: 1, name: "That page is not part of your course" })).toBeVisible();
+    await expect(page.getByLabel("Python solution")).toHaveCount(0);
+  });
+});
+
+test.describe("private course files", () => {
+  const objectPath = `e2e/notes-${Date.now()}.txt`;
+  const stored = `data-structures-and-algorithms/${objectPath}`;
+
+  test.beforeAll(async () => {
+    const { error } = await admin.storage.from("course-files").upload(stored, "private course notes", { contentType: "text/plain" });
+    expect(error, "upload fixture to the private bucket").toBeNull();
+  });
+  test.afterAll(async () => {
+    await admin.storage.from("course-files").remove([stored]);
+  });
+
+  test("an enrolled student gets a short-lived signed link; visitors and missing files get nothing", async ({ page, request }) => {
+    // Without a session: sent to the login page, and the bucket has no public address.
+    const anonymous = await request.get(`/learn/files/${objectPath}`, { maxRedirects: 0 });
+    expect(anonymous.status()).toBe(307);
+    expect(anonymous.headers().location).toContain("/learn/login");
+    const direct = await request.get(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/course-files/${stored}`);
+    expect(direct.ok()).toBe(false);
+
+    await signIn(page, STUDENT);
+    const response = await page.request.get(`/learn/files/${objectPath}`, { maxRedirects: 0 });
+    expect(response.status()).toBe(303);
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    const location = response.headers().location ?? "";
+    expect(location).toContain(`/storage/v1/object/sign/course-files/${stored}`);
+    expect(location).toContain("token=");
+    expect(await (await page.request.get(location)).text()).toBe("private course notes");
+
+    expect((await page.request.get("/learn/files/e2e/no-such-file.txt", { maxRedirects: 0 })).status()).toBe(404);
+    expect((await page.request.get("/learn/files/..%2F..%2Fsecret", { maxRedirects: 0 })).status()).toBe(404);
   });
 });
 

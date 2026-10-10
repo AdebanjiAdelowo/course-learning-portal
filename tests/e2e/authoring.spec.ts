@@ -234,7 +234,7 @@ test("a module is managed from the content page: planned until it has a lesson, 
   await expect(page.getByText(/Publish at least one lesson in this module first/)).toBeVisible();
 
   // Its description can be edited, and the edit is saved while it stays planned.
-  const description = page.getByLabel("Description");
+  const description = page.getByRole("textbox", { name: "Description" });
   const original = await description.inputValue();
   await page.getByLabel("Published").uncheck();
   await description.fill(`${original} (edited by a test)`);

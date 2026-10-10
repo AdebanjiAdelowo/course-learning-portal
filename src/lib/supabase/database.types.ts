@@ -117,6 +117,12 @@ isOneToOne: false
       foreignKeyName: "coding_problems_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
 isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
+    },{
+      foreignKeyName: "coding_problems_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
       referencedRelation: "modules"
       referencedColumns: ["id","course_id"]
     }
@@ -349,6 +355,12 @@ isOneToOne: false
       foreignKeyName: "lessons_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
 isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
+    },{
+      foreignKeyName: "lessons_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
       referencedRelation: "modules"
       referencedColumns: ["id","course_id"]
     }
@@ -381,20 +393,26 @@ isOneToOne: false
       foreignKeyName: "live_sessions_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
 isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
+    },{
+      foreignKeyName: "live_sessions_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
       referencedRelation: "modules"
       referencedColumns: ["id","course_id"]
     }
                   ]
                 },"modules": {
                   Row: {
-                    "available_from": string | null,"course_id": string,"created_at": string,"description": string,"id": string,"is_published": boolean,"phase_id": string | null,"plan": Json,"position": number,"requires_previous": boolean,"search": unknown,"slug": string,"title": string,"updated_at": string
+                    "available_from": string | null,"course_id": string,"created_at": string,"description": string,"id": string,"is_published": boolean,"phase_id": string | null,"plan": NonNullable<Json>,"position": number,"requires_previous": boolean,"search": unknown,"slug": string,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "available_from"?: string | null,"course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"plan"?: Json,"position": number,"requires_previous"?: boolean,"search"?: never,"slug": string,"title": string,"updated_at"?: string
+                    "available_from"?: string | null,"course_id": string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"plan"?: NonNullable<Json>,"position": number,"requires_previous"?: boolean,"search"?: never,"slug": string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "available_from"?: string | null,"course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"plan"?: Json,"position"?: number,"requires_previous"?: boolean,"search"?: never,"slug"?: string,"title"?: string,"updated_at"?: string
+                    "available_from"?: string | null,"course_id"?: string,"created_at"?: string,"description"?: string,"id"?: string,"is_published"?: boolean,"phase_id"?: string | null,"plan"?: NonNullable<Json>,"position"?: number,"requires_previous"?: boolean,"search"?: never,"slug"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -410,20 +428,6 @@ isOneToOne: false
       referencedRelation: "phases"
       referencedColumns: ["id","course_id"]
     }
-                  ]
-                },"rate_limit_hits": {
-                  Row: {
-                    "bucket": string,"created_at": string,"id": number,"key_hash": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "bucket": string,"created_at"?: string,"id"?: never,"key_hash": string
-                  }
-                  Update: {
-                    "bucket"?: string,"created_at"?: string,"id"?: never,"key_hash"?: string
-                  }
-                  Relationships: [
-                    
                   ]
                 },"phases": {
                   Row: {
@@ -477,6 +481,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "courses"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "projects_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
     },{
       foreignKeyName: "projects_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
@@ -585,9 +595,29 @@ isOneToOne: false
       foreignKeyName: "quizzes_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
 isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
+    },{
+      foreignKeyName: "quizzes_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
       referencedRelation: "modules"
       referencedColumns: ["id","course_id"]
     }
+                  ]
+                },"rate_limit_hits": {
+                  Row: {
+                    "bucket": string,"created_at": string,"id": number,"key_hash": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bucket": string,"created_at"?: string,"id"?: never,"key_hash": string
+                  }
+                  Update: {
+                    "bucket"?: string,"created_at"?: string,"id"?: never,"key_hash"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"resources": {
                   Row: {
@@ -624,6 +654,12 @@ isOneToOne: false
       columns: ["live_session_id"]
 isOneToOne: false
       referencedRelation: "live_sessions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "resources_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "module_path"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "resources_module_id_fkey"
@@ -696,6 +732,12 @@ isOneToOne: false
       foreignKeyName: "coding_problems_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
 isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
+    },{
+      foreignKeyName: "coding_problems_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
       referencedRelation: "modules"
       referencedColumns: ["id","course_id"]
     }
@@ -712,6 +754,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "courses"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "lessons_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
     },{
       foreignKeyName: "lessons_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
@@ -756,6 +804,12 @@ isOneToOne: false
       foreignKeyName: "projects_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
 isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
+    },{
+      foreignKeyName: "projects_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
       referencedRelation: "modules"
       referencedColumns: ["id","course_id"]
     }
@@ -776,6 +830,12 @@ isOneToOne: false
       foreignKeyName: "quizzes_module_id_course_id_fkey"
       columns: ["module_id","course_id"]
 isOneToOne: false
+      referencedRelation: "module_path"
+      referencedColumns: ["id","course_id"]
+    },{
+      foreignKeyName: "quizzes_module_id_course_id_fkey"
+      columns: ["module_id","course_id"]
+isOneToOne: false
       referencedRelation: "modules"
       referencedColumns: ["id","course_id"]
     }
@@ -785,6 +845,9 @@ isOneToOne: false
           Functions: {
             "can_access_module":
 { Args: { "p_module_id": string }; Returns: boolean
+                           },
+"can_read_course_file":
+{ Args: { "p_object_name": string }; Returns: boolean
                            },
 "in_cohort":
 { Args: { "p_cohort_id": string }; Returns: boolean
@@ -818,16 +881,16 @@ isOneToOne: false
 "save_quiz_question":
 { Args: { "p_correct": Json,"p_explanation_md": string,"p_options": Json,"p_points": number,"p_prompt_md": string,"p_question_id": string,"p_quiz_id": string,"p_type": Database["public"]['Enums']["question_type"] }; Returns: string
                            },
-"take_rate_limit":
-{ Args: { "p_bucket": string,"p_key_hash": string,"p_limit": number,"p_window_seconds": number }; Returns: boolean
-                           },
-"has_active_enrolment":
-{ Args: Record<PropertyKey, never>; Returns: boolean
-                           },
 "search_course":
 { Args: { "p_course_id": string,"p_limit"?: number,"p_query": string }; Returns: {
               "context": string,"id": string,"kind": string,"rank": number,"slug": string,"snippet": string,"title": string,"url": string
             }[]
+                           },
+"take_rate_limit":
+{ Args: { "p_bucket": string,"p_key_hash": string,"p_limit": number,"p_window_seconds": number }; Returns: boolean
+                           },
+"valid_profile_links":
+{ Args: { "p_links": Json }; Returns: boolean
                            }
           }
           Enums: {
