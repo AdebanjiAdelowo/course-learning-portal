@@ -593,12 +593,25 @@ async function seedSchedule(db: Db, ids: ContentIds, authorId: string | null, re
 // Demo activity
 // ---------------------------------------------------------------------------
 
-async function clearStudentActivity(db: Db, userId: string): Promise<void> {
-  check("clear feedback", await db.from("feedback").delete().eq("student_id", userId));
-  check("clear submissions", await db.from("submissions").delete().eq("user_id", userId));
-  check("clear attempts", await db.from("quiz_attempts").delete().eq("user_id", userId));
-  check("clear progress", await db.from("lesson_progress").delete().eq("user_id", userId));
-  check("clear code", await db.from("code_submissions").delete().eq("user_id", userId));
+/**
+ * Removes one student's demo activity in the course being seeded, and nothing else. Rows that
+ * belong to any other course in the same database are left exactly as they are.
+ */
+async function clearStudentActivity(db: Db, userId: string, ids: ContentIds): Promise<void> {
+  const inCourse = async (table: "lessons" | "quizzes" | "projects" | "coding_problems") =>
+    unwrap(`read ${table}`, await db.from(table).select("id").eq("course_id", ids.courseId)).map((row) => row.id);
+  const [lessonIds, quizIds, projectIds, problemIds] = await Promise.all([
+    inCourse("lessons"),
+    inCourse("quizzes"),
+    inCourse("projects"),
+    inCourse("coding_problems"),
+  ]);
+
+  check("clear feedback", await db.from("feedback").delete().eq("student_id", userId).eq("course_id", ids.courseId));
+  if (projectIds.length > 0) check("clear submissions", await db.from("submissions").delete().eq("user_id", userId).in("project_id", projectIds));
+  if (quizIds.length > 0) check("clear attempts", await db.from("quiz_attempts").delete().eq("user_id", userId).in("quiz_id", quizIds));
+  if (lessonIds.length > 0) check("clear progress", await db.from("lesson_progress").delete().eq("user_id", userId).in("lesson_id", lessonIds));
+  if (problemIds.length > 0) check("clear code", await db.from("code_submissions").delete().eq("user_id", userId).in("problem_id", problemIds));
 }
 
 /** Records an attempt graded by the same function the application uses. */
@@ -673,7 +686,7 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
           { onConflict: "user_id,course_id" },
         ),
     );
-    await clearStudentActivity(db, userId);
+    await clearStudentActivity(db, userId, ids);
   }
 
   // --- First student: four of five lessons, quiz passed on a retake, project reviewed -----
