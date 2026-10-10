@@ -5,9 +5,11 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 
 import { saveCode } from "@/app/learn/actions/practice";
 import { CodeEditor } from "@/components/code-editor";
+import { PythonOutput, RunButtons, usePythonRun } from "@/components/python-runner";
 import { Button } from "@/components/ui/button";
 import { FormMessage, SubmitButton, useServerForm } from "@/components/ui/form";
-import { PRACTICE_LIMITS, PRACTICE_NOTICE } from "@/lib/domain/practice";
+import { EDITORIAL_NOTICE, LOCAL_RESULTS_LABEL, PRACTICE_LIMITS, PRACTICE_NOTICE } from "@/lib/domain/practice";
+import { summariseTests, type SampleTest } from "@/lib/python/types";
 
 export interface AttemptView {
   id: string;
@@ -17,8 +19,12 @@ export interface AttemptView {
 }
 
 /**
- * The coding side of a practice problem: the editor, the two ways of saving, and the history of
- * submitted attempts. Code is stored, never run.
+ * The coding side of a practice problem: the editor, running the visible sample tests in the
+ * browser, the two ways of saving, and the history of submitted attempts.
+ *
+ * Running and saving are separate. Running happens entirely in the student's browser and its
+ * results are never sent anywhere; saving stores the text of the code and nothing else. The
+ * server never runs the code and never learns whether the sample tests passed.
  */
 export function PracticeWorkspace({
   problemId,
@@ -26,6 +32,8 @@ export function PracticeWorkspace({
   starterCode,
   draftLabel,
   attempts,
+  functionName,
+  sampleTests,
 }: {
   problemId: string;
   initialCode: string;
@@ -33,8 +41,16 @@ export function PracticeWorkspace({
   /** "Draft saved 3 Oct 2026, 14:20", or null when there is no draft. */
   draftLabel: string | null;
   attempts: AttemptView[];
+  /** The function the sample tests call; null when the problem has no runnable sample tests. */
+  functionName: string | null;
+  sampleTests: SampleTest[];
 }) {
   const id = useId();
+  const python = usePythonRun();
+  const canRun = functionName !== null && sampleTests.length > 0;
+  const lastRun = python.outcome?.status === "completed" && python.outcome.result.kind === "tests" ? python.outcome.result : null;
+  const lastSummary = lastRun && lastRun.status === "ok" ? summariseTests(lastRun) : null;
+
   const { state, pending, formProps } = useServerForm(saveCode);
   const [code, setCode] = useState(initialCode);
   // What was last sent to the server; once that request succeeds it is the saved version.
@@ -98,7 +114,42 @@ export function PracticeWorkspace({
           <span>{PRACTICE_NOTICE}</span>
         </p>
 
+        {canRun ? (
+          <div className="space-y-3 rounded-xl border border-line bg-paper p-3 sm:p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <RunButtons
+                runLabel="Run code"
+                isRunning={python.isRunning}
+                disabled={python.busyElsewhere}
+                onRun={() => void python.run({ kind: "tests", code, functionName: functionName!, tests: sampleTests })}
+                onStop={python.stop}
+              />
+              <p className="text-sm text-ink-faint">
+                Runs the {sampleTests.length} sample {sampleTests.length === 1 ? "test" : "tests"} shown under Examples, in your browser.
+              </p>
+            </div>
+            <p className="text-sm font-semibold">{LOCAL_RESULTS_LABEL}</p>
+            <PythonOutput
+              state={python.state}
+              outcome={python.outcome}
+              idle="Press Run code to call your function with each sample test and compare what it returns with the expected value."
+            />
+            {lastSummary ? (
+              <p className="text-sm text-ink-soft">
+                {lastSummary.allPassed
+                  ? "Every sample test passed on your device. That is encouraging, not proof: the samples are a few cases, and passing them is not a grade. Think about empty input, a single element and the largest allowed values before you submit."
+                  : "Not every sample test passed yet. You can keep working, or submit anyway and compare your approach with the editorial."}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <FormMessage state={state} />
+
+        <p className="text-sm text-ink-soft">
+          {canRun ? "Run the sample tests before you submit. " : ""}
+          {EDITORIAL_NOTICE}
+        </p>
 
         <div className="flex flex-wrap items-center gap-3">
           <SubmitButton pending={pending} name="intent" value="submit" pendingLabel="Saving…">
@@ -120,13 +171,14 @@ export function PracticeWorkspace({
         </h2>
         {attempts.length === 0 ? (
           <p className="mt-2 text-ink-soft">
-            You have not submitted an attempt yet. Submitting records a copy of your code here and opens the editorial.
+            You have not submitted an attempt yet. Submitting records a copy of your code here and unlocks the editorial for
+            self-review.
           </p>
         ) : (
           <>
             <p className="mt-2 text-sm text-ink-faint">
               {attempts.length} of {PRACTICE_LIMITS.maxSubmissionsPerProblem} recorded attempts used. Attempts are kept as you
-              submitted them; they have not been run or graded.
+              submitted them. They are not graded: a recorded attempt says nothing about whether the code is correct.
             </p>
             <ol className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
               {attempts.map((attempt) => (

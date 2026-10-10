@@ -34,6 +34,7 @@ export const portalNav = [
   { href: "/learn", label: "Dashboard" },
   { href: "/learn/curriculum", label: "Curriculum" },
   { href: "/learn/practice", label: "Practice" },
+  { href: "/learn/playground", label: "Playground" },
   { href: "/learn/projects", label: "Projects" },
   { href: "/learn/quizzes", label: "Quizzes" },
   { href: "/learn/sessions", label: "Live sessions" },

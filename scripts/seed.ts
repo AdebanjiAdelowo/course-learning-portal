@@ -17,6 +17,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 
 import { course } from "../seed/course";
+import { hasUnsafeInteger, parseExact } from "../seed/exact-json";
 import type { SeedInstructor, SeedModule, SeedProblem, SeedQuestion, SeedResource } from "../seed/types";
 import { gradeQuiz, toStoredResults, type AnswerKey, type AnswerValue, type SnapshotQuestion } from "../src/lib/domain/quiz";
 import type { Database, Json } from "../src/lib/supabase/database.types";
@@ -169,17 +170,28 @@ interface ProblemTests {
 function readProblemFiles(slug: string) {
   const directory = path.join("seed", "problems", slug);
   const read = (name: string) => readFileSync(path.join(directory, name), "utf8").trim();
-  const tests = JSON.parse(read("tests.json")) as ProblemTests;
+  // Parsed exactly: hidden tests may contain integers beyond what a JavaScript number holds.
+  const tests = parseExact(read("tests.json")) as ProblemTests;
+  // Sample tests are sent to the browser and run there, where they pass through JavaScript
+  // numbers, so they must stay within the exact range.
+  if (hasUnsafeInteger(tests.sample)) {
+    throw new Error(`seed/problems/${slug}/tests.json: sample tests must use integers within ±2^53. Move larger cases to "hidden".`);
+  }
   const call = (args: unknown[]) => `${tests.function}(${args.map(pyRepr).join(", ")})`;
   return {
     statement: read("problem.md"),
     editorial: read("editorial.md"),
     starter: read("starter.py"),
     solution: read("solution.py"),
+    // Shown on the problem page, and run in the student's browser by "Run code": the visible
+    // sample tests carry their arguments and expected value as data, not only as text.
     examples: tests.sample.map((test) => ({
       input: call(test.args),
       output: pyRepr(test.expected),
       explanation: test.explanation ?? "",
+      function: tests.function,
+      args: test.args,
+      expected: test.expected,
     })),
     hiddenTests: tests.hidden.map((test) => ({ function: tests.function, args: test.args, expected: test.expected })),
   };
@@ -261,7 +273,14 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
       await db
         .from("phases")
         .upsert(
-          { course_id: courseId, slug: phase.slug, title: phase.title, description: phase.description, position: phaseIndex + 1 },
+          {
+            course_id: courseId,
+            slug: phase.slug,
+            title: phase.title,
+            description: phase.description,
+            position: phaseIndex + 1,
+            is_preparatory: phase.preparatory ?? false,
+          },
           { onConflict: "course_id,slug" },
         )
         .select("id")
@@ -458,7 +477,7 @@ async function upsertProblem(db: Db, courseId: string, moduleId: string, problem
           position,
           statement_md: files.statement,
           constraints: problem.constraints,
-          examples: files.examples,
+          examples: files.examples as unknown as NonNullable<Json>,
           starter_code: files.starter,
           hints: problem.hints,
           is_published: true,

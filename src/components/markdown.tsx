@@ -12,6 +12,7 @@ import { parseVizBlock } from "@/lib/viz/parse";
 
 import { AlgorithmPlayer } from "./algorithm-player";
 import { CodeBlock } from "./code-block";
+import { RunnableSnippet } from "./python-playground";
 
 function isExternal(href: string | undefined): boolean {
   return !!href && /^https?:\/\//.test(href);
@@ -55,6 +56,12 @@ const components: Components = {
       return <AlgorithmPlayer algorithmId={spec.value.algorithm.id} initialInput={spec.value.input} />;
     }
 
+    // ```python-run blocks are Python the student can edit and run in the browser.
+    if (language === "python-run" && code && "children" in code) {
+      const source = code.children.map((child) => ("value" in child ? child.value : "")).join("");
+      return <RunnableSnippet code={source.replace(/\n$/, "")} />;
+    }
+
     return <CodeBlock language={language}>{children}</CodeBlock>;
   },
   // Wide tables scroll inside their own container instead of breaking the page on mobile.
@@ -80,7 +87,8 @@ const components: Components = {
 
 /**
  * Renders author-written Markdown: GitHub-flavoured Markdown, LaTeX maths ($...$ and $$...$$)
- * via KaTeX, and syntax-highlighted code. Raw HTML in the source is not rendered, so content
+ * via KaTeX, syntax-highlighted code, `viz` blocks (algorithm visualizations) and `python-run`
+ * blocks (Python that runs in the reader's browser). Raw HTML in the source is not rendered, so content
  * stored in the database cannot inject markup or scripts.
  */
 export function Markdown({
@@ -92,7 +100,7 @@ export function Markdown({
     <div className={cn("prose", className)} {...props}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeSlug, [rehypeKatex, { strict: false }], [rehypeHighlight, { detect: false, plainText: ["viz", "text"] }]]}
+        rehypePlugins={[rehypeSlug, [rehypeKatex, { strict: false }], [rehypeHighlight, { detect: false, plainText: ["viz", "text", "python-run"] }]]}
         components={components}
       >
         {children}

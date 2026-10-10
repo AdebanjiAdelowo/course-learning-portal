@@ -26,7 +26,14 @@ export const PRACTICE_LIMITS = {
 } as const;
 
 export const PRACTICE_NOTICE =
-  "Solutions are saved for practice and review. Automated code execution and grading are not yet available.";
+  "Run your code against the sample tests in your browser, then save it for review. Sample-test results are local feedback: there is no official grading.";
+
+/** Shown wherever the editorial is offered or unlocked. */
+export const EDITORIAL_NOTICE =
+  "Submitting a solution unlocks the editorial for self-review. Submission does not mean the solution is correct.";
+
+/** Heading over every set of browser test results. */
+export const LOCAL_RESULTS_LABEL = "Local sample-test results: not official grading.";
 
 export interface PracticeStanding {
   status: PracticeStatus;

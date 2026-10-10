@@ -97,6 +97,6 @@ export async function saveCode(_previous: FormState, formData: FormData): Promis
   return {
     status: "success",
     message:
-      "Submitted for self-review. Your code was saved to your history; it has not been run or graded. The editorial is now open: compare it with your solution.",
+      "Submitted for self-review. Your code was saved to your history. It is not graded: submission does not mean the solution is correct. The editorial is now unlocked, so compare it with your solution.",
   };
 }

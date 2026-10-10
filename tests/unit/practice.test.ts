@@ -5,6 +5,8 @@ import {
   filterProblems,
   normaliseCode,
   PRACTICE_LIMITS,
+  EDITORIAL_NOTICE,
+  LOCAL_RESULTS_LABEL,
   PRACTICE_NOTICE,
   practiceLimitMessage,
   practiceStanding,
@@ -43,8 +45,10 @@ describe("practiceStanding", () => {
   it("does not use words that claim correctness for a self-reviewed submission", () => {
     expect(practiceStatusLabels.submitted).toBe("Submitted for self-review");
     expect(practiceStatusLabels.submitted).not.toMatch(/accepted|correct|passed|solved/i);
-    expect(PRACTICE_NOTICE).toBe(
-      "Solutions are saved for practice and review. Automated code execution and grading are not yet available.",
+    expect(PRACTICE_NOTICE).toContain("there is no official grading");
+    expect(LOCAL_RESULTS_LABEL).toBe("Local sample-test results: not official grading.");
+    expect(EDITORIAL_NOTICE).toBe(
+      "Submitting a solution unlocks the editorial for self-review. Submission does not mean the solution is correct.",
     );
   });
 });

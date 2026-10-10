@@ -17,7 +17,8 @@ import traceback
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-FENCE = re.compile(r"^([ \t]*)```python[ \t]*\n(.*?)^\1```[ \t]*$", re.DOTALL | re.MULTILINE)
+# ```python blocks, and ```python-run blocks (the same code, shown with a Run button).
+FENCE = re.compile(r"^([ \t]*)```python(?:-run)?[ \t]*\n(.*?)^\1```[ \t]*$", re.DOTALL | re.MULTILINE)
 
 
 def python_blocks(markdown: str) -> list[str]:
@@ -69,6 +70,27 @@ def run_problem(directory: Path) -> tuple[int, list[str]]:
     except SyntaxError as error:
         failures.append(f"{directory.name}: starter.py has a syntax error: {error}")
 
+    # Sample tests run in the browser, where numbers are doubles: keep them exactly representable.
+    def unsafe(value) -> bool:
+        if isinstance(value, bool):
+            return False
+        if isinstance(value, int):
+            return abs(value) > 2**53
+        if isinstance(value, float):
+            return True
+        if isinstance(value, list):
+            return any(unsafe(item) for item in value)
+        if isinstance(value, dict):
+            return any(unsafe(item) for item in value.values())
+        return False
+
+    for case in spec["sample"]:
+        if unsafe(case["args"]) or unsafe(case["expected"]):
+            failures.append(f"{directory.name}: sample tests must use integers within 2**53 and no floats; move {case['args']!r} to hidden")
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+        failures.append(f"{directory.name}: function name {name!r} is not a plain identifier")
+    if len(spec["sample"]) > 20:
+        failures.append(f"{directory.name}: at most 20 sample tests can be run in the browser")
     if len(spec["sample"]) < 2:
         failures.append(f"{directory.name}: needs at least two sample tests")
     if len(spec["hidden"]) < 5:
