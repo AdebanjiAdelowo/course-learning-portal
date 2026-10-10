@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ClipboardCheck, FlaskConical, Paperclip, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, ClipboardCheck, Code2, FlaskConical, Paperclip, Pencil, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -12,6 +12,7 @@ import { requireStaff } from "@/lib/data/viewer";
 import { formatDate, formatDuration } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
+import { moveModule } from "../actions";
 import { ModuleForm } from "../forms";
 import { moveLesson } from "./actions";
 
@@ -23,21 +24,25 @@ export default async function ContentPage() {
   if (!course) return <EmptyState title="No course yet">Load one with the seed script first.</EmptyState>;
 
   const supabase = await createClient();
-  const [modules, lessons, quizzes, projects, resources] = await Promise.all([
-    supabase.from("modules").select("id, title, position, is_published, requires_previous, available_from").eq("course_id", course.id).order("position"),
+  const [modules, lessons, quizzes, projects, resources, phases, problems] = await Promise.all([
+    supabase.from("modules").select("id, title, position, phase_id, is_published, requires_previous, available_from").eq("course_id", course.id).order("position"),
     supabase.from("lessons").select("id, module_id, title, slug, position, duration_minutes, is_published").eq("course_id", course.id).order("position"),
     supabase.from("quizzes").select("id, module_id, title, pass_percent, is_published, questions(count)").eq("course_id", course.id).order("title"),
     supabase.from("projects").select("id, module_id, title, max_points, due_at, is_published").eq("course_id", course.id).order("due_at", { nullsFirst: false }),
     supabase.from("resources").select("id", { count: "exact", head: true }).eq("course_id", course.id),
+    supabase.from("phases").select("id, title, position").eq("course_id", course.id).order("position"),
+    supabase.from("coding_problems").select("id, module_id").eq("course_id", course.id),
   ]);
   if (modules.error) throw new Error(`Could not load content: ${modules.error.message}`);
+  const phaseLabel = new Map((phases.data ?? []).map((phase, index) => [phase.id, `Phase ${index + 1}: ${phase.title}`]));
+  const publishedCount = modules.data.filter((mod) => mod.is_published).length;
 
   return (
     <div className="space-y-10">
       <PageHeader
         eyebrow="Instructor area"
         title="Course content"
-        description="Create and edit lessons, quizzes and projects. Drafts stay hidden from students until you publish them."
+        description={`${publishedCount} of ${modules.data.length} modules published. Planned modules are shown to students by title only. Drafts stay hidden until you publish them.`}
         actions={
           <ButtonLink href="/admin/content/resources" variant="secondary">
             <Paperclip className="size-4" aria-hidden="true" />
@@ -53,14 +58,41 @@ export default async function ContentPage() {
             <EmptyState title="No modules yet">Add the first module with the form on this page.</EmptyState>
           ) : (
             <ol className="space-y-5">
-              {modules.data.map((mod) => {
+              {modules.data.map((mod, moduleIndex) => {
+                const problemCount = (problems.data ?? []).filter((p) => p.module_id === mod.id).length;
                 const moduleLessons = (lessons.data ?? []).filter((l) => l.module_id === mod.id);
                 const moduleQuizzes = (quizzes.data ?? []).filter((q) => q.module_id === mod.id);
                 const moduleProjects = (projects.data ?? []).filter((p) => p.module_id === mod.id);
                 return (
                   <li key={mod.id} className="card p-5">
-                    <p className="eyebrow">Module {mod.position}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="eyebrow mr-auto">
+                        {mod.phase_id && phaseLabel.has(mod.phase_id) ? `${phaseLabel.get(mod.phase_id)} · ` : ""}Module {mod.position}
+                      </p>
+                      {mod.is_published ? <Badge tone="accent">Published</Badge> : <Badge>Planned</Badge>}
+                      {(["up", "down"] as const).map((direction) => (
+                        <form key={direction} action={moveModule}>
+                          <input type="hidden" name="id" value={mod.id} />
+                          <input type="hidden" name="direction" value={direction} />
+                          <SubmitButton
+                            variant="ghost"
+                            size="sm"
+                            className="w-9 px-0"
+                            disabled={direction === "up" ? moduleIndex === 0 : moduleIndex === modules.data.length - 1}
+                            aria-label={`Move module ${mod.title} ${direction}`}
+                          >
+                            {direction === "up" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />}
+                          </SubmitButton>
+                        </form>
+                      ))}
+                    </div>
                     <h3 className="mt-1 text-lg font-semibold">{mod.title}</h3>
+                    {problemCount > 0 ? (
+                      <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-faint">
+                        <Code2 className="size-4" aria-hidden="true" />
+                        {problemCount} coding {problemCount === 1 ? "problem" : "problems"} (authored in the seed files)
+                      </p>
+                    ) : null}
 
                     <h4 className="mt-5 font-sans text-sm font-bold uppercase tracking-wider text-ink-soft">Lessons</h4>
                     {moduleLessons.length > 0 ? (
@@ -128,6 +160,10 @@ export default async function ContentPage() {
                     )}
 
                     <div className="mt-4 flex flex-wrap gap-2">
+                      <ButtonLink href={`/admin/content/modules/${mod.id}`} variant="secondary" size="sm">
+                        <Pencil className="size-4" aria-hidden="true" />
+                        Edit module
+                      </ButtonLink>
                       <ButtonLink href={`/admin/content/lessons/new?module=${mod.id}`} variant="secondary" size="sm">
                         <Plus className="size-4" aria-hidden="true" />
                         Lesson

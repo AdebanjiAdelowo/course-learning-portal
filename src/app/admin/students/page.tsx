@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { getAdminCourse } from "@/lib/data/admin";
 import { requireStaff } from "@/lib/data/viewer";
 import { createClient } from "@/lib/supabase/server";
 import { CreateStudentForm, EnrolmentForm } from "./forms";
 export const metadata: Metadata = { title: "Students and enrolments" };
 export default async function StudentsPage() {
   await requireStaff();
+  // Students are enrolled in the configured course only; other courses in the database are ignored.
+  const course = await getAdminCourse();
+  if (!course) return <EmptyState title="No course yet">Load one with the seed script first.</EmptyState>;
   const db = await createClient();
   const [profiles, courses, enrolments] = await Promise.all([
     db.from("profiles").select("id,full_name,email").eq("role","student").order("full_name"),
-    db.from("courses").select("id,title").order("title"),
-    db.from("enrollments").select("id,user_id,course_id,status"),
+    db.from("courses").select("id,title").eq("id", course.id),
+    db.from("enrollments").select("id,user_id,course_id,status").eq("course_id", course.id),
   ]);
   if (profiles.error || courses.error || enrolments.error) throw new Error("Could not load students and enrolments.");
   const students=profiles.data.map(p => ({ id:p.id,title:`${p.full_name} (${p.email})` }));

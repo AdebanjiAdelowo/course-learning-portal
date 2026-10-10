@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { safeAvatarUrl } from "@/lib/domain/profile";
 import { isValidTimeZone } from "@/lib/format";
 
 /** Input schemas shared by server actions. Everything a browser sends is parsed here first. */
@@ -45,6 +46,17 @@ export const profileSchema = z.object({
   full_name: z.string().trim().min(1, "Enter your name.").max(120),
   timezone: z.string().trim().refine(isValidTimeZone, "Choose a valid time zone."),
   bio: z.string().trim().max(2000, "Keep this under 2000 characters."),
+});
+
+/** Fields shown on the public website for the instructor. Links are parsed separately. */
+export const publicProfileSchema = z.object({
+  headline: z.string().trim().max(160, "Keep this under 160 characters."),
+  avatar_url: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((value) => value === "" || safeAvatarUrl(value) !== null, "Enter an https:// link to an image, or leave this empty."),
+  links_text: z.string().max(4000),
 });
 
 export const submissionSchema = z
@@ -117,6 +129,16 @@ export const moduleSchema = z.object({
   slug,
   description: z.string().trim().max(600),
   requires_previous: checkbox,
+});
+
+export const moduleUpdateSchema = z.object({
+  module_id: z.uuid(),
+  title: z.string().trim().min(1, "Enter a title.").max(160),
+  description: z.string().trim().max(600),
+  // Empty means "not assigned to a phase".
+  phase_id: z.union([z.literal(""), z.uuid("Choose a phase.")]).transform((v) => (v === "" ? null : v)),
+  requires_previous: checkbox,
+  is_published: checkbox,
 });
 
 export const reviewSchema = z

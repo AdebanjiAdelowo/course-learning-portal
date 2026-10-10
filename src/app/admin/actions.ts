@@ -16,6 +16,7 @@ import {
   lessonSchema,
   liveSessionSchema,
   moduleSchema,
+  moduleUpdateSchema,
   reviewSchema,
   type FormState,
 } from "@/lib/validation";
@@ -133,15 +134,98 @@ export async function createModule(_previous: FormState, formData: FormData): Pr
     .limit(1)
     .maybeSingle();
 
+  // A new module starts as planned: it has no lessons yet, and students should not be shown
+  // an empty module as available. Publish it from its edit page once it has content.
   const { error } = await supabase.from("modules").insert({
     ...parsed.data,
     course_id: course.id,
+    is_published: false,
     position: (last?.position ?? 0) + 1,
   });
   if (error) return failed(duplicateMessage(error.code, "The module could not be created."));
 
   refresh();
-  return { status: "success", message: `Module "${parsed.data.title}" added at the end of the course.` };
+  return {
+    status: "success",
+    message: `Module "${parsed.data.title}" added at the end of the course as planned. Add lessons, then publish it from "Edit module".`,
+  };
+}
+
+/**
+ * Renames a module, edits its description, assigns its phase, and publishes or unpublishes it.
+ * The slug is deliberately not editable: links, seed files and prerequisites refer to it.
+ * Nothing is deleted; unpublishing hides a module from students and keeps their progress.
+ */
+export async function updateModule(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requireStaff();
+  const parsed = moduleUpdateSchema.safeParse({
+    module_id: formData.get("module_id"),
+    title: formData.get("title"),
+    description: formData.get("description") ?? "",
+    phase_id: formData.get("phase_id") ?? "",
+    requires_previous: formData.get("requires_previous"),
+    is_published: formData.get("is_published"),
+  });
+  if (!parsed.success) return invalidState(parsed.error);
+  const { module_id, phase_id, is_published, ...rest } = parsed.data;
+
+  const course = await courseOrFail();
+  const supabase = await createClient();
+
+  // Ids from the browser are never trusted: the phase must belong to the managed course.
+  if (phase_id) {
+    const { data: phase } = await supabase.from("phases").select("id").eq("id", phase_id).eq("course_id", course.id).maybeSingle();
+    if (!phase) return { status: "error", message: "Please check the highlighted fields.", fieldErrors: { phase_id: ["Choose a phase from this course."] } };
+  }
+
+  if (is_published) {
+    const { count } = await supabase
+      .from("lessons")
+      .select("id", { count: "exact", head: true })
+      .eq("module_id", module_id)
+      .eq("is_published", true);
+    if (!count) {
+      return {
+        status: "error",
+        message: "Please check the highlighted fields.",
+        fieldErrors: { is_published: ["Publish at least one lesson in this module first. Until then it stays on the path as planned."] },
+      };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("modules")
+    .update({ ...rest, phase_id, is_published })
+    .eq("id", module_id)
+    .eq("course_id", course.id)
+    .select("id");
+  if (error) return failed("The module could not be saved.");
+  if (data.length === 0) return failed("That module no longer exists.");
+
+  refresh();
+  return {
+    status: "success",
+    message: is_published ? "Module saved. It is published and visible to enrolled students." : "Module saved. It is shown to students as planned.",
+  };
+}
+
+const moveModuleSchema = z.object({ id: z.uuid(), direction: z.enum(["up", "down"]) });
+
+/** Swaps a module with its neighbour in course order. */
+export async function moveModule(formData: FormData): Promise<void> {
+  await requireStaff();
+  const parsed = moveModuleSchema.safeParse({ id: formData.get("id"), direction: formData.get("direction") });
+  if (!parsed.success) throw new Error("Invalid request.");
+  const course = await courseOrFail();
+  const supabase = await createClient();
+  const { data: mod } = await supabase.from("modules").select("id").eq("id", parsed.data.id).eq("course_id", course.id).maybeSingle();
+  if (!mod) throw new Error("That module is not part of this course.");
+  const { error } = await supabase.rpc("move_module", {
+    p_module_id: mod.id,
+    p_direction: parsed.data.direction === "up" ? -1 : 1,
+  });
+  if (error) throw new Error(`Could not move the module: ${error.message}`);
+  refresh();
 }
 
 export async function saveLesson(_previous: FormState, formData: FormData): Promise<FormState> {
