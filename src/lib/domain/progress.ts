@@ -108,7 +108,7 @@ export interface CourseProgress {
   projects: { submitted: number; total: number };
   modules: { done: number; total: number };
   moduleProgress: ModuleProgress[];
-  /** The module the student should be working in: the first unlocked one that is not finished. */
+  /** The module the student is working in: the one that holds the next step. */
   currentModule: ModuleProgress | null;
   /** The single most useful thing to do next, or null when the course is finished. */
   nextStep: NextStep | null;
@@ -219,7 +219,14 @@ export function computeCourseProgress(
   const totalItems = allLessons.length + allQuizzes.length + allProjects.length;
 
   const unlocked = moduleProgress.filter((m) => m.state !== "locked");
-  const currentModule = unlocked.find((m) => m.state !== "completed") ?? null;
+  const nextStep = findNextStep(unlocked, record);
+  // The module the student is working in is the one that holds their next step. Optional
+  // preparation that was skipped (an earlier module with an untaken quiz) must not be reported
+  // as "current" while the student's next lesson is somewhere else.
+  const currentModule =
+    (nextStep && unlocked.find((m) => m.module.position === nextStep.modulePosition)) ??
+    unlocked.find((m) => m.state !== "completed") ??
+    null;
 
   return {
     percent: percentOf(doneItems, totalItems),
@@ -241,7 +248,7 @@ export function computeCourseProgress(
     },
     moduleProgress,
     currentModule,
-    nextStep: findNextStep(unlocked, record),
+    nextStep,
   };
 }
 

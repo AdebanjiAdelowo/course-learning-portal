@@ -27,6 +27,8 @@ const configured = Boolean(url && anonKey && serviceKey && password);
 
 const COURSE_SLUG = DEFAULT_COURSE_SLUG;
 const MODULE_SLUG = "correctness-and-cost";
+/** Published modules, in course order: the two Python modules, then the first DSA module. */
+const PUBLISHED = ["python-essentials", "python-collections-and-testing", MODULE_SLUG];
 const QUIZ_SLUG = "correctness-and-cost-quiz";
 
 function client(key: string): Db {
@@ -181,16 +183,16 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(modules![0]!.slug).toBe("python-essentials");
     });
 
-    it("publishes one module and keeps the other 33 planned, with no lessons in any planned module", async () => {
-      const { data: modules } = await admin.from("modules").select("id, slug, is_published, plan").eq("course_id", courseId).not("slug", "like", "it-%");
-      expect(modules!.filter((mod) => mod.is_published).map((mod) => mod.slug)).toEqual([MODULE_SLUG]);
+    it("publishes three modules and keeps the other 31 planned, with no lessons in any planned module", async () => {
+      const { data: modules } = await admin.from("modules").select("id, slug, position, is_published, plan").eq("course_id", courseId).not("slug", "like", "it-%").order("position");
+      expect(modules!.filter((mod) => mod.is_published).map((mod) => mod.slug)).toEqual(PUBLISHED);
       const plannedIds = modules!.filter((mod) => !mod.is_published).map((mod) => mod.id);
-      expect(plannedIds).toHaveLength(33);
+      expect(plannedIds).toHaveLength(31);
       expect((await admin.from("lessons").select("id", { count: "exact", head: true }).in("module_id", plannedIds)).count).toBe(0);
       expect((await admin.from("coding_problems").select("id", { count: "exact", head: true }).in("module_id", plannedIds)).count).toBe(0);
 
       const plans = new Map(modules!.map((mod) => [mod.slug, mod.plan as { objectives?: string[]; lessons?: unknown[]; prerequisites?: string[] }]));
-      for (const slug of ["python-essentials", "python-collections-and-testing", "two-pointers", "sliding-window"]) {
+      for (const slug of ["two-pointers", "sliding-window"]) {
         expect(plans.get(slug)!.objectives!.length, slug).toBeGreaterThan(3);
         expect(plans.get(slug)!.lessons!.length, slug).toBeGreaterThan(3);
       }
@@ -199,7 +201,35 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(JSON.stringify([...plans.values()])).not.toContain("spec");
     });
 
-    it("loads the published module in full: five lessons, an eight-question quiz, a project and six problems", async () => {
+    it("marks only the Python phase as preparatory, and stores positions that numbering can be derived from", async () => {
+      const { data: phases } = await admin.from("phases").select("slug, is_preparatory").eq("course_id", courseId).order("position");
+      expect(phases!.filter((phase) => phase.is_preparatory).map((phase) => phase.slug)).toEqual(["python-foundations"]);
+      // Stored order: the two Python modules, then the first DSA module at position 3. Display
+      // numbers (P1, P2, DSA Module 1) are derived from this and are not stored anywhere.
+      const { data: first } = await admin.from("modules").select("slug, position").eq("course_id", courseId).order("position").limit(3);
+      expect(first).toEqual([
+        { slug: "python-essentials", position: 1 },
+        { slug: "python-collections-and-testing", position: 2 },
+        { slug: "correctness-and-cost", position: 3 },
+      ]);
+    });
+
+    it("loads each Python module in full: six lessons, a ten-question quiz, a project and four problems", async () => {
+      for (const slug of ["python-essentials", "python-collections-and-testing"]) {
+        const { data: mod } = await admin.from("modules").select("id").eq("course_id", courseId).eq("slug", slug).single();
+        expect((await admin.from("lessons").select("id", { count: "exact", head: true }).eq("module_id", mod!.id).eq("is_published", true)).count, slug).toBe(6);
+        const { data: quiz } = await admin.from("quizzes").select("id, pass_percent").eq("module_id", mod!.id).single();
+        expect(quiz!.pass_percent).toBe(70);
+        const { data: questions } = await admin.from("questions").select("type, key:question_keys(correct)").eq("quiz_id", quiz!.id);
+        expect(questions, slug).toHaveLength(10);
+        expect(new Set(questions!.map((q) => q.type)).size).toBe(4);
+        expect(questions!.every((q) => q.key !== null)).toBe(true);
+        expect((await admin.from("projects").select("id", { count: "exact", head: true }).eq("module_id", mod!.id)).count).toBe(1);
+        expect((await admin.from("coding_problems").select("id", { count: "exact", head: true }).eq("module_id", mod!.id)).count).toBe(4);
+      }
+    });
+
+    it("loads the first DSA module in full: five lessons, an eight-question quiz, a project and six problems", async () => {
       expect((await admin.from("lessons").select("id", { count: "exact", head: true }).eq("module_id", moduleId).eq("is_published", true)).count).toBe(5);
       const { data: quiz } = await admin.from("quizzes").select("id, title").eq("course_id", courseId).eq("slug", QUIZ_SLUG).single();
       expect(quiz!.title).toBe("Assessment: correctness and cost");
@@ -208,7 +238,8 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(new Set(questions!.map((q) => q.type)).size).toBe(4);
       expect(questions!.every((q) => q.key !== null)).toBe(true);
       expect((await admin.from("projects").select("id", { count: "exact", head: true }).eq("module_id", moduleId).eq("slug", "measuring-growth")).count).toBe(1);
-      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-")).sort()).toEqual([
+      const { data: dsaProblems } = await admin.from("coding_problems").select("slug").eq("module_id", moduleId).order("slug");
+      expect(dsaProblems!.map((row) => row.slug)).toEqual([
         "count-occurrences",
         "count-the-shifts",
         "first-occurrence",
@@ -216,8 +247,9 @@ describe.skipIf(!configured)("row-level security", () => {
         "is-sorted",
         "lower-bound",
       ]);
+      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(14);
       const { data: solutions } = await admin.from("coding_problem_solutions").select("editorial_md, reference_solution, hidden_tests");
-      expect(solutions!.length).toBeGreaterThanOrEqual(6);
+      expect(solutions!.length).toBeGreaterThanOrEqual(14);
       expect(solutions!.every((row) => row.reference_solution.includes("def ") && (row.hidden_tests as unknown[]).length >= 5)).toBe(true);
     });
 
@@ -254,9 +286,13 @@ describe.skipIf(!configured)("row-level security", () => {
       const seeded = outline.modules.filter((mod) => !mod.slug.startsWith("it-"));
       expect(seeded).toHaveLength(34);
       const available = seeded.filter((mod) => mod.is_published);
-      expect(available.map((mod) => mod.slug)).toEqual([MODULE_SLUG]);
-      expect(available[0]).toMatchObject({ quiz_count: 1, problem_count: 6 });
-      expect(available[0]!.lessons).toHaveLength(5);
+      expect(available.map((mod) => mod.slug)).toEqual(PUBLISHED);
+      const dsa = available.find((mod) => mod.slug === MODULE_SLUG)!;
+      expect(dsa).toMatchObject({ quiz_count: 1, problem_count: 6 });
+      expect(dsa.lessons).toHaveLength(5);
+      expect(available[0]).toMatchObject({ quiz_count: 1, problem_count: 4 });
+      expect(available[0]!.lessons).toHaveLength(6);
+      expect((data as unknown as { phases: { slug: string; is_preparatory: boolean }[] }).phases.filter((phase) => phase.is_preparatory).map((phase) => phase.slug)).toEqual(["python-foundations"]);
       // A planned module is never dressed up as a published one.
       for (const mod of seeded.filter((m) => !m.is_published)) {
         expect(mod).toMatchObject({ lessons: [], quiz_count: 0, problem_count: 0, projects: [] });
@@ -470,13 +506,13 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(error).toBeNull();
       const seeded = data!.filter((row) => !row.slug!.startsWith("it-"));
       expect(seeded).toHaveLength(34);
-      expect(seeded.filter((row) => row.is_published).map((row) => row.slug)).toEqual([MODULE_SLUG]);
+      expect(seeded.filter((row) => row.is_published).map((row) => row.slug).sort()).toEqual([...PUBLISHED].sort());
       expect(seeded.find((row) => row.slug === "two-pointers")).toMatchObject({ title: "Two pointers", is_published: false });
     });
 
     it("does not expose planned modules through the modules table, and the view carries no lesson content", async () => {
       const { data } = await alice.db.from("modules").select("slug").eq("course_id", courseId);
-      expect(data!.map((row) => row.slug).sort()).toEqual([MODULE_SLUG, "it-locked-module"].sort());
+      expect(data!.map((row) => row.slug).sort()).toEqual([...PUBLISHED, "it-locked-module"].sort());
       expect((await alice.db.from("module_path").select("body_md")).error).not.toBeNull();
       const { data: row } = await alice.db.from("module_path").select("*").eq("slug", MODULE_SLUG).single();
       expect(Object.keys(row!).sort()).toEqual(["course_id", "description", "id", "is_published", "phase_id", "plan", "position", "slug", "title"]);
@@ -555,12 +591,33 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(Object.keys(data!)).not.toContain("editorial_md");
     });
 
+    it("gives the browser runner the visible sample tests as data, and nothing from the hidden set", async () => {
+      const { data: rows } = await alice.db.from("coding_problems").select("slug, examples").eq("course_id", courseId);
+      expect(rows!.length).toBe(14);
+      const { data: solutions } = await admin.from("coding_problem_solutions").select("problem_id, hidden_tests, reference_solution");
+      for (const row of rows!) {
+        const examples = row.examples as { function: string; args: unknown[]; expected: unknown; input: string; output: string }[];
+        expect(examples.length, row.slug).toBeGreaterThanOrEqual(2);
+        expect(examples.length, row.slug).toBeLessThanOrEqual(20);
+        for (const example of examples) {
+          expect(example.function, row.slug).toMatch(/^[a-z_][a-z0-9_]*$/);
+          expect(Array.isArray(example.args), row.slug).toBe(true);
+          expect(example.expected, row.slug).not.toBeUndefined();
+          expect(example.input.startsWith(`${example.function}(`), row.slug).toBe(true);
+        }
+        // The sample set and the hidden set are disjoint, so nothing visible reveals a hidden case.
+        const hidden = solutions!.find((solution) => solution.problem_id === problemIds.get(row.slug))!.hidden_tests as { args: unknown[] }[];
+        const visible = new Set(examples.map((example) => JSON.stringify(example.args)));
+        expect(hidden.filter((test) => visible.has(JSON.stringify(test.args))), row.slug).toEqual([]);
+      }
+    });
+
     it("never lets a student read the solutions table, by any route", async () => {
       expect((await alice.db.from("coding_problem_solutions").select("*")).data).toEqual([]);
       expect((await alice.db.from("coding_problem_solutions").select("hidden_tests").eq("problem_id", problemIds.get("first-occurrence")!)).data).toEqual([]);
       const embedded = await alice.db.from("coding_problems").select("id, solution:coding_problem_solutions(reference_solution, hidden_tests)").eq("course_id", courseId);
       expect(embedded.data!.every((row) => row.solution === null)).toBe(true);
-      expect((await instructor.db.from("coding_problem_solutions").select("problem_id")).data!.length).toBeGreaterThanOrEqual(6);
+      expect((await instructor.db.from("coding_problem_solutions").select("problem_id")).data!.length).toBeGreaterThanOrEqual(14);
     });
 
     it("releases the editorial only after a submitted attempt: not before, and not for a draft", async () => {

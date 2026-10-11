@@ -134,9 +134,10 @@ test.describe("learning", () => {
     await expect(page).toHaveTitle(/DSA Academy/);
     expect(await page.content()).not.toMatch(/Isocline|Scientific Machine Learning/);
 
-    await expect(page.getByText(/Next lesson · Module 3/i)).toBeVisible();
+    await expect(page.getByText(/Next lesson · DSA Module 1/i)).toBeVisible();
+    await expect(page.locator("p", { hasText: "Current module" })).toContainText("DSA Module 1: Algorithms, correctness and cost");
     await expect(page.getByRole("progressbar", { name: "Overall course completion", exact: true })).toBeVisible();
-    await expect(page.getByText("1 module available · 33 modules planned")).toBeVisible();
+    await expect(page.getByText("3 modules available · 31 modules planned")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Coding practice" })).toBeVisible();
     await page.getByRole("link", { name: "Continue learning" }).click();
     await expect(page).toHaveURL(/\/learn\/lessons\/insertion-sort$/);
@@ -146,7 +147,7 @@ test.describe("learning", () => {
   test("the curriculum shows eight phases, with planned modules labelled and not openable", async ({ page }) => {
     await page.goto("/learn/curriculum");
     await expect(page.getByRole("heading", { level: 1, name: "Data Structures and Algorithms" })).toBeVisible();
-    await expect(page.getByText("8 phases · 1 module available · 33 modules planned")).toBeVisible();
+    await expect(page.getByText("8 phases · 3 modules available · 31 modules planned")).toBeVisible();
 
     const phases = page.getByRole("heading", { level: 2 });
     await expect(phases).toHaveText([
@@ -160,9 +161,19 @@ test.describe("learning", () => {
       "Limits and synthesis",
     ]);
 
-    // The phase the student is working in is open, with the published module as a link.
+    // The phase the student is working in is open, with the published module as a link, and
+    // it is numbered as the first DSA module although two Python modules come before it.
     const available = page.getByRole("link", { name: "Algorithms, correctness and cost" });
     await expect(available).toBeVisible();
+    await expect(page.getByText("DSA Module 1", { exact: true })).toBeVisible();
+    await expect(page.getByText("DSA Module 2", { exact: true })).toBeVisible(); // planned, same phase
+    await expect(page.getByText("Module 3", { exact: true })).toHaveCount(0);
+
+    // Python preparation is numbered separately.
+    await page.getByText("Phase 1", { exact: true }).click();
+    await expect(page.getByText("Python Module P1", { exact: true })).toBeVisible();
+    await expect(page.getByText("Python Module P2", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Python essentials/ })).toBeVisible();
     await expect(page.getByText("5 lessons", { exact: false }).first()).toBeVisible();
 
     // A planned module is shown by title, marked as planned, and is not a link.
@@ -183,7 +194,7 @@ test.describe("learning", () => {
     await page.goto("/learn/curriculum");
     await available.click();
     await expect(page).toHaveURL(/\/learn\/modules\/correctness-and-cost$/);
-    await expect(page.getByText(/Phase 2: Foundations · Module 3/)).toBeVisible();
+    await expect(page.getByText(/Phase 2: Foundations · DSA Module 1/)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Practice problems" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lower bound" })).toBeVisible();
   });
@@ -283,8 +294,9 @@ test.describe("learning", () => {
     await signOut(page);
     await signIn(page, STUDENT);
     await expect(page.getByRole("heading", { name: /Welcome back/ })).toBeVisible();
-    // With every lesson done, the next step is the quiz the student has not passed yet.
-    await expect(page.getByText(/Next quiz · Module 3/i)).toBeVisible();
+    // With every lesson done, the next step is the earliest quiz not yet passed: the first
+    // Python assessment, which this student has not taken.
+    await expect(page.getByText(/Next quiz · Python Module P1/i)).toBeVisible();
     await page.goto(lesson);
     await expect(page.getByText("Lesson complete")).toBeVisible();
     await page.goto("/learn/modules/correctness-and-cost");
@@ -394,6 +406,7 @@ test.describe("learning", () => {
     for (const [path, heading] of [
       ["/learn/curriculum", "Data Structures and Algorithms"],
       ["/learn/practice", "Coding practice"],
+      ["/learn/playground", "Python playground"],
       ["/learn/quizzes", /./],
       ["/learn/projects", "Projects and assignments"],
       ["/learn/sessions", "Seminars and office hours"],
@@ -427,13 +440,17 @@ test.describe("coding practice", () => {
   test("the practice list can be browsed, searched and filtered", async ({ page }) => {
     await page.goto("/learn/practice");
     await expect(page.getByRole("heading", { level: 1, name: "Coding practice" })).toBeVisible();
-    await expect(page.getByText("Solutions are saved for practice and review. Automated code execution and grading are not yet available.")).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText("Showing all 6 problems, in course order.");
-    await expect(page.getByRole("main").getByRole("listitem").getByText("Not attempted", { exact: true })).toHaveCount(6);
+    await expect(page.getByText(/Sample-test results are local feedback: there is no official grading\./)).toBeVisible();
+    await expect(page.getByText(/Submitting a solution unlocks the editorial for self-review\. Submission does not mean the solution is correct\./)).toBeVisible();
+    await expect(page.getByRole("status")).toHaveText("Showing all 14 problems, in course order.");
+    await expect(page.getByRole("main").getByRole("listitem").getByText("Not attempted", { exact: true })).toHaveCount(14);
+    // Problems are labelled with their module's display number.
+    await expect(page.getByText(/^Python Module P1 · /).first()).toBeVisible();
+    await expect(page.getByText(/^DSA Module 1 · /).first()).toBeVisible();
 
     await page.getByLabel("Difficulty").selectOption({ label: "Warm-up" });
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 2 of 6 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 5 of 14 problems.");
     await expect(page.getByRole("link", { name: "First occurrence" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Is it sorted?" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lower bound" })).toHaveCount(0);
@@ -441,11 +458,11 @@ test.describe("coding practice", () => {
     // Clearing resets the list and the filter controls themselves.
     await page.getByRole("link", { name: "Clear" }).click();
     await expect(page).toHaveURL(/\/learn\/practice$/);
-    await expect(page.getByRole("status")).toHaveText("Showing all 6 problems, in course order.");
+    await expect(page.getByRole("status")).toHaveText("Showing all 14 problems, in course order.");
     await expect(page.getByLabel("Difficulty")).toHaveValue("all");
     await page.getByLabel("Search", { exact: true }).fill("square root");
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 1 of 6 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 1 of 14 problems.");
     await expect(page.getByRole("link", { name: "Integer square root" })).toBeVisible();
 
     await page.getByLabel("Search", { exact: true }).fill("no such problem anywhere");
@@ -468,7 +485,7 @@ test.describe("coding practice", () => {
     await expect(page.getByText(/^is_sorted\(\[/).first()).toBeVisible();
 
     // No editorial, reference solution or hidden test reaches the page before an attempt.
-    await expect(page.getByText(/open once you have submitted an attempt/)).toBeVisible();
+    await expect(page.getByText(/Submitting a solution unlocks the editorial for self-review\. Submission does not mean the solution is correct\. Run the sample tests first/)).toBeVisible();
     const before = await page.content();
     expect(before).not.toContain("Order between neighbours implies");
     expect(before).not.toContain("order between neighbours implies");
@@ -508,6 +525,52 @@ test.describe("coding practice", () => {
     await expect(page.getByText(/This is still the starter code/)).toBeVisible();
     await expect(page.getByText("You have not submitted an attempt yet", { exact: false })).toBeVisible();
 
+    // Run code: the visible sample tests, in the browser. The starter returns True for everything,
+    // so it passes the two sorted samples and fails the unsorted one.
+    const output = page.locator("[data-python-output]");
+    const runState = page.locator("[data-run-state]");
+    await expect(page.getByText("Local sample-test results: not official grading.")).toBeVisible();
+    await expect(runState).toHaveAttribute("data-run-state", "ready");
+    await expect(page.getByRole("button", { name: "Stop execution" })).toBeDisabled();
+    await page.getByRole("button", { name: "Run code" }).click();
+    await expect(runState).toHaveAttribute("data-run-state", "failed", { timeout: 120_000 }); // the first run loads the runtime
+    await expect(output.locator("[data-test-summary]")).toHaveText("2 of 3 sample tests passed, 1 failed.");
+    const failing = output.locator('[data-test-status="failed"]');
+    await expect(failing).toHaveCount(1);
+    await expect(failing).toContainText("is_sorted([1, 3, 2])");
+    await expect(failing).toContainText("Expected");
+    await expect(failing).toContainText("False");
+    await expect(failing).toContainText("Actual");
+    await expect(failing).toContainText("True");
+
+    // A wrong function name is explained, not swallowed.
+    await editor.fill("def sorted_check(items):\n    return True\n");
+    await page.getByRole("button", { name: "Run code" }).click();
+    await expect(output.getByText(/does not define a function named is_sorted\(\)/).first()).toBeVisible();
+    await expect(output.locator("[data-test-summary]")).toHaveText("0 of 3 sample tests passed, 3 stopped with an error.");
+
+    // A syntax error runs no test and points at the line.
+    await editor.fill("def is_sorted(items)\n    return True\n");
+    await page.getByRole("button", { name: "Run code" }).click();
+    await expect(output.getByText(/SyntaxError on line 1/)).toBeVisible();
+    await expect(output.getByText("no sample test was run", { exact: false })).toBeVisible();
+
+    // An endless loop is stopped on request, and the runtime recovers for the next run.
+    await editor.fill("def is_sorted(items):\n    while True:\n        pass\n");
+    await page.getByRole("button", { name: "Run code" }).click();
+    await expect(runState).toHaveAttribute("data-run-state", "running");
+    await page.getByRole("button", { name: "Stop execution" }).click();
+    await expect(runState).toHaveAttribute("data-run-state", "cancelled");
+    await expect(output).toContainText("Stopped at your request");
+
+    await editor.fill(solution);
+    await page.getByRole("button", { name: "Run code" }).click();
+    await expect(runState).toHaveAttribute("data-run-state", "completed", { timeout: 60_000 });
+    await expect(output.locator("[data-test-summary]")).toHaveText("3 of 3 sample tests passed.");
+    await expect(page.getByText(/That is encouraging, not proof/)).toBeVisible();
+    // Passing the samples changes nothing on the server: the problem is still not attempted.
+    await expect(page.getByText("Not attempted", { exact: true })).toBeVisible();
+
     // Save a draft; it survives a reload and shows in the status.
     await editor.fill(solution);
     await expect(page.getByText("Unsaved changes")).toBeVisible();
@@ -517,11 +580,11 @@ test.describe("coding practice", () => {
     await page.reload();
     await expect(page.getByLabel("Python solution")).toHaveValue(solution);
     await expect(page.getByText("Draft saved", { exact: true })).toBeVisible();
-    await expect(page.getByText(/open once you have submitted an attempt/)).toBeVisible(); // a draft does not open the editorial
+    await expect(page.getByText(/Run the sample tests first and make a real attempt/)).toBeVisible(); // a draft does not unlock the editorial
 
     // Submit for self-review: recorded in the history, never called correct.
     await page.getByRole("button", { name: "Submit for self-review" }).click();
-    await expect(page.getByRole("status").filter({ hasText: "Submitted for self-review" })).toContainText("it has not been run or graded");
+    await expect(page.getByRole("status").filter({ hasText: "Submitted for self-review" })).toContainText("submission does not mean the solution is correct");
     await expect(page.getByText("Submitted for self-review", { exact: true })).toBeVisible();
     await expect(page.getByText("1 attempt recorded")).toBeVisible();
     const history = page.getByRole("region", { name: "Submission history" });
@@ -529,13 +592,13 @@ test.describe("coding practice", () => {
     await expect(history.getByText(/not graded/).first()).toBeVisible();
     await history.getByText("Attempt 1", { exact: true }).click();
     await expect(history.locator("pre")).toHaveText(solution);
-    for (const claim of [/\bAccepted\b/, /\bCorrect\b/, /\bPassed\b/, /Automatically verified/]) {
+    for (const claim of [/\bAccepted\b/, /\bCorrect\b/, /Automatically verified/, /\bVerified\b/, /\bSolved\b/]) {
       await expect(page.getByRole("main").getByText(claim)).toHaveCount(0);
     }
 
     // The editorial is now open.
     await page.getByText("Read the editorial and the reference solution").click();
-    await expect(page.getByText(/Open because you have submitted an attempt/)).toBeVisible();
+    await expect(page.getByText(/Unlocked because you have submitted an attempt\. Submitting a solution unlocks the editorial for self-review\. Submission does not mean the solution is correct\./)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Why it is correct" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Reference solution" })).toBeVisible();
 
@@ -555,13 +618,14 @@ test.describe("coding practice", () => {
     await expect(row.getByText("2 attempts")).toBeVisible();
     await page.getByLabel("Status").selectOption({ label: "Submitted for self-review" });
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 1 of 6 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 1 of 14 problems.");
     await page.goto("/learn");
-    await expect(page.getByText(/1 of 6\s+problems submitted for self-review/)).toBeVisible();
+    await expect(page.getByText(/1 of 14\s+problems submitted for self-review/)).toBeVisible();
 
     // Another problem's editorial is still closed.
     await page.goto("/learn/practice/lower-bound");
-    await expect(page.getByText(/open once you have submitted an attempt/)).toBeVisible();
+    await expect(page.getByText(/Run the sample tests first and make a real attempt/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Reference solution" })).toHaveCount(0);
 
     await signOut(page);
     await page.goto(problem);
@@ -586,6 +650,251 @@ test.describe("coding practice", () => {
     await page.goto("/learn/practice/no-such-problem");
     await expect(page.getByRole("heading", { level: 1, name: "That page is not part of your course" })).toBeVisible();
     await expect(page.getByLabel("Python solution")).toHaveCount(0);
+  });
+});
+
+test.describe("running Python in the browser", () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, STUDENT);
+  });
+
+  const finished = (page: Page) =>
+    expect(page.locator("[data-run-state]").first()).not.toHaveAttribute("data-run-state", /loading|running/, { timeout: 120_000 });
+
+  test("the playground runs code, reports errors, stops endless loops and recovers", async ({ page }) => {
+    const violations: string[] = [];
+    page.on("console", (message) => {
+      if (/Content Security Policy/i.test(message.text())) violations.push(message.text());
+    });
+
+    await page.goto("/learn/playground");
+    await expect(page.getByRole("heading", { level: 1, name: "Python playground" })).toBeVisible();
+    await expect(page.getByText(/Nothing you run here is sent to the server, saved or graded/)).toBeVisible();
+    const editor = page.getByLabel("Python code");
+    const output = page.locator("[data-python-output]");
+    const state = page.locator("[data-run-state]");
+    const run = page.getByRole("button", { name: "Run code" });
+
+    // The first example runs as it stands. The first run downloads and starts the runtime.
+    await expect(state).toHaveAttribute("data-run-state", "ready");
+    await run.click();
+    await expect(state).toHaveAttribute("data-run-state", "completed", { timeout: 120_000 });
+    await expect(output).toContainText("7 <class 'int'>");
+    await expect(output).toContainText("Execution time");
+
+    // Each starter example runs and prints something.
+    const examples = page.getByLabel("Example");
+    const titles = await examples.locator("option").allInnerTexts();
+    expect(titles).toEqual(["Variables and types", "Lists", "Dictionaries", "Loops", "Functions", "Recursion", "Linear search", "Binary search"]);
+    for (const title of titles.slice(1)) {
+      await examples.selectOption({ label: title });
+      await run.click();
+      await finished(page);
+      await expect(state, title).toHaveAttribute("data-run-state", "completed");
+      await expect(output.getByLabel("Standard output"), title).not.toBeEmpty();
+    }
+    await expect(output).toContainText("found at index 6"); // the last example: binary search
+
+    // Standard output and standard error are shown separately.
+    await editor.fill('import sys\nprint("to stdout")\nprint("to stderr", file=sys.stderr)\n');
+    await run.click();
+    await finished(page);
+    await expect(output.getByLabel("Standard output")).toHaveText("to stdout");
+    await expect(output.getByLabel("Standard error")).toHaveText("to stderr");
+
+    // Errors: type, line, a plain explanation, and a traceback limited to the student's code.
+    for (const [code, type, line] of [
+      ["def f(:\n    pass\n", "SyntaxError", 1],
+      ["x = 1\nprint(y)\n", "NameError", 2],
+      ['total = 1 + "a"\n', "TypeError", 1],
+      ["items = [1, 2, 3]\n\nprint(items[5])\n", "IndexError", 3],
+      ['n = int("abc")\n', "ValueError", 1],
+      ["assert 1 + 1 == 3\n", "AssertionError", 1],
+    ] as const) {
+      await editor.fill(code);
+      await run.click();
+      await finished(page);
+      await expect(state, type).toHaveAttribute("data-run-state", "failed");
+      await expect(output.getByRole("alert"), type).toContainText(`${type} on line ${line}`);
+      await expect(output.getByLabel("Traceback"), type).toContainText(type);
+      await expect(output.getByLabel("Traceback"), type).not.toContainText(/pyodide|handle_request|_execute/);
+    }
+
+    // An endless loop is stopped automatically after the time limit...
+    await editor.fill("count = 0\nwhile True:\n    count += 1\n");
+    await run.click();
+    await expect(state).toHaveAttribute("data-run-state", "running");
+    await expect(run).toBeDisabled(); // no overlapping runs
+    await expect(state).toHaveAttribute("data-run-state", "timed_out", { timeout: 15_000 });
+    await expect(output).toContainText("Stopped after 5 seconds");
+
+    // ...and the next run works, on a fresh worker.
+    await editor.fill("print(6 * 7)\n");
+    await run.click();
+    await expect(state).toHaveAttribute("data-run-state", "completed", { timeout: 60_000 });
+    await expect(output.getByLabel("Standard output")).toHaveText("42");
+
+    // Stop execution ends a run at once.
+    await editor.fill("while True:\n    pass\n");
+    await run.click();
+    await expect(state).toHaveAttribute("data-run-state", "running");
+    await page.getByRole("button", { name: "Stop execution" }).click();
+    await expect(state).toHaveAttribute("data-run-state", "cancelled");
+
+    // A flood of output is cut off instead of freezing the page.
+    await editor.fill('for i in range(1000000):\n    print("x" * 100)\n');
+    await run.click();
+    await finished(page);
+    await expect(output).toContainText("The output was cut off");
+
+    // Repeated runs keep working, and state does not leak from one run to the next.
+    await editor.fill("secret = 41\nprint(secret + 1)\n");
+    await run.click();
+    await finished(page);
+    await expect(output.getByLabel("Standard output")).toHaveText("42");
+    await editor.fill("print(secret)\n");
+    await run.click();
+    await finished(page);
+    await expect(output.getByRole("alert")).toContainText("NameError");
+
+    // Reset puts the chosen example back.
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Reset" }).click();
+    await expect(editor).toHaveValue(/def binary_search/);
+
+    expect(violations, "content security policy violations").toEqual([]);
+  });
+
+  test("code running in the worker cannot reach the application, other hosts, or eval", async ({ page }) => {
+    await page.goto("/learn/playground");
+    const probe = [
+      "import js",
+      "def get(url):",
+      "    try:",
+      "        request = js.XMLHttpRequest.new()",
+      '        request.open("GET", url, False)',
+      "        request.send()",
+      '        return "ALLOWED"',
+      "    except BaseException:",
+      '        return "BLOCKED"',
+      'print("page", get("/learn"))',
+      'print("settings", get("/learn/settings"))',
+      'print("signout", get("/auth/signout"))',
+      `print("database", get("${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/"))`,
+      'print("elsewhere", get("https://example.com/"))',
+      'print("runtime", get("/pyodide/VERSION"))',
+      "for name, attempt in [",
+      '    ("eval", lambda: js.eval("1 + 1")),',
+      '    ("function", lambda: js.Function.new("return 1")()),',
+      '    ("import", lambda: js.importScripts("/learn")),',
+      '    ("cookie", lambda: js.document.cookie),',
+      "]:",
+      "    try:",
+      "        attempt()",
+      '        print(name, "ALLOWED")',
+      "    except BaseException:",
+      '        print(name, "BLOCKED")',
+      "",
+    ].join("\n");
+    await page.getByLabel("Python code").fill(probe);
+    await page.getByRole("button", { name: "Run code" }).click();
+    await finished(page);
+    const text = await page.locator("[data-python-output]").getByLabel("Standard output").innerText();
+    expect(text.trim().split("\n")).toEqual([
+      "page BLOCKED",
+      "settings BLOCKED",
+      "signout BLOCKED",
+      "database BLOCKED",
+      "elsewhere BLOCKED",
+      "runtime ALLOWED",
+      "eval BLOCKED",
+      "function BLOCKED",
+      "import BLOCKED",
+      "cookie BLOCKED",
+    ]);
+  });
+
+  test("the worker is served with its own narrow policy, and the page policy is not weakened", async ({ page, request }) => {
+    const worker = await request.get("/pyodide-worker");
+    expect(worker.headers()["content-type"]).toContain("text/javascript");
+    const policy = worker.headers()["content-security-policy"] ?? "";
+    expect(policy).toMatch(/^default-src 'none'; script-src (http:\/\/localhost:3000\/pyodide\/ ?)+ 'wasm-unsafe-eval'; connect-src (http:\/\/localhost:3000\/pyodide\/ ?)+$/);
+    expect(policy).not.toContain("'unsafe-eval'");
+    expect(await worker.text()).not.toMatch(/cdn|jsdelivr|https?:\/\//);
+
+    const response = await page.goto("/learn/playground");
+    const pagePolicy = response?.headers()["content-security-policy"] ?? "";
+    expect(pagePolicy).toMatch(/script-src 'self' 'nonce-[^']+' 'strict-dynamic';/);
+    expect(pagePolicy).not.toContain("unsafe-eval");
+    expect(pagePolicy).not.toContain("wasm-unsafe-eval");
+    expect(pagePolicy).toContain("connect-src 'self';");
+  });
+
+  test("Python lessons are open, numbered P1 and P2, and their examples run in the page", async ({ page }) => {
+    await page.goto("/learn/modules/python-essentials");
+    await expect(page.getByText(/Phase 1: Python foundations · Python Module P1/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Practice problems" })).toBeVisible();
+    await page.getByRole("link", { name: /Values, variables and data types/ }).first().click();
+    await expect(page).toHaveURL(/\/learn\/lessons\/values-variables-and-types$/);
+    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Python Module P1: Python essentials");
+    await expect(page.getByText("Lesson 1 of 6")).toBeVisible();
+    for (const heading of ["1. Motivation", "4. Syntax and semantics", "6. Try it", "7. Common mistakes", "9. Check your understanding", "10. Summary"]) {
+      await expect(page.getByRole("heading", { level: 2, name: heading })).toBeVisible();
+    }
+
+    // The runnable example: run it, change it, run again, reset.
+    const snippet = page.getByRole("region", { name: "Runnable Python example" });
+    await expect(snippet).toHaveCount(1);
+    await snippet.getByRole("button", { name: "Run code" }).click();
+    await expect(snippet.locator("[data-run-state]")).toHaveAttribute("data-run-state", "completed", { timeout: 120_000 });
+    await expect(snippet.getByLabel("Standard output")).toContainText("count is now 8");
+    const code = snippet.getByLabel("Python example");
+    await code.fill('print("changed by the student", 2 ** 10)\n');
+    await snippet.getByRole("button", { name: "Run code" }).click();
+    await expect(snippet.getByLabel("Standard output")).toHaveText("changed by the student 1024");
+    await snippet.getByRole("button", { name: "Reset" }).click();
+    await expect(code).toHaveValue(/count = 7/);
+
+    // Lesson navigation runs through the module in order and into the next one.
+    await page.getByRole("navigation", { name: "Lesson navigation" }).getByRole("link", { name: /Operators and expressions/ }).click();
+    await expect(page).toHaveURL(/\/learn\/lessons\/operators-and-expressions$/);
+    await expect(page.locator(".katex").first()).toBeVisible();
+    await page.goto("/learn/lessons/strings-and-input-output");
+    await expect(page.getByText("Lesson 6 of 6")).toBeVisible();
+    await page.goto("/learn/lessons/efficient-python-functions");
+    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Python Module P2");
+    await expect(page.getByRole("region", { name: "Runnable Python example" })).toHaveCount(1);
+
+    // The Python assessments and projects are available through the existing pages.
+    await page.goto("/learn/quizzes/python-essentials-quiz");
+    await expect(page.getByRole("heading", { level: 1, name: "Assessment: Python essentials" })).toBeVisible();
+    await expect(page.getByText("Question 1 of 10")).toBeVisible();
+    await page.goto("/learn/projects/gradebook");
+    await expect(page.getByRole("heading", { level: 1, name: "A gradebook built from collections" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Grading rubric" })).toBeVisible();
+  });
+
+  test("a Python practice problem runs its sample tests, and local results are never recorded", async ({ page }) => {
+    await page.goto("/learn/practice/sum-of-digits");
+    await expect(page.getByText(/^Python Module P1 · /)).toBeVisible();
+    const output = page.locator("[data-python-output]");
+    const state = page.locator("[data-run-state]");
+    await page.getByLabel("Python solution").fill("def digit_sum(n):\n    total = 0\n    while n > 0:\n        total += n % 10\n        n //= 10\n    return total\n");
+    await page.getByRole("button", { name: "Run code" }).click();
+    await expect(state).toHaveAttribute("data-run-state", "completed", { timeout: 120_000 });
+    await expect(output.locator("[data-test-summary]")).toHaveText("3 of 3 sample tests passed.");
+    await expect(output.locator('[data-test-status="passed"]')).toHaveCount(3);
+    await expect(output).toContainText("digit_sum(4729)");
+
+    // Nothing was saved by running: no draft, no attempt, and the editorial is still locked.
+    await page.reload();
+    await expect(page.getByText("Not attempted", { exact: true })).toBeVisible();
+    await expect(page.getByText("No draft saved yet")).toBeVisible();
+    await expect(page.getByLabel("Python solution")).toHaveValue(/# n % 10 is the last digit/);
+    await expect(page.getByText(/Run the sample tests first and make a real attempt/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Reference solution" })).toHaveCount(0);
+    const { count } = await admin.from("code_submissions").select("id", { count: "exact", head: true }).eq("user_id", await studentId());
+    expect(count).toBe(0);
   });
 });
 
@@ -652,6 +961,8 @@ test.describe("small screens", () => {
       "/learn/lessons/insertion-sort",
       "/learn/practice",
       "/learn/practice/lower-bound",
+      "/learn/playground",
+      "/learn/lessons/lists-and-tuples",
       "/learn/projects/measuring-growth",
       "/",
     ]) {
@@ -720,14 +1031,20 @@ test.describe("public website", () => {
     expect(await page.content()).not.toMatch(/Isocline|Scientific Machine Learning|Helena Voss|support@example\.com/);
 
     await expect(page.getByRole("heading", { name: "The learning path" })).toBeVisible();
-    await expect(page.getByText(/8 phases · 1 module available · 33 modules planned/)).toBeVisible();
-    await expect(page.getByText("1 of 34")).toBeVisible();
+    await expect(page.getByText(/8 phases · 3 modules available · 31 modules planned/)).toBeVisible();
+    await expect(page.getByText("3 of 34")).toBeVisible();
     // The published module lists its lessons; a planned one is labelled and lists none.
-    await expect(page.getByText("Available", { exact: true })).toHaveCount(1);
+    await expect(page.getByText("Available", { exact: true })).toHaveCount(3);
+    // Python preparation and core modules are numbered separately.
+    await expect(page.getByText("Python Module P1", { exact: true })).toBeVisible();
+    await expect(page.getByText("Python Module P2", { exact: true })).toBeVisible();
+    await page.getByText("Phase 2", { exact: true }).click();
+    await expect(page.getByText("DSA Module 1", { exact: true })).toBeVisible();
     await expect(page.getByText(/Binary search/).first()).toBeVisible();
-    await page.getByText("Phase 1", { exact: true }).click();
-    const planned = page.locator("div").filter({ has: page.getByRole("heading", { level: 3, name: /^Python essentials/ }) }).last();
+    await page.getByText("Phase 3", { exact: true }).click();
+    const planned = page.locator("div").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) }).last();
     await expect(planned.getByText("Planned", { exact: true })).toBeVisible();
+    await expect(planned.getByText("DSA Module 5", { exact: true })).toBeVisible();
 
     await expect(page.getByRole("heading", { name: "Adebanji Adelowo" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Frequently asked" })).toBeVisible();
