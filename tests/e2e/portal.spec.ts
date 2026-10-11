@@ -796,7 +796,14 @@ test.describe("running Python in the browser", () => {
       '        print(name, "BLOCKED")',
       "",
     ].join("\n");
-    await page.getByLabel("Python code").fill(probe);
+    // The editor is server-rendered: text entered before the page is interactive is not what
+    // gets run. The line count comes from the editor's state, so it shows when the fill took.
+    const editor = page.getByLabel("Python code");
+    await expect(async () => {
+      await editor.fill(probe);
+      await expect(editor).toHaveValue(probe, { timeout: 1000 });
+      await expect(page.getByText(`${probe.split("\n").length} lines`)).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 30_000 });
     await page.getByRole("button", { name: "Run code" }).click();
     await finished(page);
     const text = await page.locator("[data-python-output]").getByLabel("Standard output").innerText();
@@ -967,8 +974,27 @@ test.describe("small screens", () => {
       "/",
     ]) {
       await page.goto(path);
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      expect(overflow, `horizontal overflow on ${path}`).toBeLessThanOrEqual(1);
+      const { overflow, culprits } = await page.evaluate(() => {
+        const width = document.documentElement.clientWidth;
+        const culprits: string[] = [];
+        // Elements that stick out of the viewport and are not inside something that clips or scrolls.
+        for (const element of Array.from(document.querySelectorAll("body *"))) {
+          const box = element.getBoundingClientRect();
+          if (box.width === 0 || box.right <= width + 1) continue;
+          let contained = false;
+          for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+            if (getComputedStyle(parent).overflowX !== "visible") {
+              contained = true;
+              break;
+            }
+          }
+          if (contained) continue;
+          const name = `${element.tagName.toLowerCase()}.${String(element.getAttribute("class") ?? "").slice(0, 60)}`;
+          culprits.push(`${name} right=${Math.round(box.right)} width=${Math.round(box.width)} position=${getComputedStyle(element).position}`);
+        }
+        return { overflow: document.documentElement.scrollWidth - width, culprits: [`viewport=${width}`, ...culprits.slice(0, 8)] };
+      });
+      expect(overflow, `horizontal overflow on ${path}: ${culprits.join(" | ")}`).toBeLessThanOrEqual(1);
     }
   });
 });
