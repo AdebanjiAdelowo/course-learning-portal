@@ -6,7 +6,7 @@
  * Uses the second demo student so the first keeps its showcase state. Requires a seeded local
  * stack: `npm run db:start && npm run seed`.
  */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 
@@ -34,6 +34,21 @@ async function submitLogin(page: Page, email: string, password: string) {
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
+}
+
+/**
+ * Fill a code editor and wait until the editor itself has the text. The editor is rendered on
+ * the server, and text entered while the page is still becoming interactive can be merged with
+ * what was there. The line count in its status bar comes from the editor's state.
+ */
+async function fillEditor(editor: Locator, text: string) {
+  const lines = text.split("\n").length;
+  const status = editor.page().getByText(new RegExp(`· ${lines} lines?$`));
+  await expect(async () => {
+    await editor.fill(text);
+    await expect(editor).toHaveValue(text, { timeout: 1000 });
+    await expect(status).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 30_000 });
 }
 
 async function signIn(page: Page, email: string) {
@@ -502,7 +517,7 @@ test.describe("coding practice", () => {
     // The editor starts with the starter code and behaves like a code editor.
     const editor = page.getByLabel("Python solution");
     await expect(editor).toHaveValue(/def is_sorted\(items: list\[int\]\) -> bool:/);
-    await editor.fill("def f():");
+    await fillEditor(editor, "def f():");
     await editor.press("End");
     await editor.press("Enter");
     await editor.pressSequentially("return 1");
@@ -544,26 +559,26 @@ test.describe("coding practice", () => {
     await expect(failing).toContainText("True");
 
     // A wrong function name is explained, not swallowed.
-    await editor.fill("def sorted_check(items):\n    return True\n");
+    await fillEditor(editor, "def sorted_check(items):\n    return True\n");
     await page.getByRole("button", { name: "Run code" }).click();
     await expect(output.getByText(/does not define a function named is_sorted\(\)/).first()).toBeVisible();
     await expect(output.locator("[data-test-summary]")).toHaveText("0 of 3 sample tests passed, 3 stopped with an error.");
 
     // A syntax error runs no test and points at the line.
-    await editor.fill("def is_sorted(items)\n    return True\n");
+    await fillEditor(editor, "def is_sorted(items)\n    return True\n");
     await page.getByRole("button", { name: "Run code" }).click();
     await expect(output.getByText(/SyntaxError on line 1/)).toBeVisible();
     await expect(output.getByText("no sample test was run", { exact: false })).toBeVisible();
 
     // An endless loop is stopped on request, and the runtime recovers for the next run.
-    await editor.fill("def is_sorted(items):\n    while True:\n        pass\n");
+    await fillEditor(editor, "def is_sorted(items):\n    while True:\n        pass\n");
     await page.getByRole("button", { name: "Run code" }).click();
     await expect(runState).toHaveAttribute("data-run-state", "running");
     await page.getByRole("button", { name: "Stop execution" }).click();
     await expect(runState).toHaveAttribute("data-run-state", "cancelled");
     await expect(output).toContainText("Stopped at your request");
 
-    await editor.fill(solution);
+    await fillEditor(editor, solution);
     await page.getByRole("button", { name: "Run code" }).click();
     await expect(runState).toHaveAttribute("data-run-state", "completed", { timeout: 60_000 });
     await expect(output.locator("[data-test-summary]")).toHaveText("3 of 3 sample tests passed.");
@@ -572,7 +587,7 @@ test.describe("coding practice", () => {
     await expect(page.getByText("Not attempted", { exact: true })).toBeVisible();
 
     // Save a draft; it survives a reload and shows in the status.
-    await editor.fill(solution);
+    await fillEditor(editor, solution);
     await expect(page.getByText("Unsaved changes")).toBeVisible();
     await page.getByRole("button", { name: "Save draft" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Draft saved. It has not been submitted." })).toBeVisible();
@@ -606,7 +621,7 @@ test.describe("coding practice", () => {
     await page.getByRole("button", { name: "Submit for self-review" }).click();
     await expect(page.getByRole("alert").filter({ hasText: "identical to your last submitted attempt" })).toBeVisible();
     await expect(history.getByText(/^Attempt \d+$/)).toHaveCount(1);
-    await page.getByLabel("Python solution").fill(solution.replace("return True", "return True  # second attempt"));
+    await fillEditor(page.getByLabel("Python solution"), solution.replace("return True", "return True  # second attempt"));
     await page.getByRole("button", { name: "Submit for self-review" }).click();
     await expect(history.getByText("Attempt 2", { exact: true })).toBeVisible();
     await expect(page.getByText("2 attempts recorded")).toBeVisible();
@@ -635,7 +650,7 @@ test.describe("coding practice", () => {
   test("code is shown as text, never interpreted as markup", async ({ page }) => {
     await page.goto(problem);
     const hostile = 'print("<img src=x onerror=window.__pwned=1>")\n# </textarea><script>window.__pwned=1</script>\n';
-    await page.getByLabel("Python solution").fill(hostile);
+    await fillEditor(page.getByLabel("Python solution"), hostile);
     await page.getByRole("button", { name: "Submit for self-review" }).click();
     const history = page.getByRole("region", { name: "Submission history" });
     await history.getByText("Attempt 1", { exact: true }).click();
@@ -696,7 +711,7 @@ test.describe("running Python in the browser", () => {
     await expect(output).toContainText("found at index 6"); // the last example: binary search
 
     // Standard output and standard error are shown separately.
-    await editor.fill('import sys\nprint("to stdout")\nprint("to stderr", file=sys.stderr)\n');
+    await fillEditor(editor, 'import sys\nprint("to stdout")\nprint("to stderr", file=sys.stderr)\n');
     await run.click();
     await finished(page);
     await expect(output.getByLabel("Standard output")).toHaveText("to stdout");
@@ -711,7 +726,7 @@ test.describe("running Python in the browser", () => {
       ['n = int("abc")\n', "ValueError", 1],
       ["assert 1 + 1 == 3\n", "AssertionError", 1],
     ] as const) {
-      await editor.fill(code);
+      await fillEditor(editor, code);
       await run.click();
       await finished(page);
       await expect(state, type).toHaveAttribute("data-run-state", "failed");
@@ -721,7 +736,7 @@ test.describe("running Python in the browser", () => {
     }
 
     // An endless loop is stopped automatically after the time limit...
-    await editor.fill("count = 0\nwhile True:\n    count += 1\n");
+    await fillEditor(editor, "count = 0\nwhile True:\n    count += 1\n");
     await run.click();
     await expect(state).toHaveAttribute("data-run-state", "running");
     await expect(run).toBeDisabled(); // no overlapping runs
@@ -729,30 +744,30 @@ test.describe("running Python in the browser", () => {
     await expect(output).toContainText("Stopped after 5 seconds");
 
     // ...and the next run works, on a fresh worker.
-    await editor.fill("print(6 * 7)\n");
+    await fillEditor(editor, "print(6 * 7)\n");
     await run.click();
     await expect(state).toHaveAttribute("data-run-state", "completed", { timeout: 60_000 });
     await expect(output.getByLabel("Standard output")).toHaveText("42");
 
     // Stop execution ends a run at once.
-    await editor.fill("while True:\n    pass\n");
+    await fillEditor(editor, "while True:\n    pass\n");
     await run.click();
     await expect(state).toHaveAttribute("data-run-state", "running");
     await page.getByRole("button", { name: "Stop execution" }).click();
     await expect(state).toHaveAttribute("data-run-state", "cancelled");
 
     // A flood of output is cut off instead of freezing the page.
-    await editor.fill('for i in range(1000000):\n    print("x" * 100)\n');
+    await fillEditor(editor, 'for i in range(1000000):\n    print("x" * 100)\n');
     await run.click();
     await finished(page);
     await expect(output).toContainText("The output was cut off");
 
     // Repeated runs keep working, and state does not leak from one run to the next.
-    await editor.fill("secret = 41\nprint(secret + 1)\n");
+    await fillEditor(editor, "secret = 41\nprint(secret + 1)\n");
     await run.click();
     await finished(page);
     await expect(output.getByLabel("Standard output")).toHaveText("42");
-    await editor.fill("print(secret)\n");
+    await fillEditor(editor, "print(secret)\n");
     await run.click();
     await finished(page);
     await expect(output.getByRole("alert")).toContainText("NameError");
@@ -796,14 +811,7 @@ test.describe("running Python in the browser", () => {
       '        print(name, "BLOCKED")',
       "",
     ].join("\n");
-    // The editor is server-rendered: text entered before the page is interactive is not what
-    // gets run. The line count comes from the editor's state, so it shows when the fill took.
-    const editor = page.getByLabel("Python code");
-    await expect(async () => {
-      await editor.fill(probe);
-      await expect(editor).toHaveValue(probe, { timeout: 1000 });
-      await expect(page.getByText(`${probe.split("\n").length} lines`)).toBeVisible({ timeout: 1000 });
-    }).toPass({ timeout: 30_000 });
+    await fillEditor(page.getByLabel("Python code"), probe);
     await page.getByRole("button", { name: "Run code" }).click();
     await finished(page);
     const text = await page.locator("[data-python-output]").getByLabel("Standard output").innerText();
@@ -886,7 +894,7 @@ test.describe("running Python in the browser", () => {
     await expect(page.getByText(/^Python Module P1 · /)).toBeVisible();
     const output = page.locator("[data-python-output]");
     const state = page.locator("[data-run-state]");
-    await page.getByLabel("Python solution").fill("def digit_sum(n):\n    total = 0\n    while n > 0:\n        total += n % 10\n        n //= 10\n    return total\n");
+    await fillEditor(page.getByLabel("Python solution"), "def digit_sum(n):\n    total = 0\n    while n > 0:\n        total += n % 10\n        n //= 10\n    return total\n");
     await page.getByRole("button", { name: "Run code" }).click();
     await expect(state).toHaveAttribute("data-run-state", "completed", { timeout: 120_000 });
     await expect(output.locator("[data-test-summary]")).toHaveText("3 of 3 sample tests passed.");
@@ -981,9 +989,14 @@ test.describe("small screens", () => {
         for (const element of Array.from(document.querySelectorAll("body *"))) {
           const box = element.getBoundingClientRect();
           if (box.width === 0 || box.right <= width + 1) continue;
+          // An absolutely positioned element is clipped only from its containing block upwards.
+          let position = getComputedStyle(element).position;
           let contained = false;
-          for (let parent = element.parentElement; parent; parent = parent.parentElement) {
-            if (getComputedStyle(parent).overflowX !== "visible") {
+          for (let parent = element.parentElement; parent && position !== "fixed"; parent = parent.parentElement) {
+            const style = getComputedStyle(parent);
+            if (position === "absolute" && style.position === "static") continue;
+            position = style.position;
+            if (style.overflowX !== "visible") {
               contained = true;
               break;
             }
