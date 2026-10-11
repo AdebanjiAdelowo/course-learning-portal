@@ -1,0 +1,170 @@
+{
+  "function": "count_multiples",
+  "sample": [
+    {
+      "args": [
+        1,
+        10,
+        3
+      ],
+      "expected": 3,
+      "explanation": "The multiples are 3, 6 and 9."
+    },
+    {
+      "args": [
+        5,
+        5,
+        5
+      ],
+      "expected": 1,
+      "explanation": "The range holds one number, and it is a multiple."
+    },
+    {
+      "args": [
+        7,
+        3,
+        2
+      ],
+      "expected": 0,
+      "explanation": "low is greater than high, so the range is empty."
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        1,
+        1,
+        1
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        1,
+        100,
+        1
+      ],
+      "expected": 100
+    },
+    {
+      "args": [
+        1,
+        100,
+        7
+      ],
+      "expected": 14
+    },
+    {
+      "args": [
+        10,
+        20,
+        5
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        11,
+        19,
+        10
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        0,
+        0,
+        9
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        0,
+        10,
+        11
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        -6,
+        6,
+        3
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        -10,
+        -1,
+        2
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        -7,
+        -7,
+        7
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        -3,
+        3,
+        4
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        1,
+        1000,
+        13
+      ],
+      "expected": 76
+    },
+    {
+      "args": [
+        999,
+        1001,
+        1000
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        2,
+        1,
+        1
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        100,
+        99,
+        3
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        50,
+        60,
+        61
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        -1,
+        1,
+        2
+      ],
+      "expected": 1
+    }
+  ]
+}

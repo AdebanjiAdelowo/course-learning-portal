@@ -9,6 +9,8 @@ to completion without raising, which is why lesson code ends with assertions.
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import re
 import sys
@@ -31,7 +33,9 @@ def run_markdown(path: Path) -> tuple[int, list[str]]:
     blocks = python_blocks(path.read_text(encoding="utf-8"))
     for number, block in enumerate(blocks, start=1):
         try:
-            exec(compile(block, f"{path.name}#block{number}", "exec"), namespace)
+            # Lesson code may print (runnable examples do); only failures are of interest here.
+            with contextlib.redirect_stdout(io.StringIO()):
+                exec(compile(block, f"{path.name}#block{number}", "exec"), namespace)
         except Exception:  # noqa: BLE001 - report every kind of failure
             failures.append(f"{path.relative_to(ROOT)} block {number}:\n{traceback.format_exc(limit=3)}")
     return len(blocks), failures

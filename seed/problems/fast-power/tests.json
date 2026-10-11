@@ -1,0 +1,171 @@
+{
+  "function": "power",
+  "sample": [
+    {
+      "args": [
+        2,
+        10
+      ],
+      "expected": 1024,
+      "explanation": "2 multiplied by itself ten times."
+    },
+    {
+      "args": [
+        7,
+        0
+      ],
+      "expected": 1,
+      "explanation": "Any number to the power 0 is 1."
+    },
+    {
+      "args": [
+        -2,
+        3
+      ],
+      "expected": -8,
+      "explanation": "An odd power of a negative number is negative."
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        0,
+        0
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        0,
+        1
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        0,
+        5
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        1,
+        0
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        1,
+        1000
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        -1,
+        1000
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        -1,
+        999
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        2,
+        1
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        2,
+        2
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        2,
+        31
+      ],
+      "expected": 2147483648
+    },
+    {
+      "args": [
+        2,
+        52
+      ],
+      "expected": 4503599627370496
+    },
+    {
+      "args": [
+        3,
+        5
+      ],
+      "expected": 243
+    },
+    {
+      "args": [
+        3,
+        20
+      ],
+      "expected": 3486784401
+    },
+    {
+      "args": [
+        5,
+        3
+      ],
+      "expected": 125
+    },
+    {
+      "args": [
+        10,
+        15
+      ],
+      "expected": 1000000000000000
+    },
+    {
+      "args": [
+        -3,
+        4
+      ],
+      "expected": 81
+    },
+    {
+      "args": [
+        -3,
+        5
+      ],
+      "expected": -243
+    },
+    {
+      "args": [
+        7,
+        18
+      ],
+      "expected": 1628413597910449
+    },
+    {
+      "args": [
+        1,
+        1
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        9,
+        16
+      ],
+      "expected": 1853020188851841
+    }
+  ]
+}

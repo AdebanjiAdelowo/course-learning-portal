@@ -18,6 +18,7 @@ import { config } from "dotenv";
 
 import { course } from "../seed/course";
 import { hasUnsafeInteger, parseExact } from "../seed/exact-json";
+import { pythonCollections, pythonEssentials } from "../seed/python-foundations";
 import type { SeedInstructor, SeedModule, SeedProblem, SeedQuestion, SeedResource } from "../seed/types";
 import { gradeQuiz, toStoredResults, type AnswerKey, type AnswerValue, type SnapshotQuestion } from "../src/lib/domain/quiz";
 import type { Database, Json } from "../src/lib/supabase/database.types";
@@ -708,7 +709,20 @@ async function seedDemoActivity(db: Db, ids: ContentIds, people: { instructor: s
     await clearStudentActivity(db, userId, ids);
   }
 
-  // --- First student: four of five lessons, quiz passed on a retake, project reviewed -----
+  // Both students have worked through the Python foundations lessons. Only the first has taken
+  // the two Python assessments; neither has handed in a Python project.
+  const pythonLessons = [...(pythonEssentials.lessons ?? []), ...(pythonCollections.lessons ?? [])].map((item) => item.slug);
+  const pythonProgress = (userId: string, finishedDaysAgo: number) =>
+    pythonLessons.map((slug, index) => ({
+      user_id: userId,
+      lesson_id: lesson(slug),
+      completed_at: daysFromNow(-(finishedDaysAgo + (pythonLessons.length - 1 - index) * 0.02)),
+    }));
+  check("insert python progress", await db.from("lesson_progress").insert([...pythonProgress(people.student, 23), ...pythonProgress(people.second, 22.5)]));
+  await recordAttempt(db, { quizId: ids.quizzes.get("python-essentials-quiz")!, userId: people.student, attemptNumber: 1, wrong: [], daysAgo: 22.8, passPercent: 70 });
+  await recordAttempt(db, { quizId: ids.quizzes.get("python-collections-quiz")!, userId: people.student, attemptNumber: 1, wrong: [4], daysAgo: 22.6, passPercent: 70 });
+
+  // --- First student: four of five DSA lessons, quiz passed on a retake, project reviewed -----
   const completed: [string, number][] = [
     ["algorithms-and-correctness", 21],
     ["counting-cost", 18],
@@ -887,8 +901,8 @@ async function main() {
 
   console.log(summary(ids));
   console.log("\nDemo accounts (password: the value of SEED_DEMO_PASSWORD)");
-  console.log("  student@example.com      student, one lesson from finishing the first published module");
-  console.log("  student2@example.com     student, quiz not yet passed, project awaiting review");
+  console.log("  student@example.com      student, Python foundations done, one lesson from finishing DSA Module 1");
+  console.log("  student2@example.com     student, Python lessons done, DSA quiz not yet passed, project awaiting review");
   console.log(`  ${course.instructor.email}   instructor`);
 }
 

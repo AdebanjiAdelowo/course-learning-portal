@@ -1,0 +1,226 @@
+{
+  "function": "second_largest",
+  "sample": [
+    {
+      "args": [
+        [
+          4,
+          9,
+          2,
+          7
+        ]
+      ],
+      "expected": 7,
+      "explanation": "The largest value is 9 and the next is 7."
+    },
+    {
+      "args": [
+        [
+          5,
+          5,
+          3
+        ]
+      ],
+      "expected": 3,
+      "explanation": "The two fives are the same value, so the second largest distinct value is 3."
+    },
+    {
+      "args": [
+        [
+          -1,
+          -5,
+          -3
+        ]
+      ],
+      "expected": -3,
+      "explanation": "With negative numbers the largest is -1 and the second largest is -3."
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        [
+          1,
+          2
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          2,
+          1
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          1,
+          1,
+          2
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          2,
+          2,
+          1
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          2,
+          2
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          3,
+          1,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        [
+          5,
+          4,
+          3,
+          2,
+          1
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        [
+          0,
+          -1
+        ]
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        [
+          -10,
+          -20,
+          -30,
+          -10
+        ]
+      ],
+      "expected": -20
+    },
+    {
+      "args": [
+        [
+          7,
+          7,
+          7,
+          8
+        ]
+      ],
+      "expected": 7
+    },
+    {
+      "args": [
+        [
+          8,
+          7,
+          7,
+          7
+        ]
+      ],
+      "expected": 7
+    },
+    {
+      "args": [
+        [
+          100,
+          1,
+          99,
+          100,
+          98
+        ]
+      ],
+      "expected": 99
+    },
+    {
+      "args": [
+        [
+          0,
+          0,
+          0,
+          1,
+          0
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          1000000000,
+          -1000000000
+        ]
+      ],
+      "expected": -1000000000
+    },
+    {
+      "args": [
+        [
+          3,
+          9,
+          9,
+          3,
+          9,
+          3,
+          5
+        ]
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        [
+          2,
+          3,
+          2,
+          3,
+          2,
+          3
+        ]
+      ],
+      "expected": 2
+    }
+  ]
+}

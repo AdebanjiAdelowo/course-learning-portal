@@ -1,10 +1,12 @@
-import { pythonCollections, pythonEssentials, slidingWindow, twoPointers } from "./plans";
+import { slidingWindow, twoPointers } from "./plans";
+import { pythonCollections, pythonEssentials } from "./python-foundations";
 import type { SeedCourse, SeedModule, SeedModulePlan } from "./types";
 
 /**
  * DSA Academy: Data Structures and Algorithms.
  *
- * This file is the academic blueprint: eight phases and thirty-four modules. A module marked
+ * This file is the academic blueprint: eight phases and thirty-four modules. The two Python
+ * foundations modules are defined in `python-foundations.ts`. A module marked
  * `published: false` is planned. It shows in the learning path by title and description only,
  * and is published once its lessons, visualizations, problems and assessments are written.
  *
@@ -41,7 +43,7 @@ export const course: SeedCourse = {
   ],
   prerequisites: [
     "No earlier study of algorithms is assumed",
-    "Python: the course opens with a Python foundations phase. Until those modules are published, you should already be comfortable writing small programs with functions, loops and lists",
+    "No earlier programming is assumed: the two Python foundations modules teach the Python the course uses. If you already write small programs with functions, loops and lists, you can start at DSA Module 1",
     "School-level algebra, including logarithms and summations",
     "Willingness to read and write short mathematical arguments. Proof by induction is taught as part of the course",
   ],
@@ -61,18 +63,8 @@ export const course: SeedCourse = {
       description:
         "The Python this course is written in, and nothing more: enough to read, write, test and debug every implementation that follows.",
       modules: [
-        planned(
-          "python-essentials",
-          "Python essentials: values, control flow and functions",
-          "Variables and types, operators, conditions, loops, functions, and reading and printing data, taught through small algorithmic tasks.",
-          pythonEssentials,
-        ),
-        planned(
-          "python-collections-and-testing",
-          "Python collections, mutability and testing",
-          "Lists, tuples, strings, dictionaries and sets, how names refer to objects, and how to test and debug a function before trusting it.",
-          pythonCollections,
-        ),
+        pythonEssentials,
+        pythonCollections,
       ],
     },
     {
@@ -499,7 +491,7 @@ Motivation, intuition, visualization, formal statement, pseudocode, Python, corr
 **How you are assessed**
 
 - A quiz at the end of each module, with a pass mark of 70% and unlimited retakes.
-- Coding problems, from warm-up to challenge. They are for practice: your code is saved, not run or graded automatically, and the editorial opens once you have submitted an attempt.
+- Coding problems, from warm-up to challenge. Run your code against the sample tests in your browser. Those results are local feedback, not a grade. Submitting unlocks the editorial for self-review.
 - One project per module, reviewed against a published rubric.
 
 Lessons, quizzes and projects count towards completion. Practice problems are tracked separately on your dashboard.`,
@@ -547,8 +539,13 @@ The most common mistake was an invariant that failed step 3: for example $i \ge 
 
   announcements: [
     {
+      title: "Run Python in your browser",
+      body: "You can now run code without installing anything: in the **Playground**, in the runnable examples inside the Python lessons, and against the sample tests of every problem under **Practice**. Sample-test results are local feedback on your own device, not a grade.",
+      publishedDaysAgo: 1,
+    },
+    {
       title: "Practice problems for correctness and cost are open",
-      body: "Six problems, from warm-up to challenge, are now under **Practice**. Each has hints you can reveal one at a time, and an editorial that opens once you submit an attempt. Your code is saved for your own review: it is not run or graded automatically yet.",
+      body: "Six problems, from warm-up to challenge, are now under **Practice**. Run your code against the sample tests, reveal hints one at a time, and submit to unlock the editorial for self-review. Submission does not mean the solution is correct.",
       pinned: true,
       publishedDaysAgo: 2,
     },

@@ -1,0 +1,143 @@
+{
+  "function": "is_leap_year",
+  "sample": [
+    {
+      "args": [
+        2024
+      ],
+      "expected": true,
+      "explanation": "Divisible by 4 and not by 100."
+    },
+    {
+      "args": [
+        1900
+      ],
+      "expected": false,
+      "explanation": "Divisible by 100 but not by 400."
+    },
+    {
+      "args": [
+        2000
+      ],
+      "expected": true,
+      "explanation": "Divisible by 400."
+    },
+    {
+      "args": [
+        2023
+      ],
+      "expected": false,
+      "explanation": "Not divisible by 4."
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        1
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        4
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        100
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        200
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        300
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        400
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        1600
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        1700
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        1800
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        1996
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        1999
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        2100
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        2400
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        2025
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        2028
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        3000
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        4000
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        1582
+      ],
+      "expected": false
+    }
+  ]
+}

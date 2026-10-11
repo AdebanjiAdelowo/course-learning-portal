@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -47,10 +47,11 @@ describe("curriculum blueprint", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("publishes exactly one module, and it does not wait for the planned ones before it", () => {
-    expect(published.map(({ mod }) => mod.slug)).toEqual(["correctness-and-cost"]);
-    expect(published[0]!.mod.requiresPrevious).toBe(false);
-    expect(planned).toHaveLength(33);
+  it("publishes the two Python modules and the first DSA module, and none of them waits for another", () => {
+    expect(published.map(({ mod }) => mod.slug)).toEqual(["python-essentials", "python-collections-and-testing", "correctness-and-cost"]);
+    // Python preparation is optional: a student who already knows Python can start at DSA Module 1.
+    for (const { mod } of published) expect(mod.requiresPrevious).toBe(false);
+    expect(planned).toHaveLength(31);
   });
 
   it("gives planned modules no lessons, quiz, project or problems: a title is not content", () => {
@@ -62,14 +63,19 @@ describe("curriculum blueprint", () => {
     }
   });
 
-  it("keeps the published module's five lessons in their original order", () => {
-    expect(published[0]!.mod.lessons!.map((lesson) => lesson.slug)).toEqual([
+  it("keeps the first DSA module's five lessons in their original order", () => {
+    const dsa = published.find(({ mod }) => mod.slug === "correctness-and-cost")!;
+    expect(dsa.mod.lessons!.map((lesson) => lesson.slug)).toEqual([
       "algorithms-and-correctness",
       "counting-cost",
       "asymptotic-notation",
       "binary-search",
       "insertion-sort",
     ]);
+  });
+
+  it("marks only the Python phase as preparatory", () => {
+    expect(course.phases.filter((phase) => phase.preparatory).map((phase) => phase.slug)).toEqual(["python-foundations"]);
   });
 
   it("has a lesson file and a complete problem folder for everything it publishes", () => {
@@ -86,20 +92,45 @@ describe("curriculum blueprint", () => {
     }
   });
 
-  it("uses all four question types in the module quiz, with eight questions", () => {
-    const quiz = published[0]!.mod.quiz!;
-    expect(quiz.questions).toHaveLength(8);
-    expect(new Set(quiz.questions.map((question) => question.type))).toEqual(
-      new Set(["multiple_choice", "multiple_select", "true_false", "short_answer"]),
-    );
-    for (const question of quiz.questions) {
-      expect(question.explanation.length).toBeGreaterThan(20);
-      if (question.type === "multiple_choice") expect(question.answer).toBeLessThan(question.options.length);
-      if (question.type === "multiple_select") {
-        expect(question.answers.length).toBeGreaterThan(0);
-        for (const index of question.answers) expect(index).toBeLessThan(question.options.length);
+  it("gives every published module a quiz with all four question types, a project and coding problems", () => {
+    for (const { mod } of published) {
+      const quiz = mod.quiz!;
+      expect(quiz.questions.length, mod.slug).toBeGreaterThanOrEqual(8);
+      expect(quiz.passPercent).toBe(70);
+      expect(new Set(quiz.questions.map((question) => question.type)), mod.slug).toEqual(
+        new Set(["multiple_choice", "multiple_select", "true_false", "short_answer"]),
+      );
+      for (const question of quiz.questions) {
+        expect(question.explanation.length).toBeGreaterThan(20);
+        if (question.type === "multiple_choice") {
+          expect(question.answer).toBeLessThan(question.options.length);
+          expect(new Set(question.options).size, `duplicate option in ${mod.slug}`).toBe(question.options.length);
+        }
+        if (question.type === "multiple_select") {
+          expect(question.answers.length).toBeGreaterThan(0);
+          expect(question.answers.length).toBeLessThan(question.options.length);
+          for (const index of question.answers) expect(index).toBeLessThan(question.options.length);
+        }
+        if (question.type === "short_answer") expect(question.accepted.length).toBeGreaterThan(0);
       }
-      if (question.type === "short_answer") expect(question.accepted.length).toBeGreaterThan(0);
+
+      const project = mod.project!;
+      expect(project.rubric.reduce((sum, row) => sum + row.points, 0), mod.slug).toBe(100);
+      expect(project.requirements.length).toBeGreaterThanOrEqual(4);
+      expect((mod.problems ?? []).length, mod.slug).toBeGreaterThanOrEqual(4);
+      expect(new Set((mod.problems ?? []).map((problem) => problem.difficulty)).size).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("has unique slugs for lessons, quizzes, projects and problems across the course", () => {
+    for (const pick of [
+      (m: (typeof modules)[number]["mod"]) => (m.lessons ?? []).map((l) => l.slug),
+      (m: (typeof modules)[number]["mod"]) => (m.quiz ? [m.quiz.slug] : []),
+      (m: (typeof modules)[number]["mod"]) => (m.project ? [m.project.slug] : []),
+      (m: (typeof modules)[number]["mod"]) => (m.problems ?? []).map((p) => p.slug),
+    ]) {
+      const slugs = modules.flatMap(({ mod }) => pick(mod));
+      expect(new Set(slugs).size).toBe(slugs.length);
     }
   });
 });
@@ -118,8 +149,54 @@ describe("the modules added for beginners and array techniques", () => {
     expect(position.get("sliding-window")!).toBeLessThan(position.get("hash-tables")!);
   });
 
-  it("marks each of them as planned, with objectives, lessons and exercises defined", () => {
-    for (const slug of added) {
+  it("has written the two Python modules in full: six lessons each, covering the required topics in order", () => {
+    expect(bySlug.get("python-essentials")!.mod.lessons!.map((lesson) => lesson.slug)).toEqual([
+      "values-variables-and-types",
+      "operators-and-expressions",
+      "conditionals",
+      "loops-and-iteration",
+      "functions-and-parameters",
+      "strings-and-input-output",
+    ]);
+    expect(bySlug.get("python-collections-and-testing")!.mod.lessons!.map((lesson) => lesson.slug)).toEqual([
+      "lists-and-tuples",
+      "dictionaries-and-sets",
+      "references-identity-and-mutability",
+      "recursion-basics",
+      "debugging-and-testing",
+      "efficient-python-functions",
+    ]);
+    for (const slug of added.slice(0, 2)) {
+      const { mod } = bySlug.get(slug)!;
+      expect(mod.published).not.toBe(false);
+      for (const lesson of mod.lessons!) {
+        expect(lesson.objectives.length).toBeGreaterThanOrEqual(4);
+        expect(lesson.summary.length).toBeGreaterThan(40);
+      }
+    }
+  });
+
+  it("gives every Python lesson the full lesson structure and at least one runnable example", () => {
+    const required = [
+      "Motivation", "Prerequisites", "The idea", "Syntax and semantics", "Worked example", "Try it",
+      "Common mistakes", "Practice", "Check your understanding", "Summary", "Further study",
+    ];
+    for (const slug of added.slice(0, 2)) {
+      for (const lesson of bySlug.get(slug)!.mod.lessons!) {
+        const body = readFileSync(path.join("seed", "lessons", `${lesson.slug}.md`), "utf8");
+        const headings = [...body.matchAll(/^## \d+\. (.+)$/gm)].map((match) => match[1]);
+        expect(headings, lesson.slug).toEqual(required);
+        expect(body, `${lesson.slug} needs a runnable block`).toMatch(/^```python-run$/m);
+        expect((body.match(/^```python$/gm) ?? []).length, `${lesson.slug} needs checked examples`).toBeGreaterThanOrEqual(2);
+        expect(body.length, lesson.slug).toBeGreaterThan(5000);
+        // Site prose avoids em and en dashes.
+        expect(body).not.toMatch(/[\u2013\u2014]/);
+      }
+    }
+  });
+
+  it("keeps the two array-technique modules planned, with objectives, lessons and exercises defined", () => {
+    for (const slug of added.slice(2)) {
       const { mod } = bySlug.get(slug)!;
       expect(mod.published).toBe(false);
       expect(mod.plan!.objectives.length).toBeGreaterThanOrEqual(4);
@@ -165,19 +242,5 @@ describe("the modules added for beginners and array techniques", () => {
       expect(window).toContain(topic);
     }
     expect(bySlug.get("sliding-window")!.mod.plan!.visualizations!.length).toBeGreaterThan(0);
-  });
-
-  it("includes at least one detailed lesson specification with all twelve sections", () => {
-    const specs = modules.flatMap(({ mod }) => (mod.plan?.lessons ?? []).flatMap((lesson) => (lesson.spec ? [lesson.spec] : [])));
-    expect(specs.length).toBeGreaterThanOrEqual(1);
-    for (const spec of specs) {
-      expect(spec.sections.map((section) => section.heading)).toEqual([
-        "Motivation", "Intuition", "Visualization", "Formal explanation", "Pseudocode", "Python implementation",
-        "Correctness", "Complexity", "Worked example", "Practice", "Assessment", "Further study",
-      ]);
-      expect(spec.objectives.length).toBeGreaterThanOrEqual(3);
-      expect(spec.exercises.length).toBeGreaterThanOrEqual(2);
-      for (const section of spec.sections) expect(section.covers.length).toBeGreaterThan(30);
-    }
   });
 });

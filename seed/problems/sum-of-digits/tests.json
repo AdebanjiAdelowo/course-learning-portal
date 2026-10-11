@@ -1,0 +1,124 @@
+{
+  "function": "digit_sum",
+  "sample": [
+    {
+      "args": [
+        4729
+      ],
+      "expected": 22,
+      "explanation": "4 + 7 + 2 + 9 = 22."
+    },
+    {
+      "args": [
+        0
+      ],
+      "expected": 0,
+      "explanation": "There is nothing to add: the loop body never runs."
+    },
+    {
+      "args": [
+        1000
+      ],
+      "expected": 1,
+      "explanation": "Zeros contribute nothing."
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        1
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        9
+      ],
+      "expected": 9
+    },
+    {
+      "args": [
+        10
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        11
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        99
+      ],
+      "expected": 18
+    },
+    {
+      "args": [
+        100
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        101
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        909
+      ],
+      "expected": 18
+    },
+    {
+      "args": [
+        12345
+      ],
+      "expected": 15
+    },
+    {
+      "args": [
+        99999
+      ],
+      "expected": 45
+    },
+    {
+      "args": [
+        100000
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        123456789
+      ],
+      "expected": 45
+    },
+    {
+      "args": [
+        999999999
+      ],
+      "expected": 81
+    },
+    {
+      "args": [
+        1000000001
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        2147483647
+      ],
+      "expected": 46
+    },
+    {
+      "args": [
+        4503599627370496
+      ],
+      "expected": 79
+    }
+  ]
+}
