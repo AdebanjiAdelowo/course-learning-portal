@@ -1,0 +1,200 @@
+{
+  "function": "split_duration",
+  "sample": [
+    {
+      "args": [
+        3725
+      ],
+      "expected": [
+        1,
+        2,
+        5
+      ],
+      "explanation": "3725 = 1 * 3600 + 2 * 60 + 5."
+    },
+    {
+      "args": [
+        59
+      ],
+      "expected": [
+        0,
+        0,
+        59
+      ],
+      "explanation": "Less than a minute: everything stays in seconds."
+    },
+    {
+      "args": [
+        7200
+      ],
+      "expected": [
+        2,
+        0,
+        0
+      ],
+      "explanation": "Exactly two hours."
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        0
+      ],
+      "expected": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "args": [
+        1
+      ],
+      "expected": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "args": [
+        60
+      ],
+      "expected": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "args": [
+        61
+      ],
+      "expected": [
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "args": [
+        3599
+      ],
+      "expected": [
+        0,
+        59,
+        59
+      ]
+    },
+    {
+      "args": [
+        3600
+      ],
+      "expected": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "args": [
+        3601
+      ],
+      "expected": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "args": [
+        86399
+      ],
+      "expected": [
+        23,
+        59,
+        59
+      ]
+    },
+    {
+      "args": [
+        86400
+      ],
+      "expected": [
+        24,
+        0,
+        0
+      ]
+    },
+    {
+      "args": [
+        172800
+      ],
+      "expected": [
+        48,
+        0,
+        0
+      ]
+    },
+    {
+      "args": [
+        90061
+      ],
+      "expected": [
+        25,
+        1,
+        1
+      ]
+    },
+    {
+      "args": [
+        359999
+      ],
+      "expected": [
+        99,
+        59,
+        59
+      ]
+    },
+    {
+      "args": [
+        1000000
+      ],
+      "expected": [
+        277,
+        46,
+        40
+      ]
+    },
+    {
+      "args": [
+        3599
+      ],
+      "expected": [
+        0,
+        59,
+        59
+      ]
+    },
+    {
+      "args": [
+        43200
+      ],
+      "expected": [
+        12,
+        0,
+        0
+      ]
+    },
+    {
+      "args": [
+        1000000000
+      ],
+      "expected": [
+        277777,
+        46,
+        40
+      ]
+    }
+  ]
+}

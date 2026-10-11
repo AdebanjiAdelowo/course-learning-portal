@@ -11,6 +11,7 @@ import {
   reviewSubmission,
   saveLesson,
   sendGeneralFeedback,
+  updateModule,
 } from "./actions";
 
 const markdownHint = "Markdown, with LaTeX between $ signs.";
@@ -64,6 +65,62 @@ export function ModuleForm() {
       <Checkbox label="Locked until the previous module's lessons are complete" name="requires_previous" defaultChecked />
       <FormMessage state={state} />
       <SubmitButton pending={pending} pendingLabel="Adding…">Add module</SubmitButton>
+    </form>
+  );
+}
+
+export interface ModuleEditValues {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  phase_id: string | null;
+  requires_previous: boolean;
+  is_published: boolean;
+}
+
+export function ModuleEditForm({ values, phases }: { values: ModuleEditValues; phases: { id: string; label: string }[] }) {
+  const { state, pending, formProps } = useServerForm(updateModule);
+  return (
+    <form {...formProps} className="space-y-5">
+      <input type="hidden" name="module_id" value={values.id} />
+      <TextField label="Title" name="title" required maxLength={160} defaultValue={values.title} errors={state.fieldErrors?.title} />
+      <TextField
+        label="Slug"
+        name="slug_display"
+        value={values.slug}
+        readOnly
+        hint="Fixed. Links, prerequisites and the seed files refer to a module by its slug."
+      />
+      <TextArea label="Description" name="description" rows={3} maxLength={600} defaultValue={values.description} errors={state.fieldErrors?.description} />
+      <SelectField label="Phase" name="phase_id" defaultValue={values.phase_id ?? ""} errors={state.fieldErrors?.phase_id}>
+        <option value="">Not assigned to a phase</option>
+        {phases.map((phase) => (
+          <option key={phase.id} value={phase.id}>
+            {phase.label}
+          </option>
+        ))}
+      </SelectField>
+      <Checkbox
+        label="Locked until the previous module's lessons are complete"
+        name="requires_previous"
+        defaultChecked={values.requires_previous}
+      />
+      <div>
+        <Checkbox
+          label="Published"
+          name="is_published"
+          defaultChecked={values.is_published}
+          hint="A published module is open to enrolled students. An unpublished one stays on the learning path, labelled as planned, by title, description and plan only."
+        />
+        {state.fieldErrors?.is_published ? (
+          <p role="alert" className="mt-1.5 text-sm font-medium text-danger">
+            {state.fieldErrors.is_published.join(" ")}
+          </p>
+        ) : null}
+      </div>
+      <FormMessage state={state} />
+      <SubmitButton pending={pending} pendingLabel="Saving…">Save module</SubmitButton>
     </form>
   );
 }

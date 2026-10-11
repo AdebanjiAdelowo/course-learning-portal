@@ -53,7 +53,7 @@ function SearchForm({ id, className }: { id: string; className?: string }) {
         id={id}
         type="search"
         name="q"
-        placeholder="Search lessons, projects, resources"
+        placeholder="Search lessons, problems, resources"
         minLength={2}
         maxLength={100}
         required

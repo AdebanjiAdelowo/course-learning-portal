@@ -51,6 +51,8 @@ export interface OutlineProject {
 export interface OutlineModule {
   id: string;
   slug: string;
+  /** Display number, for example "DSA Module 1" or "Python Module P1". Never used for ordering. */
+  label: string;
   title: string;
   description: string;
   position: number;
@@ -92,6 +94,7 @@ export interface NextStep {
   title: string;
   href: string;
   moduleTitle: string;
+  moduleLabel: string;
   modulePosition: number;
   durationMinutes: number | null;
 }
@@ -105,7 +108,7 @@ export interface CourseProgress {
   projects: { submitted: number; total: number };
   modules: { done: number; total: number };
   moduleProgress: ModuleProgress[];
-  /** The module the student should be working in: the first unlocked one that is not finished. */
+  /** The module the student is working in: the one that holds the next step. */
   currentModule: ModuleProgress | null;
   /** The single most useful thing to do next, or null when the course is finished. */
   nextStep: NextStep | null;
@@ -216,7 +219,14 @@ export function computeCourseProgress(
   const totalItems = allLessons.length + allQuizzes.length + allProjects.length;
 
   const unlocked = moduleProgress.filter((m) => m.state !== "locked");
-  const currentModule = unlocked.find((m) => m.state !== "completed") ?? null;
+  const nextStep = findNextStep(unlocked, record);
+  // The module the student is working in is the one that holds their next step. Optional
+  // preparation that was skipped (an earlier module with an untaken quiz) must not be reported
+  // as "current" while the student's next lesson is somewhere else.
+  const currentModule =
+    (nextStep && unlocked.find((m) => m.module.position === nextStep.modulePosition)) ??
+    unlocked.find((m) => m.state !== "completed") ??
+    null;
 
   return {
     percent: percentOf(doneItems, totalItems),
@@ -238,7 +248,7 @@ export function computeCourseProgress(
     },
     moduleProgress,
     currentModule,
-    nextStep: findNextStep(unlocked, record),
+    nextStep,
   };
 }
 
@@ -257,6 +267,7 @@ function findNextStep(unlocked: readonly ModuleProgress[], record: StudentRecord
         title: lesson.title,
         href: `/learn/lessons/${lesson.slug}`,
         moduleTitle: mod.title,
+        moduleLabel: mod.label,
         modulePosition: mod.position,
         durationMinutes: lesson.durationMinutes,
       };
@@ -270,6 +281,7 @@ function findNextStep(unlocked: readonly ModuleProgress[], record: StudentRecord
         title: quiz.title,
         href: `/learn/quizzes/${quiz.slug}`,
         moduleTitle: mod.title,
+        moduleLabel: mod.label,
         modulePosition: mod.position,
         durationMinutes: null,
       };
@@ -283,6 +295,7 @@ function findNextStep(unlocked: readonly ModuleProgress[], record: StudentRecord
         title: project.title,
         href: `/learn/projects/${project.slug}`,
         moduleTitle: mod.title,
+        moduleLabel: mod.label,
         modulePosition: mod.position,
         durationMinutes: null,
       };

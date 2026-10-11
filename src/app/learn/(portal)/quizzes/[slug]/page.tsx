@@ -68,7 +68,7 @@ export default async function QuizPage({ params }: Props) {
         </Link>
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <p className="eyebrow">
-            Module {owner.module.position} · {owner.module.title}
+            {owner.module.label} · {owner.module.title}
           </p>
           {standing?.passed ? <Badge tone="accent">Passed</Badge> : null}
         </div>
@@ -133,7 +133,7 @@ export default async function QuizPage({ params }: Props) {
         {history.length === 0 ? (
           <p className="text-ink-soft">You have not attempted this quiz yet.</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+          <div className="relative overflow-x-auto rounded-xl border border-line bg-surface">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line text-ink-faint">
                 <tr>

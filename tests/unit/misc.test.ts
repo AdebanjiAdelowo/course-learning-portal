@@ -83,7 +83,7 @@ describe("formatting", () => {
 
   it("builds initials", () => {
     expect(initials("Amina Yusuf")).toBe("AY");
-    expect(initials("Dr. Helena von Voss")).toBe("DV");
+    expect(initials("Dr. Ada von Lovelace")).toBe("DL");
     expect(initials("Plato")).toBe("P");
     expect(initials("  ")).toBe("?");
   });
@@ -91,7 +91,7 @@ describe("formatting", () => {
 
 describe("safeNextPath", () => {
   it("accepts same-site paths", () => {
-    expect(safeNextPath("/learn/lessons/finite-differences")).toBe("/learn/lessons/finite-differences");
+    expect(safeNextPath("/learn/lessons/binary-search")).toBe("/learn/lessons/binary-search");
     expect(safeNextPath("/learn/search?q=cfl")).toBe("/learn/search?q=cfl");
   });
 

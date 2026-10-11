@@ -128,7 +128,7 @@ describe("parseRubric", () => {
 
 describe("slugify", () => {
   it("makes URL-safe slugs", () => {
-    expect(slugify("A Verified 1D Heat-Equation Solver!")).toBe("a-verified-1d-heat-equation-solver");
+    expect(slugify("Measure, Model & Explain: O(n log n)!")).toBe("measure-model-explain-o-n-log-n");
     expect(slugify("  Évaluation des modèles  ")).toBe("evaluation-des-modeles");
     expect(slugify("???")).toBe("");
     expect(slugify("x".repeat(200)).length).toBe(80);

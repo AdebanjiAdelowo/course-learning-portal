@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getAdminCourse } from "@/lib/data/admin";
 import { requireStaff } from "@/lib/data/viewer";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,8 +25,8 @@ export async function createStudent(_previous: FormState, form: FormData): Promi
   const input = createSchema.safeParse(Object.fromEntries(form));
   if (!input.success) return invalidState(input.error);
   const db = await createClient();
-  const { data: course, error: courseError } = await db.from("courses").select("id").eq("id", input.data.course_id).maybeSingle();
-  if (courseError || !course) return { status: "error", message: "Choose an existing course." };
+  const course = await getAdminCourse();
+  if (!course || course.id !== input.data.course_id) return { status: "error", message: "Choose the course this site teaches." };
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.createUser({
     email: input.data.email, password: input.data.password, email_confirm: true,
@@ -49,6 +50,8 @@ export async function setEnrolment(_previous: FormState, form: FormData): Promis
   const input = enrolmentSchema.safeParse(Object.fromEntries(form));
   if (!input.success) return invalidState(input.error);
   const db = await createClient();
+  const course = await getAdminCourse();
+  if (!course || course.id !== input.data.course_id) return { status: "error", message: "Choose the course this site teaches." };
   const { data: student, error } = await db.from("profiles").select("id").eq("id", input.data.student_id).eq("role", "student").maybeSingle();
   if (error || !student) return { status: "error", message: "Choose an existing student." };
   const { error: saveError } = await db.from("enrollments").upsert({ user_id: student.id, course_id: input.data.course_id, status: input.data.status }, { onConflict: "user_id,course_id" });

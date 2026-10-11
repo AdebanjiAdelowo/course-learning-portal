@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/copy-pyodide.mjs",
+    "predev": "node scripts/copy-pyodide.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-pyodide.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -26,6 +29,7 @@
     "katex": "^0.16.47",
     "lucide-react": "^1.52.0",
     "next": "16.4.0",
+    "pyodide": "314.0.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-markdown": "^10.1.0",

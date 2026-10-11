@@ -2,6 +2,8 @@ import "server-only";
 
 import { cache } from "react";
 
+import { siteConfig } from "@/config/site";
+import { moduleLabels, type ModuleLabel } from "@/lib/domain/path";
 import { computeCourseProgress, type CourseProgress, type OutlineModule } from "@/lib/domain/progress";
 import type { Tables } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -26,13 +28,43 @@ export interface Cohort {
   students: StudentProgress[];
 }
 
-/** The course the instructor area manages. One course per deployment for now: the first created. */
+/**
+ * The course the instructor area manages: the one named by the configured slug, the same course
+ * the public website and the student portal use. Other courses in the database are ignored.
+ */
 export const getAdminCourse = cache(async (): Promise<Course | null> => {
   await requireStaff();
   const supabase = await createClient();
-  const { data, error } = await supabase.from("courses").select("*").order("created_at").limit(1).maybeSingle();
+  const { data, error } = await supabase.from("courses").select("*").eq("slug", siteConfig.courseSlug).maybeSingle();
   if (error) throw new Error(`Could not load the course: ${error.message}`);
   return data;
+});
+
+export interface AdminModuleLabels {
+  bySlug: Map<string, ModuleLabel>;
+  byId: Map<string, ModuleLabel>;
+  /** "DSA Module 1: Title", for select options and headings. */
+  describe: (module: { id: string; title: string; position: number }) => string;
+}
+
+/** Display numbers of every module of the managed course, published or planned. */
+export const getModuleLabels = cache(async (): Promise<AdminModuleLabels> => {
+  const course = await getAdminCourse();
+  const supabase = await createClient();
+  const [phases, modules] = await Promise.all([
+    supabase.from("phases").select("id, is_preparatory").eq("course_id", course?.id ?? NIL_UUID),
+    supabase.from("modules").select("id, slug, position, phase_id").eq("course_id", course?.id ?? NIL_UUID),
+  ]);
+  const bySlug = moduleLabels(
+    (phases.data ?? []).map((phase) => ({ id: phase.id, isPreparatory: phase.is_preparatory })),
+    (modules.data ?? []).map((mod) => ({ slug: mod.slug, position: mod.position, phaseId: mod.phase_id })),
+  );
+  const byId = new Map((modules.data ?? []).flatMap((mod) => (bySlug.has(mod.slug) ? [[mod.id, bySlug.get(mod.slug)!] as const] : [])));
+  return {
+    bySlug,
+    byId,
+    describe: (mod) => `${byId.get(mod.id)?.text ?? `Module ${mod.position}`}: ${mod.title}`,
+  };
 });
 
 /**
@@ -79,7 +111,7 @@ export const getCohort = cache(async (): Promise<Cohort | null> => {
   const courseLessons = (lessons.data ?? []).filter((l) => moduleIds.has(l.module_id));
   const courseQuizzes = (quizzes.data ?? []).filter((q) => moduleIds.has(q.module_id));
   const courseProjects = (projects.data ?? []).filter((p) => moduleIds.has(p.module_id));
-  const outline = buildOutline(modules.data ?? [], courseLessons, courseQuizzes, courseProjects);
+  const outline = buildOutline(modules.data ?? [], courseLessons, courseQuizzes, courseProjects, (await getModuleLabels()).bySlug);
 
   const studentIds = (enrolments.data ?? []).map((e) => e.profile.id);
   const lessonIds = courseLessons.map((l) => l.id);

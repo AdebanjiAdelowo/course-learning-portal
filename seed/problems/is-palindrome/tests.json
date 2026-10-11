@@ -1,0 +1,161 @@
+{
+  "function": "is_palindrome",
+  "sample": [
+    {
+      "args": [
+        "level"
+      ],
+      "expected": true,
+      "explanation": "Odd length: l-e-v-e-l mirrors around the v."
+    },
+    {
+      "args": [
+        "search"
+      ],
+      "expected": false,
+      "explanation": "The first character s differs from the last character h."
+    },
+    {
+      "args": [
+        ""
+      ],
+      "expected": true,
+      "explanation": "The empty string has no pair of characters that could differ."
+    },
+    {
+      "args": [
+        "Level"
+      ],
+      "expected": false,
+      "explanation": "Upper-case L and lower-case l are different characters."
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        "a"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "aa"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "ab"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "aba"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "abc"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "abba"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "abca"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "racecar"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "racecars"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "noon"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "no on"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "a a"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "ab ba"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "Aa"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "12321"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "1231"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "xxxxxxxxxxxxxxxxxxxxxxxxxyxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "xxxxxxxxxxxxxxxxxxxxxxxxxyxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "abcdefgfedcba"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "abcdefggfedcbz"
+      ],
+      "expected": false
+    }
+  ]
+}

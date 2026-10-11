@@ -25,6 +25,11 @@ async function signIn(page: Page, email: string) {
   await page.waitForURL((url) => !url.pathname.startsWith("/learn/login"));
 }
 
+/** The content-page card of the one published module. Planned modules come before it. */
+function publishedModule(page: Page) {
+  return page.locator("li.card").filter({ has: page.getByRole("heading", { level: 3, name: "Algorithms, correctness and cost" }) });
+}
+
 test("an instructor builds and publishes a quiz, and a student can take it", async ({ page, browser }) => {
   const stamp = Date.now();
   const title = `Authoring check ${stamp}`;
@@ -33,7 +38,7 @@ test("an instructor builds and publishes a quiz, and a student can take it", asy
   try {
     await signIn(page, "instructor@example.com");
     await page.goto("/admin/content");
-    await page.getByRole("link", { name: "Quiz", exact: true }).first().click();
+    await publishedModule(page).getByRole("link", { name: "Quiz", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "New quiz" })).toBeVisible();
 
     // The slug follows the title.
@@ -123,7 +128,7 @@ test("an instructor creates a project with a rubric, and a student sees it", asy
   try {
     await signIn(page, "instructor@example.com");
     await page.goto("/admin/content");
-    await page.getByRole("link", { name: "Project", exact: true }).first().click();
+    await publishedModule(page).getByRole("link", { name: "Project", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "New project" })).toBeVisible();
 
     await page.getByLabel("Title").fill(title);
@@ -177,14 +182,14 @@ test("an instructor adds and removes a resource", async ({ page, browser }) => {
 
     await form.getByLabel("Link or file path").fill("https://example.com/reading-list");
     await form.getByLabel("Type").selectOption("reading");
-    await form.getByLabel("Belongs to").selectOption({ label: "1.2 Finite differences and discretisation error" });
+    await form.getByLabel("Belongs to").selectOption({ label: "1.4 Binary search" });
     await form.getByRole("button", { name: "Add resource" }).click();
     await expect(form.getByRole("status")).toContainText("Resource added");
     await expect(page.getByRole("link", { name: new RegExp(title) })).toBeVisible();
 
     const student = await studentContext.newPage();
     await signIn(student, "student@example.com");
-    await student.goto("/learn/lessons/finite-differences");
+    await student.goto("/learn/lessons/binary-search");
     await expect(student.getByRole("link", { name: new RegExp(title) })).toHaveAttribute("href", "https://example.com/reading-list");
 
     await page.getByRole("button", { name: `Delete ${title}` }).click();
@@ -198,16 +203,48 @@ test("an instructor adds and removes a resource", async ({ page, browser }) => {
 test("lessons can be reordered from the content page", async ({ page }) => {
   await signIn(page, "instructor@example.com");
   await page.goto("/admin/content");
-  const first = page.locator("li.card").first();
-  await expect(first.getByRole("heading", { name: "Numerical foundations" })).toBeVisible();
-  const titles = () => first.locator("ol").first().getByRole("link").allInnerTexts();
+  const card = publishedModule(page);
+  const titles = () => card.locator("ol").first().getByRole("link").allInnerTexts();
 
-  await expect.poll(async () => (await titles())[0]).toContain("1. Differential equations as models");
-  await page.getByRole("button", { name: "Move Differential equations as models down" }).click();
-  await expect.poll(async () => (await titles())[0]).toContain("Finite differences");
-  await expect.poll(async () => (await titles())[1]).toContain("2. Differential equations as models");
+  await expect.poll(async () => (await titles())[0]).toContain("1. Problems, algorithms and correctness");
+  await page.getByRole("button", { name: "Move Problems, algorithms and correctness down" }).click();
+  await expect.poll(async () => (await titles())[0]).toContain("Counting cost");
+  await expect.poll(async () => (await titles())[1]).toContain("2. Problems, algorithms and correctness");
 
   // Put it back, so the seeded order is unchanged for the other tests.
-  await page.getByRole("button", { name: "Move Differential equations as models up" }).click();
-  await expect.poll(async () => (await titles())[0]).toContain("1. Differential equations as models");
+  await page.getByRole("button", { name: "Move Problems, algorithms and correctness up" }).click();
+  await expect.poll(async () => (await titles())[0]).toContain("1. Problems, algorithms and correctness");
+});
+
+test("a module is managed from the content page: planned until it has a lesson, and editable", async ({ page }) => {
+  await signIn(page, "instructor@example.com");
+  await page.goto("/admin/content");
+  await expect(page.getByText(/3 of 34 modules published/)).toBeVisible();
+
+  const planned = page.locator("li.card").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) });
+  await expect(planned.getByText("Planned", { exact: true })).toBeVisible();
+  await expect(planned.getByText(/Phase 3: Linear structures and sorting/)).toBeVisible();
+  await expect(planned.getByText(/DSA Module 5/)).toBeVisible();
+  await planned.getByRole("link", { name: "Edit module" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Two pointers" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan shown to students" })).toBeVisible();
+
+  // A module with no published lesson cannot be published: it would be an empty module.
+  await page.getByLabel("Published").check();
+  await page.getByRole("button", { name: "Save module" }).click();
+  await expect(page.getByText(/Publish at least one lesson in this module first/)).toBeVisible();
+
+  // Its description can be edited, and the edit is saved while it stays planned.
+  const description = page.getByRole("textbox", { name: "Description" });
+  const original = await description.inputValue();
+  await page.getByLabel("Published").uncheck();
+  await description.fill(`${original} (edited by a test)`);
+  await page.getByRole("button", { name: "Save module" }).click();
+  await expect(page.getByRole("status")).toContainText("shown to students as planned");
+  await description.fill(original);
+  await page.getByRole("button", { name: "Save module" }).click();
+  await expect(page.getByRole("status")).toContainText("Module saved");
+
+  await page.goto("/admin/content");
+  await expect(page.getByText(/3 of 34 modules published/)).toBeVisible();
 });

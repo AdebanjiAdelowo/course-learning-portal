@@ -41,7 +41,7 @@ export default async function ProjectsPage() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="eyebrow">
-                      Module {item.module.position} · {item.module.title}
+                      {item.module.label} · {item.module.title}
                     </p>
                     <h2 className="mt-2 text-xl font-semibold">
                       {locked ? (

@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import { siteConfig } from "@/config/site";
+import { safeAvatarUrl, safeProfileLinks } from "@/lib/domain/profile";
 import { publicEnv } from "@/lib/env";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -15,13 +16,27 @@ export interface PublicOutline {
   duration_weeks: number | null;
   outcomes: string[];
   prerequisites: string[];
-  instructor: { full_name: string; bio: string | null } | null;
+  instructor: {
+    full_name: string;
+    headline: string | null;
+    bio: string | null;
+    avatar_url: string | null;
+    links: { label: string; url: string }[];
+  } | null;
+  phases: { id: string; position: number; title: string; description: string; is_preparatory: boolean }[];
+  cohorts: { id: string; name: string; description: string; starts_on: string | null; ends_on: string | null; status: string }[];
+  /** Every module on the learning path. Planned ones carry no lessons, only a plan. */
   modules: {
     position: number;
+    phase_id: string | null;
+    slug: string;
     title: string;
     description: string;
+    is_published: boolean;
+    plan: unknown;
     lessons: { title: string; duration_minutes: number }[];
     quiz_count: number;
+    problem_count: number;
     projects: string[];
   }[];
 }
@@ -40,7 +55,21 @@ export async function getPublicOutline(): Promise<PublicOutline | null> {
     });
     const { data, error } = await supabase.rpc("public_course_outline", { p_slug: siteConfig.courseSlug });
     if (error || !data) return null;
-    return data as unknown as PublicOutline;
+    const outline = data as unknown as PublicOutline;
+    return {
+      ...outline,
+      phases: outline.phases ?? [],
+      cohorts: outline.cohorts ?? [],
+      modules: outline.modules ?? [],
+      instructor: outline.instructor
+        ? {
+            ...outline.instructor,
+            headline: outline.instructor.headline ?? null,
+            avatar_url: safeAvatarUrl(outline.instructor.avatar_url),
+            links: safeProfileLinks(outline.instructor.links),
+          }
+        : null,
+    };
   } catch {
     return null;
   }

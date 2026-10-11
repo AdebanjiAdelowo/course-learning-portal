@@ -61,7 +61,9 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
           <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-ink-soft">
             <li><Link href="/contact" className="hover:text-ink">Contact and help</Link></li>
             <li><Link href="/learn/login" className="hover:text-ink">Student login</Link></li>
-            <li><a href={`mailto:${siteConfig.supportEmail}`} className="hover:text-ink">{siteConfig.supportEmail}</a></li>
+            {siteConfig.supportEmail ? (
+              <li><a href={`mailto:${siteConfig.supportEmail}`} className="hover:text-ink">{siteConfig.supportEmail}</a></li>
+            ) : null}
           </ul>
         </div>
       </footer>

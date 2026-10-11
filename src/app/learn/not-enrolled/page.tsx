@@ -26,9 +26,12 @@ export default async function NotEnrolledPage() {
           description={`You are signed in as ${viewer.profile.email}, but this account is not enrolled in a course yet.`}
         >
           <p className="text-ink-soft">
-            If you expected to see your course here, write to{" "}
-            <a href={`mailto:${siteConfig.supportEmail}`} className="font-semibold text-accent underline underline-offset-4">
-              {siteConfig.supportEmail}
+            If you expected to see your course here,{" "}
+            <a
+              href={siteConfig.supportEmail ? `mailto:${siteConfig.supportEmail}` : "/contact"}
+              className="font-semibold text-accent underline underline-offset-4"
+            >
+              {siteConfig.supportEmail ? `write to ${siteConfig.supportEmail}` : "contact the course team"}
             </a>{" "}
             and we will sort it out.
           </p>

@@ -33,8 +33,11 @@ export default async function PortalLayout({ children }: { children: ReactNode }
           </p>
           <p>
             Need help?{" "}
-            <a href={`mailto:${siteConfig.supportEmail}`} className="font-semibold text-ink-soft underline underline-offset-4">
-              {siteConfig.supportEmail}
+            <a
+              href={siteConfig.supportEmail ? `mailto:${siteConfig.supportEmail}` : "/contact"}
+              className="font-semibold text-ink-soft underline underline-offset-4"
+            >
+              {siteConfig.supportEmail ?? "Contact the course team"}
             </a>
           </p>
         </div>

@@ -2,7 +2,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { getAdminCourse, NIL_UUID } from "@/lib/data/admin";
+import { getAdminCourse, getModuleLabels, NIL_UUID } from "@/lib/data/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import type { ModuleOption } from "./authoring-forms";
@@ -16,7 +16,8 @@ export async function getModuleOptions(): Promise<ModuleOption[]> {
     .select("id, title, position")
     .eq("course_id", course?.id ?? NIL_UUID)
     .order("position");
-  return (data ?? []).map((mod) => ({ id: mod.id, label: `Module ${mod.position}: ${mod.title}` }));
+  const labels = await getModuleLabels();
+  return (data ?? []).map((mod) => ({ id: mod.id, label: labels.describe(mod) }));
 }
 
 export function CreatedNotice({ children }: { children: ReactNode }) {

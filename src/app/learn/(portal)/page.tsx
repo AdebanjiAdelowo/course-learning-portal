@@ -1,15 +1,18 @@
-import { ArrowRight, CalendarClock, Check, ClipboardCheck, FlaskConical, Megaphone, MessageSquareText, PartyPopper, Pin } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, ClipboardCheck, Code2, FlaskConical, Megaphone, MessageSquareText, PartyPopper, Pin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Markdown } from "@/components/markdown";
+import { DifficultyBadge, PracticeStatusBadge } from "@/components/practice-status";
 import { DueBadge, ProjectStatusBadge, SessionStatusBadge } from "@/components/status";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { ProgressBar, ProgressRing } from "@/components/ui/progress";
 import { requireCourseState } from "@/lib/data/course";
 import { requireViewer } from "@/lib/data/viewer";
+import { pathSummary } from "@/lib/domain/path";
+import { difficultyOrder } from "@/lib/domain/practice";
 import { isProjectDone } from "@/lib/domain/progress";
 import { nearestSession, sessionStatus } from "@/lib/domain/sessions";
 import { dueState, formatDate, formatDuration, formatLongDate, formatScore, formatTime, relativeDays, zoneLabel } from "@/lib/format";
@@ -61,7 +64,7 @@ const stepAction = { lesson: "Continue learning", quiz: "Take the quiz", project
 export default async function DashboardPage() {
   const viewer = await requireViewer();
   const state = await requireCourseState();
-  const { course, progress, record, projects, quizzes, lessons, completedAt } = state;
+  const { course, progress, record, projects, quizzes, lessons, completedAt, problems, practice, path } = state;
   const zone = viewer.profile.timezone;
   const now = new Date();
 
@@ -107,6 +110,23 @@ export default async function DashboardPage() {
     .sort((a, b) => (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999"))
     .slice(0, 3);
 
+  // Practice to suggest: drafts first (work in hand), then untouched problems, easiest first.
+  const openProblems = problems
+    .filter((p) => unlockedModuleIds.has(p.module_id))
+    .map((problem) => ({ problem, status: practice.get(problem.id)?.status ?? ("not_attempted" as const) }));
+  const practiceDone = openProblems.filter((row) => row.status === "submitted" || row.status === "verified").length;
+  const suggestedProblems = openProblems
+    .filter((row) => row.status === "draft" || row.status === "not_attempted")
+    .sort(
+      (a, b) =>
+        Number(b.status === "draft") - Number(a.status === "draft") ||
+        difficultyOrder[a.problem.difficulty] - difficultyOrder[b.problem.difficulty],
+    )
+    .slice(0, 3);
+  const currentPhase = progress.currentModule
+    ? path.phases.find((phase) => phase.modules.some((mod) => mod.slug === progress.currentModule!.module.slug))
+    : undefined;
+
   const recentLessons = lessons
     .flatMap((lesson) => {
       const at = completedAt.get(lesson.id);
@@ -137,7 +157,7 @@ export default async function DashboardPage() {
           {nextStep ? (
             <>
               <p className="eyebrow text-accent">
-                {stepLabel[nextStep.kind]} · Module {nextStep.modulePosition}
+                {stepLabel[nextStep.kind]} · {nextStep.moduleLabel}
               </p>
               <h2 id="next-up" className="mt-3 text-2xl font-semibold leading-snug sm:text-3xl">
                 {nextStep.title}
@@ -177,9 +197,11 @@ export default async function DashboardPage() {
             <div className="mt-8 border-t border-line pt-5">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-sm">
-                  <span className="text-ink-faint">Current module · </span>
+                  <span className="text-ink-faint">
+                    {currentPhase && currentPhase.number > 0 ? `Phase ${currentPhase.number}: ${currentPhase.title} · ` : ""}Current module ·{" "}
+                  </span>
                   <Link href={`/learn/modules/${currentModule.module.slug}`} className="font-semibold hover:text-accent">
-                    {currentModule.module.position}. {currentModule.module.title}
+                    {currentModule.module.label}: {currentModule.module.title}
                   </Link>
                 </p>
                 <p className="text-sm font-semibold tabular-nums">
@@ -211,7 +233,10 @@ export default async function DashboardPage() {
               </div>
             ))}
           </dl>
-          <Link href="/learn/progress" className="mt-4 text-sm font-semibold text-accent underline-offset-4 hover:underline">
+          <p className="mt-4 text-xs text-ink-faint">
+            Of the modules published so far. {pathSummary(path)}.
+          </p>
+          <Link href="/learn/progress" className="mt-3 text-sm font-semibold text-accent underline-offset-4 hover:underline">
             See full progress
           </Link>
         </section>
@@ -276,6 +301,36 @@ export default async function DashboardPage() {
           )}
         </Panel>
 
+        <Panel title="Coding practice" icon={<Code2 className="size-4.5" aria-hidden="true" />} href="/learn/practice" linkLabel="All practice">
+          {openProblems.length === 0 ? (
+            <Quiet>Practice problems will appear here as modules are published.</Quiet>
+          ) : (
+            <>
+              <p className="text-ink-soft">
+                <span className="font-serif text-2xl font-semibold text-ink tabular-nums">{practiceDone}</span> of {openProblems.length}{" "}
+                problems submitted for self-review.
+              </p>
+              {suggestedProblems.length > 0 ? (
+                <ul className="mt-3 divide-y divide-line">
+                  {suggestedProblems.map(({ problem, status }) => (
+                    <li key={problem.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2.5">
+                      <Link href={`/learn/practice/${problem.slug}`} className="font-semibold hover:text-accent">
+                        {problem.title}
+                      </Link>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <DifficultyBadge difficulty={problem.difficulty} />
+                        {status === "draft" ? <PracticeStatusBadge status={status} /> : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-sm text-ink-faint">You have submitted an attempt for every open problem.</p>
+              )}
+            </>
+          )}
+        </Panel>
+
         <Panel title="Recent feedback" icon={<MessageSquareText className="size-4.5" aria-hidden="true" />} href="/learn/feedback" linkLabel="All feedback">
           {feedback.data.length > 0 ? (
             <ul className="-my-3 divide-y divide-line">
@@ -337,7 +392,7 @@ export default async function DashboardPage() {
               </ul>
             </div>
           ) : (
-            <Quiet>You have not taken a quiz yet. Each module ends with a short one.</Quiet>
+            <Quiet>You have not taken a quiz yet. Each module ends with one.</Quiet>
           )}
         </Panel>
 

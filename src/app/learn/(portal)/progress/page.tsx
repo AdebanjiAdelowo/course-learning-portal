@@ -5,6 +5,7 @@ import { ModuleStateBadge, ProjectStatusBadge } from "@/components/status";
 import { PageHeader, SectionHeading } from "@/components/ui/page-header";
 import { ProgressBar, ProgressRing } from "@/components/ui/progress";
 import { requireCourseState } from "@/lib/data/course";
+import { pathSummary } from "@/lib/domain/path";
 
 export const metadata: Metadata = { title: "Progress" };
 
@@ -19,7 +20,12 @@ function Stat({ label, value, detail }: { label: string; value: string; detail: 
 }
 
 export default async function ProgressPage() {
-  const { course, progress, record, quizzes, projects } = await requireCourseState();
+  const { course, progress, record, quizzes, projects, problems, practice, path } = await requireCourseState();
+  const practiceSubmitted = problems.filter((problem) => {
+    const status = practice.get(problem.id)?.status;
+    return status === "submitted" || status === "verified";
+  }).length;
+  const practiceDrafts = problems.filter((problem) => practice.get(problem.id)?.status === "draft").length;
   const remaining = progress.totalItems - progress.doneItems;
 
   return (
@@ -51,6 +57,10 @@ export default async function ProgressPage() {
                 <li>A quiz counts when your best attempt reaches its pass mark.</li>
                 <li>A project counts when it is submitted or reviewed. A saved draft does not count.</li>
               </ul>
+              <p>
+                Practice problems are not part of this percentage: they are saved for your own review and are not graded
+                automatically. Only published modules are counted ({pathSummary(path)}).
+              </p>
             </div>
           </details>
         </div>
@@ -69,6 +79,11 @@ export default async function ProgressPage() {
           }
         />
         <Stat label="Projects submitted" value={`${progress.projects.submitted}/${progress.projects.total}`} detail="Submitted or reviewed" />
+        <Stat
+          label="Practice problems"
+          value={`${practiceSubmitted}/${problems.length}`}
+          detail={`Submitted for self-review, not graded. ${practiceDrafts} in draft. Not counted in completion`}
+        />
       </dl>
 
       <section aria-labelledby="by-module" className="space-y-4">
@@ -80,7 +95,7 @@ export default async function ProgressPage() {
               <li key={mod.id} className="card p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="eyebrow">Module {mod.position}</p>
+                    <p className="eyebrow">{mod.label}</p>
                     <h3 className="mt-1 text-xl font-semibold">
                       {item.state === "locked" ? (
                         mod.title
@@ -94,7 +109,7 @@ export default async function ProgressPage() {
                   <ModuleStateBadge state={item.state} />
                 </div>
                 <div className="mt-4 flex items-center gap-3">
-                  <ProgressBar value={item.percent} label={`Module ${mod.position} completion`} />
+                  <ProgressBar value={item.percent} label={`${mod.label} completion`} />
                   <span className="w-11 shrink-0 text-right text-sm font-semibold tabular-nums">{item.percent}%</span>
                 </div>
                 <dl className="mt-4 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-3">
@@ -137,7 +152,8 @@ export default async function ProgressPage() {
       </section>
 
       <p className="text-sm text-ink-faint">
-        {quizzes.length} quizzes and {projects.length} projects are published in this course at the moment.
+        {quizzes.length} quizzes, {projects.length} projects and {problems.length} practice problems are published in this course at the
+        moment.
       </p>
     </div>
   );

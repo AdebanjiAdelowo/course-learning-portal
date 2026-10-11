@@ -1,0 +1,190 @@
+{
+  "function": "integer_sqrt",
+  "sample": [
+    {
+      "args": [
+        10
+      ],
+      "expected": 3,
+      "explanation": "3 * 3 = 9 is at most 10, and 4 * 4 = 16 is too large."
+    },
+    {
+      "args": [
+        16
+      ],
+      "expected": 4,
+      "explanation": "16 is a perfect square."
+    },
+    {
+      "args": [
+        0
+      ],
+      "expected": 0,
+      "explanation": "0 * 0 = 0."
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        1
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        2
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        3
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        4
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        8
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        9
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        15
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        24
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        25
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        26
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        99
+      ],
+      "expected": 9
+    },
+    {
+      "args": [
+        100
+      ],
+      "expected": 10
+    },
+    {
+      "args": [
+        101
+      ],
+      "expected": 10
+    },
+    {
+      "args": [
+        2147483647
+      ],
+      "expected": 46340
+    },
+    {
+      "args": [
+        2147483648
+      ],
+      "expected": 46340
+    },
+    {
+      "args": [
+        1000000000000
+      ],
+      "expected": 1000000
+    },
+    {
+      "args": [
+        1000000000000000000
+      ],
+      "expected": 1000000000
+    },
+    {
+      "args": [
+        999999999999999999
+      ],
+      "expected": 999999999
+    },
+    {
+      "args": [
+        999999999999999999
+      ],
+      "expected": 999999999
+    },
+    {
+      "args": [
+        4503599761588224
+      ],
+      "expected": 67108864
+    },
+    {
+      "args": [
+        4503599761588223
+      ],
+      "expected": 67108864
+    },
+    {
+      "args": [
+        120370473852143187
+      ],
+      "expected": 346944482
+    },
+    {
+      "args": [
+        285877565221337005
+      ],
+      "expected": 534675196
+    },
+    {
+      "args": [
+        575568280298677645
+      ],
+      "expected": 758662164
+    },
+    {
+      "args": [
+        562148398983324808
+      ],
+      "expected": 749765562
+    },
+    {
+      "args": [
+        129167711582466270
+      ],
+      "expected": 359399097
+    },
+    {
+      "args": [
+        692803403830690909
+      ],
+      "expected": 832348126
+    }
+  ]
+}

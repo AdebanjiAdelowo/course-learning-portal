@@ -16,6 +16,7 @@ function makeModule(position: number, overrides: Partial<OutlineModule> = {}): O
   return {
     id: `m${position}`,
     slug: `module-${position}`,
+    label: `DSA Module ${position}`,
     title: `Module ${position}`,
     description: "",
     position,
@@ -220,5 +221,23 @@ describe("lessonNeighbours", () => {
     const locked = computeCourseProgress(course, emptyRecord(), { now: NOW });
     expect(lessonNeighbours(locked.moduleProgress, "m1-l2").next).toBeNull();
     expect(lessonNeighbours(locked.moduleProgress, "unknown")).toEqual({ previous: null, next: null });
+  });
+});
+
+describe("current module", () => {
+  it("is the module that holds the next step, not an earlier module with only a quiz or project left", () => {
+    // Lessons of module 1 are done, but its quiz and project are not: the next step is the
+    // first lesson of module 2, so that is where the student is working.
+    const modules = [makeModule(1, { requiresPrevious: false }), makeModule(2, { requiresPrevious: false })];
+    const progress = computeCourseProgress(modules, record({ lessons: ["m1-l1", "m1-l2"] }), { now: NOW });
+    expect(progress.nextStep).toMatchObject({ kind: "lesson", href: "/learn/lessons/m2-l1", moduleLabel: "DSA Module 2" });
+    expect(progress.currentModule?.module.id).toBe("m2");
+  });
+
+  it("returns to the earlier module once every lesson is done and its quiz is the next step", () => {
+    const modules = [makeModule(1, { requiresPrevious: false }), makeModule(2, { requiresPrevious: false })];
+    const progress = computeCourseProgress(modules, record({ lessons: ["m1-l1", "m1-l2", "m2-l1", "m2-l2"] }), { now: NOW });
+    expect(progress.nextStep).toMatchObject({ kind: "quiz", href: "/learn/quizzes/m1-q" });
+    expect(progress.currentModule?.module.id).toBe("m1");
   });
 });

@@ -1,804 +1,558 @@
-import type { SeedCourse } from "./types";
+import { slidingWindow, twoPointers } from "./plans";
+import { pythonCollections, pythonEssentials } from "./python-foundations";
+import type { SeedCourse, SeedModule, SeedModulePlan } from "./types";
 
 /**
- * Demo course. Everything a student sees comes from this file and the Markdown in
- * `seed/lessons`. Replace both to publish your own course, then run `npm run seed:content`.
+ * DSA Academy: Data Structures and Algorithms.
+ *
+ * This file is the academic blueprint: eight phases and thirty-four modules. The two Python
+ * foundations modules are defined in `python-foundations.ts`. A module marked
+ * `published: false` is planned. It shows in the learning path by title and description only,
+ * and is published once its lessons, visualizations, problems and assessments are written.
+ *
+ * The blueprint below is a proposed outline. Reorder, rename or replace modules freely: the
+ * application reads the structure from here (and from the instructor area), never from code.
  *
  * Text containing LaTeX uses String.raw so that backslashes survive.
  */
 const md = String.raw;
 
+/** A module that is on the learning path but not written yet. */
+const planned = (slug: string, title: string, description: string, plan?: SeedModulePlan): SeedModule => ({
+  slug,
+  title,
+  description,
+  published: false,
+  ...(plan ? { plan } : {}),
+});
+
 export const course: SeedCourse = {
-  slug: "scientific-machine-learning",
-  title: "Foundations of Scientific Machine Learning",
-  subtitle: "From finite differences to neural operators, with verification at every step",
+  slug: "data-structures-and-algorithms",
+  title: "Data Structures and Algorithms",
+  subtitle: "A rigorous, visual course in designing, proving and analysing algorithms, taught in Python.",
   description:
-    "An eight-week graduate course on combining numerical analysis with deep learning. You will build classical solvers, physics-informed networks and operator surrogates, and learn to verify each one against a reference solution.",
-  level: "Graduate",
-  durationWeeks: 8,
+    "Every topic is taught the same way: why the problem matters, the central idea, a step-by-step visualization, a precise statement, pseudocode, a tested Python implementation, a correctness argument, a cost analysis, worked examples, and then practice. The aim is to understand why an algorithm works well enough to design a new one, not to memorise a catalogue of solutions.",
+  level: "Beginner to intermediate",
   outcomes: [
-    "Discretise a PDE with finite differences and demonstrate its order of accuracy",
-    "Explain how automatic differentiation makes physics-informed losses possible",
-    "Train a physics-informed network and diagnose its common failure modes",
-    "Build and evaluate a neural-operator surrogate for a parametric PDE",
-    "Report accuracy, cost and limitations in a way another researcher can check",
+    "State a computational problem precisely and prove that an algorithm solves it",
+    "Analyse running time and memory use, and compare algorithms by their growth rates",
+    "Choose, implement and test the right data structure for a task",
+    "Apply the main design techniques: divide and conquer, greedy choice and dynamic programming",
+    "Model problems with graphs and solve them with the standard graph algorithms",
+    "Recognise when a problem is unlikely to have an efficient exact algorithm",
   ],
   prerequisites: [
-    "Multivariable calculus and linear algebra",
-    "Working knowledge of Python and NumPy",
-    "A first course in differential equations",
-    "Some exposure to PyTorch is helpful but not required",
+    "No earlier study of algorithms is assumed",
+    "No earlier programming is assumed: the two Python foundations modules teach the Python the course uses. If you already write small programs with functions, loops and lists, you can start at DSA Module 1",
+    "School-level algebra, including logarithms and summations",
+    "Willingness to read and write short mathematical arguments. Proof by induction is taught as part of the course",
   ],
   instructor: {
     email: "instructor@example.com",
-    fullName: "Dr. Helena Voss",
+    fullName: "Adebanji Adelowo",
     timezone: "Europe/Rome",
-    bio: "Helena Voss is a computational scientist working on numerical methods for multiphase flow and on learned surrogates for PDE solvers. She has taught numerical analysis and scientific computing at graduate level for nine years. This biography is placeholder text for the demo course.",
+    // Headline, biography, photo and links are deliberately empty. Fill them in under
+    // Settings in the instructor's account; nothing about the instructor is invented here.
   },
 
-  modules: [
+  phases: [
     {
-      slug: "numerical-foundations",
-      title: "Numerical foundations",
+      slug: "python-foundations",
+      title: "Python foundations",
+      preparatory: true,
       description:
-        "The classical toolkit: model equations, finite differences, and the stability conditions every solver, learned or not, has to respect.",
-      requiresPrevious: false,
-      lessons: [
-        {
-          slug: "differential-equations-as-models",
-          title: "Differential equations as models",
-          summary:
-            "What it means to pose a PDE problem properly, and the reference solution we will measure everything against.",
-          durationMinutes: 20,
-          objectives: [
-            "Classify the heat, advection and Poisson equations by their behaviour",
-            "State the three conditions for a well-posed problem",
-            "Verify an analytical solution by substitution",
-          ],
-          resources: [
-            {
-              title: "Heat-equation reference solution (CSV)",
-              description: "The exact solution sampled on a 21 by 11 grid in x and t.",
-              kind: "dataset",
-              url: "/resources/heat-reference-solution.csv",
-            },
-          ],
-        },
-        {
-          slug: "finite-differences",
-          title: "Finite differences and discretisation error",
-          summary: "Deriving difference formulas from Taylor series and measuring their order of accuracy.",
-          durationMinutes: 25,
-          objectives: [
-            "Derive forward, central and second-derivative formulas",
-            "Run a convergence study and compute the observed order",
-            "Explain why the error rises again for very small grid spacing",
-          ],
-          resources: [
-            {
-              title: "Finite-difference reference sheet",
-              description: "Formulas, stability limits and the observed-order calculation on one page.",
-              kind: "pdf",
-              url: "/resources/finite-difference-reference-sheet.pdf",
-            },
-            {
-              title: "LeVeque: Finite Difference Methods for Ordinary and Partial Differential Equations",
-              description: "Chapters 1 and 2 cover this lesson in depth.",
-              kind: "reading",
-              url: "https://faculty.washington.edu/rjl/fdmbook/",
-            },
-          ],
-        },
-        {
-          slug: "stability-and-cfl",
-          title: "Stability and the CFL condition",
-          summary: "Why an accurate scheme can still blow up, and how von Neumann analysis predicts it.",
-          durationMinutes: 30,
-          objectives: [
-            "Derive the amplification factor of the FTCS scheme",
-            "State the stability limits for explicit diffusion and advection schemes",
-            "Use the Lax equivalence theorem to connect consistency, stability and convergence",
-          ],
-        },
+        "The Python this course is written in, and nothing more: enough to read, write, test and debug every implementation that follows.",
+      modules: [
+        pythonEssentials,
+        pythonCollections,
       ],
-      quiz: {
-        slug: "numerical-foundations-quiz",
-        title: "Numerical foundations check",
-        description: "Five questions on well-posedness, order of accuracy and stability.",
-        passPercent: 70,
-        questions: [
-          {
-            type: "multiple_choice",
-            prompt: md`What is the truncation error of the central difference $\dfrac{u_{i+1} - u_{i-1}}{2\Delta x}$ as an approximation of $u'(x_i)$?`,
-            options: [md`$\mathcal{O}(\Delta x)$`, md`$\mathcal{O}(\Delta x^2)$`, md`$\mathcal{O}(\Delta x^3)$`, md`$\mathcal{O}(1)$`],
-            answer: 1,
-            explanation: md`The odd-order terms of the two Taylor expansions cancel, so the leading error is $\frac{\Delta x^2}{6} u'''(x_i)$.`,
-          },
-          {
-            type: "true_false",
-            prompt: "A consistent finite-difference scheme always converges to the true solution as the grid is refined.",
-            answer: false,
-            explanation:
-              "Consistency alone is not enough. By the Lax equivalence theorem a consistent scheme for a well-posed linear problem converges if and only if it is also stable.",
-          },
-          {
-            type: "short_answer",
-            prompt: md`For the FTCS scheme applied to $u_t = \alpha u_{xx}$, what is the largest stable value of $r = \alpha\,\Delta t / \Delta x^2$? Answer as a decimal.`,
-            accepted: ["0.5", "1/2"],
-            explanation: md`The amplification factor is $G = 1 - 4r\sin^2(k\Delta x/2)$. Requiring $|G| \le 1$ for every wavenumber gives $r \le \tfrac{1}{2}$.`,
-          },
-          {
-            type: "multiple_select",
-            prompt: "Which of the following does Hadamard's definition of a well-posed problem require?",
-            options: [
-              "A solution exists",
-              "The solution is unique",
-              "The solution depends continuously on the data",
-              "The solution is infinitely differentiable",
-              "The solution can be written in closed form",
-            ],
-            answers: [0, 1, 2],
-            explanation:
-              "Existence, uniqueness and continuous dependence on the data. Smoothness and a closed-form expression are not required: most well-posed problems have neither.",
-            points: 2,
-          },
-          {
-            type: "multiple_choice",
-            prompt: md`You halve $\Delta x$ in an FTCS heat-equation solver and keep $r$ fixed. How does the time step change?`,
-            options: ["It stays the same", "It is halved", "It is divided by four", "It is doubled"],
-            answer: 2,
-            explanation: md`$\Delta t = r\,\Delta x^2 / \alpha$, so halving $\Delta x$ divides $\Delta t$ by four. This quadratic restriction is why explicit diffusion solvers become expensive on fine grids.`,
-          },
-        ],
-      },
-      project: {
-        slug: "verified-heat-solver",
-        title: "A verified 1D heat-equation solver",
-        summary: "Implement FTCS, demonstrate second-order convergence in space, and locate the stability limit numerically.",
-        description: md`Build an explicit finite-difference solver for
-
-$$
-u_t = \alpha\, u_{xx}, \qquad x \in (0, 1), \quad u(0, t) = u(1, t) = 0, \quad u(x, 0) = \sin(\pi x),
-$$
-
-and verify it against the analytical solution $u = e^{-\alpha\pi^2 t}\sin(\pi x)$.
-
-The point of the project is not the solver, which is a few lines, but the **evidence** that it is correct. A reader should be able to look at your convergence table and stability experiment and be convinced without reading the code.`,
-        objectives: [
-          "Implement the FTCS scheme with Dirichlet boundary conditions",
-          "Measure the observed order of accuracy from a grid-refinement study",
-          "Demonstrate the stability limit experimentally",
-        ],
-        requirements: [
-          "A convergence table for at least four grid sizes at fixed r, with the observed order between successive grids",
-          "A plot or table showing stable behaviour for r below 0.5 and growth above it",
-          "Errors reported in the relative L2 norm at a stated final time",
-          "A short README explaining how to reproduce every number",
-        ],
-        submissionInstructions:
-          "Push your notebook or scripts to a repository and paste the link below. Include the commit hash in your notes if you keep working after submitting.",
-        rubric: [
-          { criterion: "Correctness", description: "The solver reproduces the reference solution and the boundary conditions hold exactly.", points: 30 },
-          { criterion: "Convergence study", description: "Observed order is computed correctly and matches theory, or the discrepancy is explained.", points: 30 },
-          { criterion: "Stability experiment", description: "The limit is located and connected to the von Neumann analysis.", points: 20 },
-          { criterion: "Reproducibility", description: "Another student can run the code and obtain the same numbers.", points: 20 },
-        ],
-        dueInDays: -10,
-        resources: [
-          {
-            title: "Project 1 starter notebook",
-            description: "Scaffold with the reference solution and the convergence loop.",
-            kind: "notebook",
-            url: "/resources/project-1-heat-solver-starter.ipynb",
-          },
-        ],
-      },
     },
-
     {
-      slug: "networks-as-approximators",
-      title: "Neural networks as function approximators",
-      description:
-        "What networks can represent, how automatic differentiation gives exact derivatives, and why training favours smooth functions.",
-      lessons: [
+      slug: "foundations",
+      title: "Foundations",
+      description: "What it means for an algorithm to be correct and efficient, and the mathematical tools used to show both.",
+      modules: [
         {
-          slug: "universal-approximation",
-          title: "Universal approximation in practice",
-          summary: "What the theorem promises, what it leaves open, and how activation choice matters for PDEs.",
-          durationMinutes: 25,
-          videoUrl: "https://www.youtube.com/watch?v=aircAruvnKk",
-          objectives: [
-            "State the universal approximation theorem and its limits",
-            "Compare a network with a classical basis expansion",
-            "Choose an activation that is smooth enough for a given PDE",
+          slug: "correctness-and-cost",
+          title: "Algorithms, correctness and cost",
+          description:
+            "Problems and instances, loop invariants, the cost model, asymptotic notation, and the first two algorithms analysed in full: binary search and insertion sort.",
+          requiresPrevious: false,
+          lessons: [
+            {
+              slug: "algorithms-and-correctness",
+              title: "Problems, algorithms and correctness",
+              summary: "What an algorithm is, what it means for one to be correct, and how a loop invariant proves it.",
+              durationMinutes: 35,
+              objectives: [
+                "Distinguish a problem, an instance and an algorithm",
+                "State a problem as an input condition and an output condition",
+                "Prove a loop correct with an invariant: initialisation, maintenance and exit",
+                "Give a separate argument for termination",
+              ],
+              resources: [
+                {
+                  title: "MIT OpenCourseWare 6.006: Introduction to Algorithms (Spring 2020)",
+                  description: "Lecture 1, Algorithms and Computation, covers the same ground with a different emphasis.",
+                  kind: "video",
+                  url: "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+                },
+              ],
+            },
+            {
+              slug: "counting-cost",
+              title: "Counting cost: a model for running time",
+              summary: "The RAM model, basic operations, and what best, worst and average case mean.",
+              durationMinutes: 35,
+              objectives: [
+                "State what counts as one step in the RAM model",
+                "Express running time as a function of input size",
+                "Define best, worst and average case, and derive each for linear search",
+                "Give a lower-bound argument for finding a maximum",
+              ],
+              resources: [
+                {
+                  title: "Open Data Structures (Pat Morin)",
+                  description: "A free textbook. Chapter 1 sets out the model of computation used throughout.",
+                  kind: "reading",
+                  url: "https://opendatastructures.org/",
+                },
+              ],
+            },
+            {
+              slug: "asymptotic-notation",
+              title: "Asymptotic notation: O, Ω and Θ",
+              summary: "Precise definitions of the three bounds, how to prove them with witnesses, and how to disprove them.",
+              durationMinutes: 45,
+              objectives: [
+                "State the definitions of O, Ω and Θ with their quantifiers",
+                "Prove an upper bound by exhibiting a witness",
+                "Prove that a bound does not hold, by contradiction",
+                "Rank the common growth rates and explain what each means in practice",
+              ],
+            },
+            {
+              slug: "binary-search",
+              title: "Binary search",
+              summary: "Searching a sorted list in logarithmic time, with a full proof of correctness, termination and cost.",
+              durationMinutes: 50,
+              objectives: [
+                "State the precondition and the invariant of binary search",
+                "Prove correctness, identifying where sortedness is used",
+                "Prove termination from the size of the candidate range",
+                "Derive the exact worst-case number of iterations",
+              ],
+              resources: [
+                {
+                  title: "Python documentation: the bisect module",
+                  description: "Binary search in the standard library, and the difference between bisect_left and bisect_right.",
+                  kind: "link",
+                  url: "https://docs.python.org/3/library/bisect.html",
+                },
+              ],
+            },
+            {
+              slug: "insertion-sort",
+              title: "Insertion sort",
+              summary: "The first sorting algorithm: its invariant, its best and worst cases, and the exact role of inversions.",
+              durationMinutes: 50,
+              objectives: [
+                "State both parts of the output condition of sorting",
+                "Prove insertion sort correct with an outer-loop invariant",
+                "Derive the best-case and worst-case comparison counts",
+                "Relate the number of shifts to the number of inversions",
+                "Explain what makes the algorithm stable, in place and adaptive",
+              ],
+              resources: [
+                {
+                  title: "The Algorithm Design Manual (Steven Skiena): companion site",
+                  description: "Lecture material and a problem catalogue to accompany the book.",
+                  kind: "link",
+                  url: "https://www.algorist.com/",
+                },
+              ],
+            },
+          ],
+          quiz: {
+            slug: "correctness-and-cost-quiz",
+            title: "Assessment: correctness and cost",
+            description: "Eight questions on invariants, the cost model, asymptotic notation, binary search and insertion sort.",
+            passPercent: 70,
+            questions: [
+              {
+                type: "multiple_choice",
+                prompt: md`In the worst case, how does the number of iterations of binary search on a sorted list of $n$ elements grow?`,
+                options: [md`$\Theta(n)$`, md`$\Theta(\log n)$`, md`$\Theta(n \log n)$`, md`$\Theta(1)$`],
+                answer: 1,
+                explanation: md`Each iteration that does not return at least halves the candidate range, so at most $\lfloor \log_2 n \rfloor + 1$ iterations are possible, and that many are needed for some targets.`,
+              },
+              {
+                type: "true_false",
+                prompt: md`If $f(n) = O(n^2)$, then $f(n)$ cannot be $O(n^3)$.`,
+                answer: false,
+                explanation: md`$O$ is an upper bound, not an exact description. If $f(n) \le c\,n^2$ for $n \ge n_0$ then also $f(n) \le c\,n^3$ for $n \ge \max(n_0, 1)$, so $f(n) = O(n^3)$ as well.`,
+              },
+              {
+                type: "short_answer",
+                prompt: md`A candidate range holds 1024 elements. How many times can it be halved before a single element remains? Answer with a number.`,
+                accepted: ["10", "ten"],
+                explanation: md`$1024 = 2^{10}$, so ten halvings reduce it to $2^0 = 1$. This is $\log_2 1024$.`,
+              },
+              {
+                type: "multiple_select",
+                prompt: "Which of the following must be shown to prove a loop correct using a loop invariant?",
+                options: [
+                  "The invariant holds before the first iteration",
+                  "If the invariant holds before an iteration, it holds before the next",
+                  "When the loop ends, the invariant together with the exit condition implies the result",
+                  "The invariant mentions the running time of the loop",
+                  "The invariant is false once the loop has ended",
+                ],
+                answers: [0, 1, 2],
+                explanation:
+                  "Initialisation, maintenance and usefulness at exit. An invariant says nothing about running time, and it is still true when the loop ends: that is exactly what makes it useful.",
+                points: 2,
+              },
+              {
+                type: "multiple_choice",
+                prompt: "On which input of 6 distinct values does insertion sort make the most comparisons?",
+                options: [
+                  "Already sorted in increasing order",
+                  "In random order",
+                  "Sorted in decreasing order",
+                  "The number of comparisons does not depend on the input",
+                ],
+                answer: 2,
+                explanation: md`In decreasing order every key is smaller than everything before it and is compared with the whole sorted prefix: $1 + 2 + \dots + 5 = 15$ comparisons. A sorted input needs only 5.`,
+              },
+              {
+                type: "multiple_choice",
+                prompt: md`Which is the tightest correct description of $T(n) = 3n^2 + 10\,n \log_2 n + 5$?`,
+                options: [md`$\Theta(n \log n)$`, md`$\Theta(n^2)$`, md`$\Theta(n^2 \log n)$`, md`$\Theta(n^3)$`],
+                answer: 1,
+                explanation: md`For $n \ge 2$, $n \log_2 n \le n^2$ and $1 \le n^2$, so $T(n) \le 18\,n^2$. Also $T(n) \ge 3n^2$. Both bounds hold, so $T(n) = \Theta(n^2)$. It is also $O(n^3)$, but that bound is not tight.`,
+              },
+              {
+                type: "short_answer",
+                prompt: "How many comparisons does linear search make, in the worst case, on a list of 250 elements? Answer with a number.",
+                accepted: ["250"],
+                explanation: md`The worst case is a target that is last or absent: every one of the $n = 250$ elements is compared with it.`,
+              },
+              {
+                type: "true_false",
+                prompt: "Binary search returns a correct answer on any list, sorted or not, as long as the list contains the target.",
+                answer: false,
+                explanation:
+                  "Sortedness is a precondition. The maintenance step discards half of the range on the strength of one comparison, which is only justified when the list is sorted. On an unsorted list the target may be in the discarded half.",
+              },
+            ],
+          },
+          project: {
+            slug: "measuring-growth",
+            title: "Measure, model, explain",
+            summary: "An empirical study of linear search, binary search and insertion sort, compared against the analysis from the lessons.",
+            description: md`Theory predicts how many basic operations an algorithm performs. This project asks you to check those predictions by experiment, and to explain any difference you find.
+
+Instrument your own implementations of **linear search**, **binary search** and **insertion sort** so that each reports the number of comparisons it makes. Then, for a range of input sizes $n$:
+
+1. Measure the number of comparisons in the best case, the worst case, and on random inputs.
+2. Compare each measurement with the formula derived in the lessons, such as $\lfloor \log_2 n \rfloor + 1$ for binary search and $\frac{n(n-1)}{2}$ for insertion sort.
+3. Measure wall-clock time for the same runs and say how well it follows the comparison counts.
+
+Present the results as tables or plots, with the predicted values beside the measured ones.
+
+The purpose is the **explanation**. Where a measurement matches the theory, say which formula it matches. Where it does not, find out why. Timing in particular will not match perfectly, and working out the reasons is part of the task.`,
+            objectives: [
+              "Instrument an algorithm to count its basic operations",
+              "Construct best-case and worst-case inputs deliberately, rather than hoping to find them",
+              "Compare measurements against a derived formula",
+              "Explain the difference between an operation count and a measured time",
+            ],
+            requirements: [
+              "Your own implementations of the three algorithms, each tested against a trusted method on many small inputs",
+              "Comparison counts for at least six input sizes, in best case, worst case and averaged over random inputs",
+              "For random inputs: the number of trials, and the seed used, so the numbers can be reproduced",
+              "Predicted and measured values side by side, with every formula stated",
+              "A short written discussion of where time and comparison count disagree, and why",
+            ],
+            submissionInstructions:
+              "Submit a link to a repository or hosted notebook. It must run from a clean checkout with one documented command, using only the Python standard library and, if you plot, matplotlib.",
+            rubric: [
+              { criterion: "Correctness", description: "The implementations are right, and the tests that show it are included.", points: 25 },
+              { criterion: "Experimental method", description: "Best and worst cases are constructed deliberately; random trials are seeded and repeated.", points: 25 },
+              { criterion: "Analysis", description: "Measurements are compared with the right formulas, and differences are explained.", points: 30 },
+              { criterion: "Presentation", description: "Tables or plots are labelled and readable; the work reproduces from one command.", points: 20 },
+            ],
+            dueInDays: 9,
+            resources: [
+              {
+                title: "Python documentation: the timeit module",
+                description: "How to time small pieces of code without the common mistakes.",
+                kind: "link",
+                url: "https://docs.python.org/3/library/timeit.html",
+              },
+            ],
+          },
+          problems: [
+            {
+              slug: "first-occurrence",
+              title: "First occurrence",
+              summary: "Return the smallest index at which a value occurs in an unsorted list.",
+              difficulty: "warm_up",
+              constraints: ["0 ≤ len(items) ≤ 10^5", "Each element and the target are integers between -10^9 and 10^9"],
+              hints: [
+                "Scan from left to right. In which order must you examine the indices for the first match you meet to be the smallest one?",
+                "State the invariant before writing the loop: what do you know about the indices already examined?",
+                "Return as soon as you find a match. If the loop finishes, what does the invariant tell you?",
+              ],
+            },
+            {
+              slug: "is-sorted",
+              title: "Is it sorted?",
+              summary: "Decide in one pass whether a list is in non-decreasing order.",
+              difficulty: "warm_up",
+              constraints: ["0 ≤ len(items) ≤ 10^5", "Each element is an integer between -10^9 and 10^9"],
+              hints: [
+                "You do not need to compare every pair of positions. Which pairs are enough?",
+                "If every element is at most its right-hand neighbour, what follows for two positions that are far apart?",
+                "What should the function return for lists of length 0 and 1? Check that your loop handles them without a special case.",
+              ],
+            },
+            {
+              slug: "lower-bound",
+              title: "Lower bound",
+              summary: "Find the first position in a sorted list whose value is at least the target.",
+              difficulty: "core",
+              constraints: ["0 ≤ len(items) ≤ 10^5", "items is sorted in non-decreasing order", "Required time: O(log n)"],
+              hints: [
+                "The answer can be len(items). Make sure your search range can represent that.",
+                "You are looking for a boundary, not a match: everything to its left is smaller than the target, everything from it onward is not. Never test for equality.",
+                "Keep an invariant of the form: every index below lo is too small, and every index from hi upward is large enough. The loop ends when lo equals hi.",
+              ],
+            },
+            {
+              slug: "count-occurrences",
+              title: "Count occurrences",
+              summary: "Count how often a value occurs in a sorted list, in logarithmic time.",
+              difficulty: "core",
+              constraints: ["0 ≤ len(items) ≤ 10^5", "items is sorted in non-decreasing order", "Required time: O(log n), whatever the answer is"],
+              hints: [
+                "In a sorted list, equal values sit next to each other. Describe the block they occupy by where it starts and where it ends.",
+                "The start of the block is exactly the answer to the Lower bound problem.",
+                "The end of the block is the first index whose value is strictly greater than the target. That is the same boundary search with one comparison changed.",
+              ],
+            },
+            {
+              slug: "count-the-shifts",
+              title: "Count the shifts",
+              summary: "Report how many element moves insertion sort makes on a given list.",
+              difficulty: "core",
+              constraints: ["0 ≤ len(items) ≤ 2000", "Each element is an integer between -10^9 and 10^9", "The argument must not be modified"],
+              hints: [
+                "Start from the insertion sort in the lesson and add a counter. Where exactly does a shift happen?",
+                "The caller's list must stay as it was. What should you sort instead?",
+                "To check your answer independently, count the pairs of positions that are out of order. The lesson explains why the two numbers agree.",
+              ],
+            },
+            {
+              slug: "integer-square-root",
+              title: "Integer square root",
+              summary: "Compute the square root of a large integer, rounded down, using integer arithmetic only.",
+              difficulty: "challenge",
+              constraints: ["0 ≤ n ≤ 10^18", "Integer arithmetic only: no floating point", "Required: O(log n) iterations"],
+              hints: [
+                "There is no list to search, but consider the statement r * r <= n for r = 0, 1, 2, ... What pattern of true and false does it make?",
+                "You want the last r for which the statement is true. Keep two numbers: one for which it is known to be true, one for which it is known to be false.",
+                "Start with lo = 0 and hi = n + 1. Why is the statement certainly false for n + 1? Halve the gap until hi = lo + 1.",
+              ],
+            },
           ],
         },
-        {
-          slug: "automatic-differentiation",
-          title: "Automatic differentiation",
-          summary: "Forward and reverse mode, and how to take derivatives of a network with respect to its inputs.",
-          durationMinutes: 30,
-          objectives: [
-            "Distinguish numerical, symbolic and automatic differentiation",
-            "Carry out reverse mode by hand on a small computational graph",
-            "Compute second derivatives with respect to inputs in PyTorch",
-          ],
-          resources: [
-            {
-              title: "Baydin et al.: Automatic differentiation in machine learning, a survey",
-              kind: "reading",
-              url: "https://arxiv.org/abs/1502.05767",
-            },
-            {
-              title: "PyTorch autograd mechanics",
-              description: "Official notes on how the graph is recorded and freed.",
-              kind: "link",
-              url: "https://pytorch.org/docs/stable/notes/autograd.html",
-            },
-            {
-              title: "Backpropagation calculus (3Blue1Brown)",
-              description: "A visual derivation of the chain rule through a network.",
-              kind: "video",
-              url: "https://www.youtube.com/watch?v=tIeHLnjs5U8",
-            },
-          ],
-        },
-        {
-          slug: "training-dynamics-and-spectral-bias",
-          title: "Training dynamics and spectral bias",
-          summary: "Why networks fit low frequencies first, and what Fourier features do about it.",
-          durationMinutes: 30,
-          objectives: [
-            "Describe spectral bias using the neural tangent kernel",
-            "Explain why spectral bias is a problem for PDE solutions with sharp features",
-            "Implement Fourier feature inputs and choose their scale",
-          ],
-          resources: [
-            {
-              title: "Rahaman et al.: On the spectral bias of neural networks",
-              kind: "reading",
-              url: "https://arxiv.org/abs/1806.08734",
-            },
-          ],
-        },
+        planned("recursion-and-induction", "Recursion, induction and recurrences", "Recursive algorithms, proofs by induction, and solving the recurrences that describe their cost."),
+        planned("arrays-and-amortised-analysis", "Arrays, dynamic arrays and amortised analysis", "How Python lists work underneath, why appending is cheap on average, and how to prove it."),
+        planned("linked-lists", "Linked lists", "Singly and doubly linked lists, pointer manipulation, and when a linked structure beats an array."),
       ],
-      quiz: {
-        slug: "approximation-and-autodiff-quiz",
-        title: "Approximation and autodiff check",
-        description: "Five questions on universal approximation, automatic differentiation and spectral bias.",
-        passPercent: 70,
-        questions: [
-          {
-            type: "multiple_choice",
-            prompt: "What does the universal approximation theorem guarantee?",
-            options: [
-              "Gradient descent finds the best parameters for any continuous target",
-              "For any continuous target on a compact set, parameters exist that approximate it to any tolerance",
-              "A network of fixed width can represent every continuous function exactly",
-              "A trained network generalises to inputs outside the training set",
-            ],
-            answer: 1,
-            explanation:
-              "It is an existence result. It says nothing about how wide the network must be, whether training finds the parameters, or how the network behaves between or beyond the training points.",
-          },
-          {
-            type: "true_false",
-            prompt: "Reverse-mode automatic differentiation obtains the gradient of a scalar loss with respect to all parameters at a cost comparable to a few evaluations of the loss.",
-            answer: true,
-            explanation:
-              "One backward pass gives the derivative of one output with respect to every input. Its cost is a small constant multiple of the forward pass, independent of the number of parameters.",
-          },
-          {
-            type: "multiple_choice",
-            prompt: md`Why is ReLU a poor activation for a network whose loss contains $u_{xx}$?`,
-            options: [
-              "It is too expensive to evaluate",
-              "Its second derivative is zero almost everywhere",
-              "It is not a universal approximator",
-              "It cannot be differentiated automatically",
-            ],
-            answer: 1,
-            explanation: md`A ReLU network is piecewise linear in its input, so $u_{xx} = 0$ almost everywhere and the PDE residual carries no information about curvature.`,
-          },
-          {
-            type: "multiple_select",
-            prompt: "Which of these are reasonable measures against spectral bias?",
-            options: [
-              "Mapping inputs through Fourier features",
-              "Normalising inputs to a standard range",
-              "Replacing tanh with ReLU",
-              "Training for fewer steps",
-            ],
-            answers: [0, 1],
-            explanation:
-              "Fourier features make high frequencies accessible and input normalisation controls the effective frequency of the target. ReLU does not help, and stopping earlier leaves high frequencies even less resolved.",
-            points: 2,
-          },
-          {
-            type: "short_answer",
-            prompt: "Which keyword argument of `torch.autograd.grad` must be set so that the result can itself be differentiated?",
-            accepted: ["create_graph", "create_graph=True", "create_graph = True"],
-            explanation:
-              "`create_graph=True` records the operations of the derivative computation, which is required for second derivatives and for back-propagating through a physics loss.",
-          },
-        ],
-      },
-      project: {
-        slug: "fit-a-function-and-its-derivative",
-        title: "Fit a function and its derivative",
-        summary: "Train a network on a two-scale target, measure the error in the function and in its second derivative, and test one remedy.",
-        description: md`Fit the target
-
-$$
-g(x) = \sin(2\pi x) + 0.3 \sin(24\pi x), \qquad x \in [0, 1],
-$$
-
-with a fully connected tanh network, then with the same network preceded by Fourier features.
-
-For each model report the relative $L^2$ error of $g$ **and** of $g''$, computed by automatic differentiation on a held-out grid. The second derivative is where the difference between the two models becomes visible.`,
-        objectives: [
-          "Observe spectral bias in a controlled experiment",
-          "Compute input derivatives of a network with automatic differentiation",
-          "Compare a baseline and a remedy under an equal training budget",
-        ],
-        requirements: [
-          "Both models trained with the same optimiser, step count and three random seeds",
-          "Errors in the function and the second derivative, on points not used for training",
-          "A plot of the fit at three stages of training for the baseline",
-          "One paragraph on how you chose the Fourier feature scale, including values that failed",
-        ],
-        submissionInstructions:
-          "Submit a link to your repository or hosted notebook. Make sure the figures are rendered in the notebook you link.",
-        rubric: [
-          { criterion: "Experiment design", description: "Equal budgets, fixed seeds and a held-out evaluation grid.", points: 25 },
-          { criterion: "Derivative evaluation", description: "Second derivatives computed correctly and checked against the analytical value.", points: 25 },
-          { criterion: "Analysis", description: "Results are interpreted in terms of spectral bias; failed settings are reported.", points: 30 },
-          { criterion: "Presentation", description: "Clear figures, labelled axes, stated norms.", points: 20 },
-        ],
-        dueInDays: 5,
-      },
     },
-
     {
-      slug: "physics-informed-networks",
-      title: "Physics-informed neural networks",
-      description:
-        "Solving a PDE by minimising its residual: the loss, the sampling, the ways it goes wrong, and how to check the answer.",
-      lessons: [
-        {
-          slug: "the-pinn-loss",
-          title: "The PINN loss",
-          summary: "Turning a boundary-value problem into an optimisation problem with no labelled data.",
-          durationMinutes: 30,
-          objectives: [
-            "Write the composite loss for a time-dependent PDE",
-            "Implement a PDE residual with automatic differentiation",
-            "Explain why a small loss does not imply a small error",
-          ],
-          resources: [
-            {
-              title: "Raissi, Perdikaris and Karniadakis: Physics-informed neural networks",
-              description: "The paper that introduced the method (Journal of Computational Physics, 2019).",
-              kind: "reading",
-              url: "https://doi.org/10.1016/j.jcp.2018.10.045",
-            },
-            {
-              title: "DeepXDE",
-              description: "A widely used open-source library for physics-informed learning.",
-              kind: "code",
-              url: "https://github.com/lululxvi/deepxde",
-            },
-          ],
-        },
-        {
-          slug: "collocation-and-constraints",
-          title: "Collocation points and hard constraints",
-          summary: "Where to sample the residual, and how to make boundary conditions hold exactly.",
-          durationMinutes: 25,
-          objectives: [
-            "Compare uniform, low-discrepancy and residual-adaptive sampling",
-            "Construct an ansatz that satisfies initial and boundary conditions exactly",
-            "Impose periodic boundaries through the input features",
-          ],
-        },
-        {
-          slug: "failure-modes-and-loss-balancing",
-          title: "Failure modes and loss balancing",
-          summary: "Recognising when a PINN has converged to the wrong answer, and the standard fixes.",
-          durationMinutes: 30,
-          objectives: [
-            "Diagnose gradient imbalance between loss terms",
-            "Implement gradient-norm loss balancing",
-            "Describe causal weighting and curriculum training",
-          ],
-          resources: [
-            {
-              title: "Wang, Teng and Perdikaris: Understanding and mitigating gradient pathologies in PINNs",
-              kind: "reading",
-              url: "https://arxiv.org/abs/2001.04536",
-            },
-            {
-              title: "Krishnapriyan et al.: Characterizing possible failure modes in PINNs",
-              kind: "reading",
-              url: "https://arxiv.org/abs/2109.01050",
-            },
-          ],
-        },
-        {
-          slug: "verification-against-reference",
-          title: "Verification against a reference solution",
-          summary: "Error norms, manufactured solutions and a protocol for reporting results that others can check.",
-          durationMinutes: 25,
-          objectives: [
-            "Build a test problem with the method of manufactured solutions",
-            "Report relative L2 and maximum errors on a held-out grid",
-            "Pair every speed figure with the accuracy of the same run",
-          ],
-        },
+      slug: "linear-structures-and-sorting",
+      title: "Linear structures and sorting",
+      description: "Array techniques, stacks and queues, then sorting as a case study in algorithm design and in lower bounds.",
+      modules: [
+        planned(
+          "two-pointers",
+          "Two pointers",
+          "Two indices moving through one array, towards each other or in the same direction, to replace a quadratic search with a linear scan.",
+          twoPointers,
+        ),
+        planned(
+          "sliding-window",
+          "Sliding window",
+          "Maintaining a contiguous range and a summary of it as it moves: fixed and variable windows, running sums and frequency maps.",
+          slidingWindow,
+        ),
+        planned("stacks-and-queues", "Stacks, queues and deques", "Abstract data types and their implementations, with applications from expression evaluation to breadth-first exploration."),
+        planned("elementary-sorting", "Elementary sorting and stability", "Selection sort and bubble sort beside insertion sort: what they share, where they differ, and what stability buys."),
+        planned("merge-sort-and-divide-and-conquer", "Divide and conquer: merge sort", "The divide-and-conquer pattern, merging, and the master theorem for its recurrences."),
+        planned("quicksort-and-selection", "Quicksort, selection and randomisation", "Partitioning, expected running time, and finding the k-th smallest element in linear time."),
+        planned("sorting-lower-bounds", "Lower bounds and linear-time sorting", "Why comparison sorting needs n log n comparisons, and how counting sort and radix sort avoid the bound."),
       ],
-      quiz: {
-        slug: "physics-informed-networks-quiz",
-        title: "Physics-informed networks check",
-        description: "Five questions on the PINN loss, constraints, failure modes and verification.",
-        passPercent: 70,
-        questions: [
-          {
-            type: "multiple_choice",
-            prompt: "A standard PINN for the heat equation is trained without any solved examples. What supervises it?",
-            options: [
-              "Labels generated by a finite-difference solver",
-              "The PDE residual together with the boundary and initial conditions",
-              "A pretrained network for a similar equation",
-              "Nothing; the network is used untrained",
-            ],
-            answer: 1,
-            explanation:
-              "The loss penalises the PDE residual at collocation points and the mismatch with the boundary and initial data. No solution values in the interior are needed.",
-          },
-          {
-            type: "true_false",
-            prompt: "If the PINN loss is very small, the error with respect to the true solution must also be small.",
-            answer: false,
-            explanation:
-              "The loss measures a residual at sampled points. A small residual is compatible with a large error, for example when the network has converged to a different solution of the PDE that violates under-weighted boundary conditions.",
-          },
-          {
-            type: "multiple_choice",
-            prompt: md`With the ansatz $u_\theta(x,t) = \sin(\pi x) + t\,x(1-x)\,N_\theta(x,t)$, what is $u_\theta(x, 0)$?`,
-            options: [md`$0$`, md`$\sin(\pi x)$, for any $N_\theta$`, md`$N_\theta(x, 0)$`, md`It depends on training`],
-            answer: 1,
-            explanation: md`At $t = 0$ the second term vanishes identically, so the initial condition holds exactly, whatever the parameters. This is what makes the constraint "hard".`,
-          },
-          {
-            type: "multiple_select",
-            prompt: "Which of these are recognised causes of PINN training failure?",
-            options: [
-              "Gradient imbalance between loss terms",
-              "Spectral bias of the network",
-              "Training late times before early times are resolved",
-              "Using automatic differentiation instead of finite differences",
-              "Resampling collocation points during training",
-            ],
-            answers: [0, 1, 2],
-            explanation:
-              "Gradient imbalance, spectral bias and violated causality are the three failure modes from the lesson. Automatic differentiation is exact, and resampling points is a helpful default.",
-            points: 2,
-          },
-          {
-            type: "short_answer",
-            prompt: "Name the verification method in which you choose the exact solution first and derive the forcing term from it.",
-            accepted: ["manufactured solutions", "method of manufactured solutions", "manufactured solution", "mms"],
-            explanation:
-              "The method of manufactured solutions: pick a smooth solution, apply the differential operator to obtain the forcing, and solve the resulting problem, whose exact answer is known by construction.",
-          },
-        ],
-      },
-      project: {
-        slug: "pinn-advection-diffusion",
-        title: "A PINN for advection-diffusion",
-        summary: "Solve a one-dimensional advection-diffusion problem with a PINN, verify it, and document where it stops working.",
-        description: md`Solve
-
-$$
-u_t + c\,u_x = \nu\, u_{xx}, \qquad x \in [0, 2\pi) \ \text{periodic}, \quad u(x, 0) = \sin x,
-$$
-
-whose exact solution is $u = e^{-\nu t}\sin(x - ct)$.
-
-Start with $c = 1$, $\nu = 0.1$. Once that is verified, increase $c$ until the method fails, and record the failure. Then apply **one** remedy from Module 3 and report whether it helps.`,
-        objectives: [
-          "Implement a PINN with exact periodic boundary conditions",
-          "Verify the result against the analytical solution in two norms",
-          "Characterise a failure and test a remedy under a fixed budget",
-        ],
-        requirements: [
-          "Relative L2 and maximum error on a held-out grid, over at least three seeds",
-          "A table of error against advection speed, including the settings where training fails",
-          "Wall time and hardware for every reported run",
-          "One remedy evaluated with the same training budget as the baseline",
-        ],
-        submissionInstructions:
-          "Submit a repository link. The README should contain the results table and the exact commands used to produce it.",
-        rubric: [
-          { criterion: "Implementation", description: "Residual, periodic features and training loop are correct.", points: 25 },
-          { criterion: "Verification", description: "Errors in two norms, multiple seeds, held-out evaluation.", points: 30 },
-          { criterion: "Failure analysis", description: "The failure is located, reported with settings and explained.", points: 25 },
-          { criterion: "Reporting", description: "Cost stated; accuracy and speed paired from the same runs.", points: 20 },
-        ],
-        dueInDays: 19,
-      },
     },
-
     {
-      slug: "neural-operators",
-      title: "Neural operators",
-      description:
-        "Learning the map from inputs to solutions, so that a new problem instance costs a forward pass instead of a solve.",
-      availableInDays: 10,
-      lessons: [
-        {
-          slug: "from-functions-to-operators",
-          title: "From functions to operators",
-          summary: "What changes when the unknown is a map between function spaces, and how DeepONet represents one.",
-          durationMinutes: 25,
-          objectives: [
-            "Distinguish learning a solution from learning a solution operator",
-            "Explain discretisation invariance",
-            "Describe the branch and trunk networks of DeepONet",
-          ],
-          resources: [
-            {
-              title: "Lu et al.: DeepONet",
-              kind: "reading",
-              url: "https://arxiv.org/abs/1910.03193",
-            },
-          ],
-        },
-        {
-          slug: "fourier-neural-operator",
-          title: "The Fourier neural operator",
-          summary: "Evaluating the kernel integral in Fourier space, and what mode truncation buys and costs.",
-          durationMinutes: 30,
-          objectives: [
-            "Derive the spectral form of a translation-invariant kernel integral",
-            "Implement a two-dimensional spectral convolution layer",
-            "State the practical limits of the architecture",
-          ],
-          resources: [
-            {
-              title: "Li et al.: Fourier neural operator for parametric PDEs",
-              kind: "reading",
-              url: "https://arxiv.org/abs/2010.08895",
-            },
-            {
-              title: "neuraloperator library",
-              description: "Reference implementations of FNO and related architectures.",
-              kind: "code",
-              url: "https://github.com/neuraloperator/neuraloperator",
-            },
-          ],
-        },
-        {
-          slug: "evaluating-surrogates",
-          title: "Evaluating surrogates honestly",
-          summary: "Splits, metrics, physical checks and cost accounting for learned solvers.",
-          durationMinutes: 25,
-          objectives: [
-            "Design train and test splits that measure generalisation",
-            "Report error distributions, not only means",
-            "Compute the break-even point of a surrogate against its baseline",
-          ],
-          resources: [
-            {
-              title: "Kovachki et al.: Neural operator, learning maps between function spaces",
-              kind: "reading",
-              url: "https://arxiv.org/abs/2108.08481",
-            },
-          ],
-        },
+      slug: "hashing-and-trees",
+      title: "Hashing and trees",
+      description: "Data structures that support fast search, insertion and deletion.",
+      modules: [
+        planned("hash-tables", "Hash tables", "Hash functions, collision resolution, load factor, and how Python dictionaries and sets are built."),
+        planned("binary-trees", "Binary trees and traversals", "Tree terminology, recursive structure, and the traversal orders with their uses."),
+        planned("binary-search-trees", "Binary search trees", "The search-tree property, insertion and deletion, and why an unbalanced tree is no better than a list."),
+        planned("balanced-search-trees", "Balanced search trees", "Rotations and the invariants that keep a search tree at logarithmic height."),
+        planned("heaps-and-priority-queues", "Heaps and priority queues", "The binary heap, heapsort, and the priority queue as a building block for later algorithms."),
       ],
-      quiz: {
-        slug: "neural-operators-quiz",
-        title: "Neural operators check",
-        description: "Five questions on operator learning, the FNO and evaluation practice.",
-        passPercent: 70,
-        questions: [
-          {
-            type: "multiple_choice",
-            prompt: "What does a neural operator learn?",
-            options: [
-              "The solution of one PDE instance",
-              "A map from input functions to solution functions",
-              "The coefficients of a finite-difference stencil",
-              "A time-stepping scheme with a fixed step",
-            ],
-            answer: 1,
-            explanation:
-              "The operator maps an input function, such as a coefficient field or an initial condition, to the corresponding solution, so a new instance needs only a forward pass.",
-          },
-          {
-            type: "true_false",
-            prompt: "The number of parameters in an FNO spectral layer grows with the resolution of the grid it is applied to.",
-            answer: false,
-            explanation:
-              "Only a fixed number of Fourier modes is retained, so the weight tensors have the same size on every grid. This is what allows evaluation at resolutions other than the training one.",
-          },
-          {
-            type: "multiple_choice",
-            prompt: "In DeepONet, what is the input to the branch network?",
-            options: [
-              "The coordinates of the query point",
-              "The input function sampled at fixed sensor locations",
-              "The PDE residual",
-              "The output of the trunk network",
-            ],
-            answer: 1,
-            explanation:
-              "The branch network encodes the input function from its values at the sensors. The trunk network takes the query coordinates, and the prediction is the inner product of the two outputs.",
-          },
-          {
-            type: "multiple_select",
-            prompt: "Which of these belong in an honest report on a surrogate model?",
-            options: [
-              "A fixed train and test split, saved with the results",
-              "The worst-case error as well as the mean",
-              "The cost of data generation and training",
-              "A baseline timed on the same hardware",
-              "Only the best of several random seeds",
-            ],
-            answers: [0, 1, 2, 3],
-            explanation:
-              "A reader needs the split, the error distribution, the full cost and a fair baseline. Reporting only the best seed hides the variability of training.",
-            points: 2,
-          },
-          {
-            type: "short_answer",
-            prompt: "Data generation and training take 2 hours in total. The classical solver needs 3.6 s per sample and the surrogate's inference time is negligible. How many solves are needed to break even?",
-            accepted: ["2000", "2,000", "2000 solves"],
-            explanation: md`Two hours is $7200$ s, and each surrogate evaluation saves $3.6$ s, so the break-even point is $7200 / 3.6 = 2000$ solves.`,
-          },
-        ],
-      },
-      project: {
-        slug: "darcy-flow-surrogate",
-        title: "Capstone: a surrogate for Darcy flow",
-        summary: "Train an operator model for two-dimensional Darcy flow and deliver an evaluation another researcher could audit.",
-        description: md`Learn the map from permeability $a(x)$ to pressure $u(x)$ for
+    },
+    {
+      slug: "graphs",
+      title: "Graphs",
+      description: "Modelling with graphs, and the algorithms that explore them and find optimal structures in them.",
+      modules: [
+        planned("graph-representations-and-bfs", "Graph representations and breadth-first search", "Adjacency lists and matrices, and shortest paths in unweighted graphs."),
+        planned("depth-first-search", "Depth-first search and its applications", "Discovery and finish times, topological ordering, and connected and strongly connected components."),
+        planned("dijkstra", "Shortest paths: Dijkstra's algorithm", "Shortest paths with non-negative weights, and the proof that the greedy choice is safe."),
+        planned("bellman-ford-and-all-pairs", "Shortest paths: negative weights and all pairs", "Bellman-Ford, negative cycles, and the Floyd-Warshall algorithm."),
+        planned("minimum-spanning-trees", "Minimum spanning trees", "The cut property, and the algorithms of Kruskal and Prim that follow from it."),
+        planned("union-find", "Disjoint sets: union-find", "Union by rank and path compression, and a data structure whose analysis is harder than its code."),
+      ],
+    },
+    {
+      slug: "design-techniques",
+      title: "Algorithm design techniques",
+      description: "The general methods behind many specific algorithms, and how to prove each kind correct.",
+      modules: [
+        planned("greedy-algorithms", "Greedy algorithms", "When a locally best choice is globally best, and exchange arguments for proving it."),
+        planned("dynamic-programming-foundations", "Dynamic programming: foundations", "Overlapping subproblems, optimal substructure, memoisation and tabulation on one-dimensional problems."),
+        planned("dynamic-programming-sequences", "Dynamic programming: sequences and grids", "Longest common subsequence, edit distance and path-counting problems."),
+        planned("dynamic-programming-advanced", "Dynamic programming: knapsack, intervals and trees", "Richer state spaces, reconstructing solutions, and pseudo-polynomial time."),
+        planned("backtracking", "Backtracking and branch and bound", "Systematic search of a solution space, and pruning it with bounds."),
+      ],
+    },
+    {
+      slug: "strings-and-advanced-structures",
+      title: "Strings and advanced structures",
+      description: "Algorithms for text, and data structures for answering many queries quickly.",
+      modules: [
+        planned("string-matching", "String matching", "From the naive method to algorithms that use the structure of the pattern."),
+        planned("tries", "Tries and prefix structures", "Storing sets of strings for prefix queries, with applications to search and completion."),
+        planned("range-queries", "Range queries", "Prefix sums, Fenwick trees and segment trees: answering range questions under updates."),
+      ],
+    },
+    {
+      slug: "limits-and-synthesis",
+      title: "Limits and synthesis",
+      description: "What cannot be computed efficiently, as far as anyone knows, and bringing the course together.",
+      modules: [
+        planned("network-flow", "Network flow and matching", "Maximum flow, minimum cut, and the problems that reduce to them."),
+        planned("intractability-and-capstone", "Intractability and capstone", "Reductions, NP-completeness, what to do with a hard problem, and a final project."),
+      ],
+    },
+  ],
 
-$$
--\nabla \cdot \left( a(x)\, \nabla u(x) \right) = 1 \quad \text{in } (0, 1)^2, \qquad u = 0 \ \text{on the boundary}.
-$$
-
-Generate your own data with a finite-difference solver, or use a public Darcy dataset, and train an FNO or DeepONet.
-
-The deliverable is a short report following the template from the last lesson. Its most important section is **Known failures**.`,
-        objectives: [
-          "Train a neural operator on a parametric elliptic PDE",
-          "Evaluate it in and out of distribution, and at a second resolution",
-          "Account for the full cost and compute the break-even point",
-        ],
-        requirements: [
-          "A fixed, saved train and test split and at least three seeds",
-          "Mean, median, 95th percentile and worst-case relative L2 error",
-          "Evaluation at a resolution different from the training one, against a solver run at that resolution",
-          "Inference and baseline timings from the same hardware, each paired with its accuracy",
-          "A section listing inputs on which the model performs poorly",
-        ],
-        submissionInstructions:
-          "Submit a repository link containing the report (Markdown or PDF), the training configuration and the evaluation script.",
-        rubric: [
-          { criterion: "Model and training", description: "A working operator model with a documented configuration.", points: 20 },
-          { criterion: "Evaluation design", description: "Meaningful splits, error distribution, resolution test.", points: 30 },
-          { criterion: "Cost accounting", description: "Break-even analysis with a fair baseline.", points: 20 },
-          { criterion: "Limitations", description: "Failures are found, shown and discussed.", points: 20 },
-          { criterion: "Reproducibility", description: "Seeds, split indices and commands are provided.", points: 10 },
-        ],
-        dueInDays: 40,
-      },
+  cohorts: [
+    {
+      slug: "pilot",
+      name: "Pilot cohort",
+      description: "The first run of the course.",
+      status: "running",
+      startsInDays: -24,
+      durationWeeks: 12,
+      isPublic: false,
+    },
+    {
+      slug: "next",
+      name: "Next cohort",
+      description: "Dates have not been set. Join the waiting list to be told when enrolment opens.",
+      status: "waitlist",
+      isPublic: true,
     },
   ],
 
   liveSessions: [
     {
-      title: "Kick-off seminar: how the course works",
-      description: "Course structure, the verification habit, and a walkthrough of Project 1.",
-      startsInDays: -21,
-      startTime: "17:00",
+      title: "Orientation: how the course works",
+      description: "The twelve-step method each topic follows, how assessment works, and how to get help.",
+      startsInDays: -20,
+      startTime: "18:00",
       durationMinutes: 60,
       timezone: "Europe/Rome",
-      moduleSlug: "numerical-foundations",
-      recordingUrl: "https://video.example.com/recordings/kick-off-seminar",
-      slidesUrl: "/resources/session-1-slides.pdf",
-      notes: md`**Main points**
+      moduleSlug: "correctness-and-cost",
+      cohortSlug: "pilot",
+      notes: md`**How each topic is taught**
 
-- Each module ends with a quiz (pass mark 70%) and a project reviewed against a rubric.
-- Modules unlock once the lessons of the previous module are complete.
-- Every numerical result in a project needs a reference to compare against.
+Motivation, intuition, visualization, formal statement, pseudocode, Python, correctness, complexity, worked example, practice, assessment, further study. The order matters: you should be able to predict what an algorithm does before you read its code.
 
-**Questions raised**
+**How you are assessed**
 
-1. *Can projects be done in JAX?* Yes. The lessons use PyTorch, but any framework with automatic differentiation is accepted.
-2. *How strict are deadlines?* Late work is still reviewed. Tell us in advance if you need more time.`,
-      resources: [
-        {
-          title: "Finite-difference reference sheet",
-          description: "Handed out during the seminar.",
-          kind: "pdf",
-          url: "/resources/finite-difference-reference-sheet.pdf",
-        },
-      ],
+- A quiz at the end of each module, with a pass mark of 70% and unlimited retakes.
+- Coding problems, from warm-up to challenge. Run your code against the sample tests in your browser. Those results are local feedback, not a grade. Submitting unlocks the editorial for self-review.
+- One project per module, reviewed against a published rubric.
+
+Lessons, quizzes and projects count towards completion. Practice problems are tracked separately on your dashboard.`,
     },
     {
-      title: "Office hours: convergence studies",
-      description: "Open session on Project 1. We debugged two boundary-condition errors live.",
-      startsInDays: -9,
-      startTime: "17:00",
-      durationMinutes: 45,
-      timezone: "Europe/Rome",
-      moduleSlug: "numerical-foundations",
-      recordingUrl: "https://video.example.com/recordings/office-hours-convergence",
-      notes: md`The two bugs we found, both common:
-
-- The boundary rows were updated with the interior formula, which reduced the observed order to one.
-- The error was measured at a time that was not a multiple of $\Delta t$, so the comparison was against the wrong reference time.`,
-    },
-    {
-      title: "Seminar: automatic differentiation from scratch",
-      description: "We build a 60-line reverse-mode engine and use it to differentiate a small network twice.",
-      startsInDays: 2,
-      startTime: "17:00",
+      title: "Workshop: writing loop invariants",
+      description: "We wrote invariants together for six short loops, including two where the first attempt was true but useless.",
+      startsInDays: -8,
+      startTime: "18:00",
       durationMinutes: 75,
       timezone: "Europe/Rome",
-      moduleSlug: "networks-as-approximators",
-      meetingUrl: "https://meet.example.com/isocline-seminar",
+      moduleSlug: "correctness-and-cost",
+      cohortSlug: "pilot",
+      notes: md`**A test for a candidate invariant**
+
+1. Is it true before the first iteration? Check the empty-range case explicitly.
+2. Does one pass of the loop preserve it?
+3. At exit, does it say what you need? If not, it is too weak, however true it may be.
+
+The most common mistake was an invariant that failed step 3: for example $i \ge 0$ for linear search.`,
     },
     {
-      title: "Seminar: why PINNs fail, and what to do about it",
-      description: "A live reproduction of the advection failure, followed by three remedies compared under one budget.",
-      startsInDays: 16,
-      startTime: "17:00",
+      title: "Office hours: asymptotic proofs",
+      description: "Bring a bound you could not prove, or one you proved and are not sure about.",
+      startsInDays: 3,
+      startTime: "18:00",
+      durationMinutes: 60,
+      timezone: "Europe/Rome",
+      moduleSlug: "correctness-and-cost",
+      cohortSlug: "pilot",
+      meetingUrl: "https://meet.example.com/dsa-academy",
+    },
+    {
+      title: "Problem session: binary search beyond arrays",
+      description: "Lower bound, counting occurrences and searching on the answer, solved live from the invariant outward.",
+      startsInDays: 10,
+      startTime: "18:00",
       durationMinutes: 75,
       timezone: "Europe/Rome",
-      moduleSlug: "physics-informed-networks",
-      meetingUrl: "https://meet.example.com/isocline-seminar",
-    },
-    {
-      title: "Capstone clinic",
-      description: "Bring your Darcy-flow evaluation plan for feedback before you start training.",
-      startsInDays: 30,
-      startTime: "16:00",
-      durationMinutes: 90,
-      timezone: "Europe/Rome",
-      moduleSlug: "neural-operators",
-      meetingUrl: "https://meet.example.com/isocline-seminar",
+      moduleSlug: "correctness-and-cost",
+      cohortSlug: "pilot",
+      meetingUrl: "https://meet.example.com/dsa-academy",
     },
   ],
 
   announcements: [
     {
-      title: "Module 4 opens soon",
-      body: "The neural-operator module unlocks on its scheduled date for everyone. If you are ahead, the further reading under **Resources** is a good way in.",
-      pinned: true,
+      title: "Run Python in your browser",
+      body: "You can now run code without installing anything: in the **Playground**, in the runnable examples inside the Python lessons, and against the sample tests of every problem under **Practice**. Sample-test results are local feedback on your own device, not a grade.",
       publishedDaysAgo: 1,
     },
     {
-      title: "Project 1 feedback is out",
-      body: "Reviews for the heat-equation solver have been posted. Common theme: state the final time and the norm next to every error you report.",
-      publishedDaysAgo: 4,
+      title: "Practice problems for correctness and cost are open",
+      body: "Six problems, from warm-up to challenge, are now under **Practice**. Run your code against the sample tests, reveal hints one at a time, and submit to unlock the editorial for self-review. Submission does not mean the solution is correct.",
+      pinned: true,
+      publishedDaysAgo: 2,
     },
     {
-      title: "Recording and notes from the kick-off seminar",
-      body: "The recording, slides and notes are now under **Live sessions**.",
-      publishedDaysAgo: 20,
-    },
-  ],
-
-  resources: [
-    {
-      title: "The Turing Way: guide for reproducible research",
-      description: "Background reading for the reproducibility criteria used in every project rubric.",
-      kind: "reading",
-      url: "https://book.the-turing-way.org/reproducible-research/reproducible-research",
+      title: "Notes from the invariants workshop",
+      body: "The notes are under **Live sessions**. Try the three-step test on your own invariants before the module quiz.",
+      publishedDaysAgo: 7,
     },
   ],
 };

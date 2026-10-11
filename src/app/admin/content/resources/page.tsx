@@ -5,7 +5,7 @@ import Link from "next/link";
 import { resourceKinds } from "@/components/resource-list";
 import { SubmitButton } from "@/components/ui/form";
 import { SectionHeading } from "@/components/ui/page-header";
-import { getAdminCourse, NIL_UUID } from "@/lib/data/admin";
+import { getAdminCourse, NIL_UUID, getModuleLabels } from "@/lib/data/admin";
 import { requireStaff } from "@/lib/data/viewer";
 import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
@@ -32,11 +32,14 @@ export default async function AdminResourcesPage() {
 
   const moduleRows = modules.data ?? [];
   const moduleNumber = (id: string) => moduleRows.find((mod) => mod.id === id)?.position ?? 0;
+  const labels = await getModuleLabels();
+  // "1.4" is lesson 4 of DSA Module 1; "P2.3" is lesson 3 of Python Module P2.
+  const moduleCode = (id: string) => labels.byId.get(id)?.code ?? String(moduleNumber(id));
   const lessonRows = [...(lessons.data ?? [])].sort((a, b) => moduleNumber(a.module_id) - moduleNumber(b.module_id) || a.position - b.position);
 
   const targets: ResourceTargetGroup[] = [
-    { label: "Modules", options: moduleRows.map((mod) => ({ value: `module:${mod.id}`, label: `Module ${mod.position}: ${mod.title}` })) },
-    { label: "Lessons", options: lessonRows.map((lesson) => ({ value: `lesson:${lesson.id}`, label: `${moduleNumber(lesson.module_id)}.${lesson.position} ${lesson.title}` })) },
+    { label: "Modules", options: moduleRows.map((mod) => ({ value: `module:${mod.id}`, label: labels.describe(mod) })) },
+    { label: "Lessons", options: lessonRows.map((lesson) => ({ value: `lesson:${lesson.id}`, label: `${moduleCode(lesson.module_id)}.${lesson.position} ${lesson.title}` })) },
     { label: "Projects", options: (projects.data ?? []).map((project) => ({ value: `project:${project.id}`, label: project.title })) },
     {
       label: "Live sessions",
@@ -51,7 +54,7 @@ export default async function AdminResourcesPage() {
     if (resource.lesson_id) return `Lesson: ${lessonRows.find((l) => l.id === resource.lesson_id)?.title ?? "removed"}`;
     if (resource.project_id) return `Project: ${(projects.data ?? []).find((p) => p.id === resource.project_id)?.title ?? "removed"}`;
     if (resource.live_session_id) return `Session: ${(sessions.data ?? []).find((s) => s.id === resource.live_session_id)?.title ?? "removed"}`;
-    if (resource.module_id) return `Module ${moduleNumber(resource.module_id)}`;
+    if (resource.module_id) return labels.byId.get(resource.module_id)?.text ?? `Module ${moduleNumber(resource.module_id)}`;
     return "Whole course";
   };
 
