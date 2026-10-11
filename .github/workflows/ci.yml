@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  PYTHON_VERSION: "3.14"
+  # Local development values only. The Supabase URL points at the stack this workflow starts
+  # itself; no hosted project and no secret is used anywhere in this file.
+  NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+  NEXT_PUBLIC_COURSE_SLUG: data-structures-and-algorithms
+
+jobs:
+  checks:
+    name: Lint, types, unit tests, content, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # The build never contacts Supabase; it only needs the variable to be present.
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # The unit tests run the Python harness, and the content verifier runs every lesson's code.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Verify lesson code and reference solutions
+        run: python3 scripts/verify_content.py
+
+      - name: Production build
+        run: npm run build
+
+  database:
+    name: Integration and end-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # An isolated Supabase stack inside this job: PostgreSQL, Auth, Storage and the API, with
+      # every migration applied. Services the tests do not use are left out to save time.
+      - name: Start Supabase
+        run: npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,supavisor,postgres-meta
+
+      - name: Configure the app for the local stack
+        run: |
+          npx supabase status -o env > supabase-status.env
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}"
+            echo "NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}"
+            echo "NEXT_PUBLIC_COURSE_SLUG=${NEXT_PUBLIC_COURSE_SLUG}"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(grep '^ANON_KEY=' supabase-status.env | cut -d= -f2- | tr -d '"')"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' supabase-status.env | cut -d= -f2- | tr -d '"')"
+            echo "SEED_DEMO_PASSWORD=ci-only-$(openssl rand -hex 12)"
+          } > .env.local
+          rm supabase-status.env
+          test -n "$(grep '^NEXT_PUBLIC_SUPABASE_ANON_KEY=.\+' .env.local)"
+          test -n "$(grep '^SUPABASE_SERVICE_ROLE_KEY=.\+' .env.local)"
+
+      - name: Seed the course and demo accounts
+        run: npm run seed
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      # The integration suite changes demo data; start the browser tests from the seeded state.
+      - name: Reseed
+        run: npm run seed
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Production build
+        run: npm run build
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+        env:
+          # Run against the production build: it has the strict Content-Security-Policy.
+          PLAYWRIGHT_WEB_SERVER: npm run start
+
+      - name: Upload traces from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Stop Supabase
+        if: always()
+        run: npx supabase stop --no-backup
