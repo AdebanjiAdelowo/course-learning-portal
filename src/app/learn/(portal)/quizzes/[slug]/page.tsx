@@ -133,7 +133,7 @@ export default async function QuizPage({ params }: Props) {
         {history.length === 0 ? (
           <p className="text-ink-soft">You have not attempted this quiz yet.</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+          <div className="relative overflow-x-auto rounded-xl border border-line bg-surface">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line text-ink-faint">
                 <tr>

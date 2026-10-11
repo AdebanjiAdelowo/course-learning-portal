@@ -117,7 +117,9 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
         {step.result ? <p className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-on-accent">{step.result}</p> : null}
       </header>
 
-      <div className="overflow-x-auto px-4 pb-2 pt-5">
+      {/* relative: the screen-reader labels inside are absolutely positioned, and must scroll with
+          this strip instead of widening the page. */}
+      <div className="relative overflow-x-auto px-4 pb-2 pt-5">
         {step.array.length === 0 ? (
           <p className="py-6 text-center text-ink-faint">The list is empty.</p>
         ) : (

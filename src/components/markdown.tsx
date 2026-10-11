@@ -67,7 +67,7 @@ const components: Components = {
   // Wide tables scroll inside their own container instead of breaking the page on mobile.
   table({ children, node: _node, ...props }) {
     return (
-      <div className="overflow-x-auto rounded-lg border border-line" tabIndex={0} role="region" aria-label="Table">
+      <div className="relative overflow-x-auto rounded-lg border border-line" tabIndex={0} role="region" aria-label="Table">
         <table {...props}>{children}</table>
       </div>
     );
