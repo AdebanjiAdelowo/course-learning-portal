@@ -23,6 +23,8 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "src/lib/supabase/database.types.ts",
+    // The Python runtime, copied from node_modules by scripts/copy-pyodide.mjs.
+    "public/pyodide/**",
   ]),
 ]);
 
