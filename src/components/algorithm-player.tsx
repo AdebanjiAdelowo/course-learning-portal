@@ -119,6 +119,20 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
 
       {/* relative: the screen-reader labels inside are absolutely positioned, and must scroll with
           this strip instead of widening the page. */}
+      {step.frames ? (
+        <div className="border-t border-line p-4">
+          <p className="eyebrow">Call stack · oldest call first</p>
+          <ol aria-label="Call-stack frames" className="mt-2 space-y-2">
+            {step.frames.map((frame, depth) => (
+              <li key={depth} className="rounded-lg border border-line p-2 font-mono text-sm">
+                factorial({frame.argument}) · {frame.phase}
+                {frame.returned !== undefined ? ` · return ${frame.returned}` : " · waiting for a result"}
+              </li>
+            ))}
+          </ol>
+          {step.frames.length === 0 ? <p className="mt-2 text-sm">The stack is empty.</p> : null}
+        </div>
+      ) : null}
       <div className="relative overflow-x-auto px-4 pb-2 pt-5">
         {step.array.length === 0 ? (
           <p className="py-6 text-center text-ink-faint">The list is empty.</p>

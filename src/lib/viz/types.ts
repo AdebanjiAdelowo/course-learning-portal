@@ -27,6 +27,8 @@ export type CellRole =
   | "found";
 
 export interface VizStep {
+  /** Deterministic recursion frames, oldest call first. No student code is executed. */
+  frames?: { argument: number; phase: "calling" | "base" | "returning"; returned?: number }[];
   /** Index into the algorithm's pseudocode lines, or null when no line is executing. */
   line: number | null;
   /** One or two sentences saying what just happened and why. */

@@ -45,6 +45,9 @@ export function validateInput(algorithm: VizAlgorithm, arrayText: string, target
   if (!algorithm.needsTarget) return { ok: true, value: { array: array.value } };
   const target = parseTarget(targetText);
   if (!target.ok) return target;
+  if (algorithm.id === "recursive-factorial" && (target.value < 0 || target.value > 8)) {
+    return { ok: false, error: "Factorial traces need an integer from 0 to 8." };
+  }
   return { ok: true, value: { array: array.value, target: target.value } };
 }
 
