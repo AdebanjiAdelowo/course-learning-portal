@@ -1,3 +1,4 @@
+import { recursionModule } from "./recursion-module";
 import { slidingWindow, twoPointers } from "./plans";
 import { pythonCollections, pythonEssentials } from "./python-foundations";
 import type { SeedCourse, SeedModule, SeedModulePlan } from "./types";
@@ -368,7 +369,7 @@ The purpose is the **explanation**. Where a measurement matches the theory, say 
             },
           ],
         },
-        planned("recursion-and-induction", "Recursion, induction and recurrences", "Recursive algorithms, proofs by induction, and solving the recurrences that describe their cost."),
+        recursionModule,
         planned("arrays-and-amortised-analysis", "Arrays, dynamic arrays and amortised analysis", "How Python lists work underneath, why appending is cheap on average, and how to prove it."),
         planned("linked-lists", "Linked lists", "Singly and doubly linked lists, pointer manipulation, and when a linked structure beats an array."),
       ],

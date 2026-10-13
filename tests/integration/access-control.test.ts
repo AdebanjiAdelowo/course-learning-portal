@@ -183,13 +183,14 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(modules![0]!.slug).toBe("python-essentials");
     });
 
-    it("publishes three modules and keeps the other 31 planned, with no lessons in any planned module", async () => {
+    it("publishes three modules and keeps draft recursion content inaccessible", async () => {
       const { data: modules } = await admin.from("modules").select("id, slug, position, is_published, plan").eq("course_id", courseId).not("slug", "like", "it-%").order("position");
       expect(modules!.filter((mod) => mod.is_published).map((mod) => mod.slug)).toEqual(PUBLISHED);
       const plannedIds = modules!.filter((mod) => !mod.is_published).map((mod) => mod.id);
+      const unwrittenIds = modules!.filter(mod => !mod.is_published && mod.slug !== "recursion-and-induction").map(mod => mod.id);
       expect(plannedIds).toHaveLength(31);
-      expect((await admin.from("lessons").select("id", { count: "exact", head: true }).in("module_id", plannedIds)).count).toBe(0);
-      expect((await admin.from("coding_problems").select("id", { count: "exact", head: true }).in("module_id", plannedIds)).count).toBe(0);
+      expect((await admin.from("lessons").select("id", { count: "exact", head: true }).in("module_id", unwrittenIds)).count).toBe(0);
+      expect((await admin.from("coding_problems").select("id", { count: "exact", head: true }).in("module_id", unwrittenIds)).count).toBe(0);
 
       const plans = new Map(modules!.map((mod) => [mod.slug, mod.plan as { objectives?: string[]; lessons?: unknown[]; prerequisites?: string[] }]));
       for (const slug of ["two-pointers", "sliding-window"]) {
@@ -247,7 +248,7 @@ describe.skipIf(!configured)("row-level security", () => {
         "is-sorted",
         "lower-bound",
       ]);
-      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(14);
+      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(19);
       const { data: solutions } = await admin.from("coding_problem_solutions").select("editorial_md, reference_solution, hidden_tests");
       expect(solutions!.length).toBeGreaterThanOrEqual(14);
       expect(solutions!.every((row) => row.reference_solution.includes("def ") && (row.hidden_tests as unknown[]).length >= 5)).toBe(true);
@@ -482,6 +483,23 @@ describe.skipIf(!configured)("row-level security", () => {
       await alice.db.from("enrollments").update({ status: "completed" }).eq("user_id", alice.id);
       const { data: enrolment } = await admin.from("enrollments").select("status").eq("user_id", alice.id).eq("course_id", courseId).single();
       expect(enrolment?.status).toBe("active");
+    });
+
+    it("retains authored recursion for staff while excluding every draft artifact from student access", async () => {
+      const { data: mod, error } = await admin.from("modules").select("id, is_published").eq("course_id", courseId).eq("slug", "recursion-and-induction").single();
+      expect(error).toBeNull();
+      expect(mod!.is_published).toBe(false);
+      const id = mod!.id;
+      expect((await instructor.db.from("lessons").select("id").eq("module_id", id)).data).toHaveLength(6);
+      expect((await instructor.db.from("coding_problems").select("id").eq("module_id", id)).data).toHaveLength(5);
+      for (const table of ["lessons", "quizzes", "projects", "coding_problems"] as const) {
+        expect((await alice.db.from(table).select("id").eq("module_id", id)).data, table).toEqual([]);
+      }
+      for (const view of ["lesson_outline", "quiz_outline", "project_outline", "coding_problem_outline"] as const) {
+        expect((await alice.db.from(view).select("id").eq("module_id", id)).data, view).toEqual([]);
+      }
+      const { data: lesson } = await admin.from("lessons").select("id").eq("module_id", id).limit(1).single();
+      expect((await alice.db.from("lesson_progress").insert({ user_id: alice.id, lesson_id: lesson!.id })).error).not.toBeNull();
     });
 
     it("does not see unpublished lessons", async () => {
