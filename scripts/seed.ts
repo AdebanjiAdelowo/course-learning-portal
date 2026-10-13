@@ -32,6 +32,11 @@ type Db = SupabaseClient<Database>;
 const args = new Set(process.argv.slice(2));
 const contentOnly = args.has("--content-only");
 const allowRemote = args.has("--allow-remote");
+const moduleArgument = process.argv.find(value => value.startsWith("--module="));
+const selectedModule = moduleArgument?.slice("--module=".length);
+if (moduleArgument && (!contentOnly || !selectedModule || !course.phases.some(phase => phase.modules.some(mod => mod.slug === selectedModule)))) {
+  throw new Error("--module=<slug> requires --content-only and an existing curriculum module slug.");
+}
 
 const DAY_MS = 86_400_000;
 const now = Date.now();
@@ -214,7 +219,7 @@ function planRow(mod: SeedModule): NonNullable<Json> {
 async function seedContent(db: Db, instructorId: string | null): Promise<ContentIds> {
   const courseRow = unwrap(
     "upsert course",
-    await db
+    selectedModule ? await db.from("courses").select("id").eq("slug", course.slug).single() : await db
       .from("courses")
       .upsert(
         {
@@ -239,20 +244,27 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
   // Positions are unique per parent. Move existing rows out of the way first so that a
   // reordered seed file never collides with the old order.
   const existingModules = unwrap("read modules", await db.from("modules").select("id, position").eq("course_id", courseId));
-  for (const row of existingModules) {
+  for (const row of selectedModule ? [] : existingModules) {
     check("shift module", await db.from("modules").update({ position: row.position + 10_000 }).eq("id", row.id));
   }
-  const existingLessons = unwrap("read lessons", await db.from("lessons").select("id, position").eq("course_id", courseId));
+  const selectedModuleId = selectedModule
+    ? unwrap("selected module", await db.from("modules").select("id").eq("course_id", courseId).eq("slug", selectedModule).single()).id
+    : undefined;
+  let lessonQuery = db.from("lessons").select("id, position").eq("course_id", courseId);
+  if (selectedModuleId) lessonQuery = lessonQuery.eq("module_id", selectedModuleId);
+  const existingLessons = unwrap("read lessons", await lessonQuery);
   for (const row of existingLessons) {
     check("shift lesson", await db.from("lessons").update({ position: row.position + 10_000 }).eq("id", row.id));
   }
 
-  const existingProblems = unwrap("read problems", await db.from("coding_problems").select("id, position").eq("course_id", courseId));
+  let problemQuery = db.from("coding_problems").select("id, position").eq("course_id", courseId);
+  if (selectedModuleId) problemQuery = problemQuery.eq("module_id", selectedModuleId);
+  const existingProblems = unwrap("read problems", await problemQuery);
   for (const row of existingProblems) {
     check("shift problem", await db.from("coding_problems").update({ position: row.position + 10_000 }).eq("id", row.id));
   }
   const existingPhases = unwrap("read phases", await db.from("phases").select("id, position").eq("course_id", courseId));
-  for (const row of existingPhases) {
+  for (const row of selectedModule ? [] : existingPhases) {
     check("shift phase", await db.from("phases").update({ position: row.position + 10_000 }).eq("id", row.id));
   }
 
@@ -271,7 +283,7 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
   for (const [phaseIndex, phase] of course.phases.entries()) {
     const phaseRow = unwrap(
       `upsert phase ${phase.slug}`,
-      await db
+      selectedModule ? await db.from("phases").select("id").eq("course_id", courseId).eq("slug", phase.slug).single() : await db
         .from("phases")
         .upsert(
           {
@@ -290,10 +302,11 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
     for (const mod of phase.modules) orderedModules.push({ mod, phaseId: phaseRow.id });
   }
   const resources: (SeedResource & { module_id?: string; lesson_id?: string; project_id?: string })[] = [
-    ...(course.resources ?? []),
+    ...(!selectedModule ? course.resources ?? [] : []),
   ];
 
   for (const [moduleIndex, { mod, phaseId }] of orderedModules.entries()) {
+    if (selectedModule && mod.slug !== selectedModule) continue;
     const moduleRow = unwrap(
       `upsert module ${mod.slug}`,
       await db
@@ -305,7 +318,7 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
             title: mod.title,
             description: mod.description,
             phase_id: phaseId,
-            position: moduleIndex + 1,
+            position: selectedModuleId ? existingModules.find(row => row.id === selectedModuleId)!.position : moduleIndex + 1,
             available_from: mod.availableInDays === undefined ? null : daysFromNow(mod.availableInDays),
             requires_previous: mod.requiresPrevious ?? true,
             is_published: mod.published ?? true,
@@ -438,7 +451,7 @@ async function seedContent(db: Db, instructorId: string | null): Promise<Content
   }
 
   // Resources attached to course material are owned by the seed files: replace them.
-  check("clear resources", await db.from("resources").delete().eq("course_id", courseId).is("live_session_id", null));
+  if (!selectedModule) check("clear resources", await db.from("resources").delete().eq("course_id", courseId).is("live_session_id", null));
   if (resources.length > 0) {
     check(
       "insert resources",
@@ -855,13 +868,16 @@ async function main() {
 
   const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url);
   const summary = (ids: ContentIds) =>
-    `Done: ${course.phases.length} phases, ${ids.modules.size} modules (${ids.lessons.size} lessons, ${ids.quizzes.size} quizzes, ${ids.projects.size} projects and ${ids.problems.size} coding problems in the published ones).`;
+    `Done: ${course.phases.length} phases, ${ids.modules.size} modules (${ids.lessons.size} lessons, ${ids.quizzes.size} quizzes, ${ids.projects.size} projects and ${ids.problems.size} coding problems authored; publication is controlled per module).`;
 
+  if (selectedModule && !isLocal) throw new Error("Module-scoped verification seeding is restricted to the local database.");
   if (contentOnly) {
     console.log(`Syncing course content to ${url}`);
     const ids = await seedContent(db, null);
-    await seedCohorts(db, ids);
-    await seedSchedule(db, ids, null, false);
+    if (!selectedModule) {
+      await seedCohorts(db, ids);
+      await seedSchedule(db, ids, null, false);
+    }
     console.log(summary(ids));
     return;
   }
