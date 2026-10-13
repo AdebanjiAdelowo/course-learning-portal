@@ -105,4 +105,3 @@ Derive `C(4)` from the recurrence: it is 9. Explain which repeated subproblem fi
 ## 9. Summary
 
 A recurrence describing values is different from a recurrence describing evaluation cost. Repeated equal inputs are a clue that results can be reused. Correctness, call count, maximum depth and retained cache size are four different questions.
-

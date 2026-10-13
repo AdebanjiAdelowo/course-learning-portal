@@ -95,4 +95,3 @@ Empty input, singleton input, duplicates, absence below the minimum, absence abo
 ## 9. Summary
 
 Recursive binary search makes exactly one smaller call at each level. Sortedness justifies exclusion, induction justifies the smaller answer, and shrinking bounds justify termination. Return propagation and interval conventions are correctness concerns, not merely syntax preferences.
-

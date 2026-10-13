@@ -110,4 +110,3 @@ This check catches coding mistakes. The universal proof still depends on the con
 Implement a balanced minimum finder, preserving the empty-input contract. Change the combine operation to return both minimum and maximum; account for comparisons and returned data. Explain why an iterative scan is usually preferable for a sequential maximum.
 
 Recursion is a design tool, not a goal in itself. Prefer it when the problem naturally decomposes or when tree-shaped structures make it clear. Prefer iteration when it removes unnecessary stack use without obscuring the argument. Always state the cost model, and never rely on increasing the interpreter recursion limit as a substitute for algorithm design.
-

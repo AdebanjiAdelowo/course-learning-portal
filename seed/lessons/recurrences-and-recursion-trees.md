@@ -74,4 +74,3 @@ Solve `T(n)=T(n-1)+n` by expansion: the sum is quadratic. Explain why a recursio
 ## 10. Summary
 
 Count branches, quantify shrinkage, label non-recursive work and include base costs. Expand a recurrence or draw a correctly labelled recursion tree, then prove the guess. Analyze retained memory independently of total work.
-
