@@ -1,5 +1,5 @@
 /** Verify authored draft content without publishing it or changing existing students. */
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
@@ -20,6 +20,7 @@ let quizSlug: string;
 let projectSlug: string;
 let problemSlug: string;
 let questions: Database["public"]["Tables"]["questions"]["Row"][] = [];
+let baseline: string;
 let keys: Database["public"]["Tables"]["question_keys"]["Row"][] = [];
 
 function must<T>(result: { data: T; error: { message: string } | null }): NonNullable<T> {
@@ -33,9 +34,21 @@ function copy<T extends { id: string; search?: unknown }>(row: T) {
   return rest;
 }
 
+/** Hash persisted state without logging student records or credentials. */
+async function existingState(): Promise<string> {
+  const state = [];
+  state.push(must(await admin.from("modules").select("id, slug, position, phase_id, is_published").eq("course_id", courseId).order("id")));
+  for (const table of ["lesson_progress", "quiz_attempts", "submissions", "code_submissions"] as const) {
+    const query = admin.from(table).select("*");
+    state.push(must(await (table === "lesson_progress" ? query.order("user_id").order("lesson_id") : query.order("id"))));
+  }
+  return createHash("sha256").update(JSON.stringify(state)).digest("hex");
+}
+
 test.beforeAll(async () => {
   if (!/^https?:\/\/(localhost|127\.0\.0\.1):/.test(url)) throw new Error("Recursion fixtures require local Supabase.");
   courseId = must(await admin.from("courses").select("id").eq("slug", "data-structures-and-algorithms").single()).id;
+  baseline = await existingState();
   const source = must(await admin.from("modules").select("*").eq("course_id", courseId).eq("slug", "recursion-and-induction").single());
   expect(source.is_published).toBe(false);
   const last = must(await admin.from("modules").select("position").eq("course_id", courseId).order("position", { ascending: false }).limit(1).single());
@@ -78,6 +91,7 @@ test.afterAll(async () => {
     const result = await admin.auth.admin.deleteUser(userId);
     if (result.error) throw result.error;
   }
+  if (baseline) expect(await existingState(), "Existing ordering and student activity must be unchanged after fixture cleanup").toBe(baseline);
 });
 
 test.beforeEach(async ({ page }) => {
@@ -91,14 +105,19 @@ test.beforeEach(async ({ page }) => {
 test("six lessons render, run Python and persist completion; the stack trace steps and rewinds", async ({ page }) => {
   test.setTimeout(180_000);
   expect(lessons).toHaveLength(6);
-  for (const lesson of lessons) {
-    await page.goto(`/learn/lessons/${lesson.slug}`);
+  await page.goto(`/learn/modules/${prefix}`);
+  for (const lesson of lessons) await expect(page.locator(`a[href="/learn/lessons/${lesson.slug}"]`).first()).toBeVisible();
+  for (const [index, lesson] of lessons.entries()) {
+    if (index === 0) await page.locator(`a[href="/learn/lessons/${lesson.slug}"]`).first().click();
+    else await page.getByRole("link", { name: /Next lesson/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/learn/lessons/${lesson.slug}$`));
     await expect(page.getByRole("heading", { level: 1, name: lesson.title })).toBeVisible();
     const run = page.getByRole("button", { name: "Run code", exact: true }).first();
     await expect(run).toBeVisible();
     await run.click();
     await expect(page.locator('[data-run-state="completed"]')).toBeVisible({ timeout: 100_000 });
     await page.getByRole("button", { name: "Mark as complete", exact: true }).click();
+    await expect(page.getByText("Lesson complete", { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByText("Lesson complete", { exact: true })).toBeVisible();
   }
@@ -134,13 +153,15 @@ test("visible samples, draft, submission history and editorial preserve the self
   await expect(page.locator('[data-test-status="failed"]')).toHaveCount(0);
   await expect(page.locator('[data-test-status="passed"]')).toHaveCount(3);
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Draft saved. It has not been submitted." })).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Python solution")).toHaveValue(code);
   await page.getByRole("button", { name: "Submit for self-review", exact: true }).click();
   await expect(page.getByText("Read the editorial and the reference solution", { exact: true })).toBeVisible();
   await page.getByText("Read the editorial and the reference solution", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Reference solution", exact: true })).toBeVisible();
-  await expect(page.getByText(/Submission does not mean the solution is correct/)).toBeVisible();
+  await expect(page.getByText(/^Unlocked because you have submitted an attempt\./)).toContainText("Submission does not mean the solution is correct");
+  await expect(page.getByRole("region", { name: "Submission history" }).getByText("Attempt 1", { exact: true })).toBeVisible();
 });
 
 test("the ten-question quiz is graded and the project submission persists", async ({ page }) => {
