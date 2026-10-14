@@ -13,7 +13,7 @@ export const dynamicArray: VizAlgorithm = {
   pseudocode: ["validate operation and index", "read element or traverse logical elements", "if full: allocate twice the capacity", "copy each logical element to the new buffer", "shift elements to make or close a gap", "write value; update logical size"],
   trace({ array, operation = "append", index = 0, value = 7 }) {
     if (array.length > 12 || !array.every(Number.isSafeInteger)) throw new RangeError("Use at most 12 integers.");
-    if (!arrayOperations.includes(operation) || !Number.isInteger(index) || !Number.isSafeInteger(value)) throw new RangeError("Invalid operation, index or value.");
+    if (!(arrayOperations as readonly string[]).includes(operation) || !Number.isInteger(index) || !Number.isSafeInteger(value)) throw new RangeError("Invalid operation, index or value.");
     let size = array.length;
     if ((operation === "access" || operation === "delete") && (index < 0 || index >= size)) throw new RangeError("Index must refer to an existing element.");
     if (operation === "insert" && (index < 0 || index > size)) throw new RangeError("Insertion index must be between zero and size.");

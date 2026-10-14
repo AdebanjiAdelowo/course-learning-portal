@@ -1,0 +1,52 @@
+import type { SeedModule } from "./types";
+
+/** Authored draft. Publication remains separate from local verification. */
+export const linkedListsModule: SeedModule = {
+  slug: "linked-lists", title: "Linked lists",
+  description: "Singly and doubly linked lists, pointer manipulation, and when a linked structure beats an array.",
+  requiresPrevious: true, published: false,
+  lessons: [
+    { slug: "linked-nodes-and-traversal", title: "Nodes, references and traversal", summary: "Distinguish topology, node identity and payload equality.", durationMinutes: 30, objectives: ["Represent empty and acyclic chains", "Prove traversal", "Account for node and output storage"] },
+    { slug: "singly-linked-insertion-and-deletion", title: "Singly linked insertion and deletion", summary: "Preserve suffixes while rewiring head, predecessor and tail references.", durationMinutes: 40, objectives: ["Perform safe indexed edits", "Separate location from rewiring cost", "Repair empty and end boundaries"] },
+    { slug: "doubly-linked-lists-and-sentinels", title: "Doubly linked lists and sentinels", summary: "Maintain reciprocal links and understand membership preconditions.", durationMinutes: 40, objectives: ["Prove both link directions correct", "Use a sentinel consistently", "Explain costs and ownership checks"] },
+    { slug: "linked-list-reversal-and-invariants", title: "Reversal and node-conservation invariants", summary: "Reverse arrows while retaining both moving chains.", durationMinutes: 40, objectives: ["Save next before mutation", "Prove the processed-prefix invariant", "Preserve node identities and publish new head/tail"] },
+    { slug: "fast-slow-pointers-and-middle-nodes", title: "Fast/slow pointers and sorted merging", summary: "Find the second middle and merge disjoint chains through existing nodes.", durationMinutes: 40, objectives: ["Specify even-length behavior", "Prove speed and merge invariants", "State disjointness and mutation contracts"] },
+    { slug: "cycle-detection-and-structure-tradeoffs", title: "Cycle detection and structure trade-offs", summary: "Detect topology cycles through identity and choose representations from workload costs.", durationMinutes: 45, objectives: ["Prove fast/slow meeting", "Encode cycles without cyclic JSON", "Compare location, rewiring and allocation costs"] },
+  ],
+  quiz: {
+    slug: "linked-lists-quiz", title: "Assessment: linked lists", description: "Reason about identities, safe updates, sentinel invariants, traversal speeds and cost preconditions.", passPercent: 70,
+    questions: [
+      { type: "true_false", prompt: "Two nodes containing the same integer must be the same node.", answer: false, explanation: "Payload equality does not imply object identity. Distinct nodes may contain equal values." },
+      { type: "multiple_choice", prompt: "To insert X after P whose successor is S, which order preserves the suffix?", options: ["P.next=X, then X.next=P.next", "X.next=S, then P.next=X", "X.next=P, then P.next=S", "Overwrite S's payload"], answer: 1, explanation: "Connect the new node to the saved successor before replacing P's incoming link to that successor." },
+      { type: "multiple_select", prompt: "Which edits require explicit head or tail repair in a container that maintains both?", options: ["Insert into an empty list", "Delete the sole node", "Append after the current tail", "Read the second node"], answers: [0, 1, 2], explanation: "Empty insertion establishes both ends; sole deletion clears both; append changes tail. Reading changes neither." },
+      { type: "short_answer", prompt: "What is the worst-case time to locate index k from the head when k may be n-1? Use asymptotic notation.", accepted: ["O(n)", "Theta(n)", "Θ(n)", "linear"], explanation: "The algorithm follows one next reference per preceding node. A near-tail index can require linear traversal." },
+      { type: "multiple_choice", prompt: "Why save current.next before reversing its arrow?", options: ["To sort payload values", "To preserve the untouched suffix", "To allocate all replacement nodes", "To remove the tail"], answer: 1, explanation: "Once current.next points backward, the original successor is no longer available through that field." },
+      { type: "multiple_choice", prompt: "The second-middle algorithm on a list of length 6 returns which zero-based index?", options: ["2", "3", "4", "5"], answer: 1, explanation: "With fast advancing twice per iteration, slow advances floor(6/2)=3 links before fast reaches the end." },
+      { type: "true_false", prompt: "A doubly linked list offers constant-time removal of a known valid member, but locating it by value can still take linear time.", answer: true, explanation: "The stored predecessor makes local rewiring constant-time; it does not eliminate the separate search." },
+      { type: "multiple_select", prompt: "Which invariants belong to a circular sentinel doubly linked list?", options: ["An empty root links to itself in both directions", "Each adjacent pair has reciprocal links", "Traversal ends at None", "The sentinel is excluded from payload output"], answers: [0, 1, 3], explanation: "The sentinel is the termination boundary and not a payload node. Its ring intentionally does not end at None." },
+      { type: "short_answer", prompt: "Which Python comparison tests whether two references denote the same node: is or ==?", accepted: ["is"], explanation: "Identity is the property required for cycle detection; payload or customized equality can coincide for different nodes." },
+      { type: "multiple_choice", prompt: "Why must fast and slow meet once both are in a cycle of length lambda?", options: ["Equal payloads force a meeting", "Their relative offset changes by one modulo lambda", "Every list is sorted", "The allocator places nodes consecutively"], answer: 1, explanation: "Their speed difference is one, so relative position visits every residue modulo the cycle length within lambda steps." },
+    ],
+  },
+  project: {
+    slug: "linked-structure-laboratory", title: "Linked structure laboratory", summary: "Build singly and doubly linked containers and test their topology invariants.",
+    description: "Implement a singly linked container with head/tail and a doubly linked sentinel container. Add indexed edits, in-place reversal, second-middle finding and identity-based cycle detection for the singly linked representation. Provide deterministic mutation traces and tests that check links and node identities, not just serialized payloads.",
+    objectives: ["Preserve topology invariants under mutation", "Specify ownership and boundary contracts", "Compare location and local update costs"],
+    requirements: ["Implement head, tail and indexed insertion/deletion with validation before mutation", "Verify both directions of doubly linked adjacency after each public operation", "Preserve payload-node identities during reversal", "Test empty, singleton, head, middle, end and invalid operations", "Detect self-cycles, head cycles and cycles after a noncyclic prefix", "Keep cyclic inputs out of unbounded serializers", "Analyze location, rewiring, conversion, output storage and allocation separately", "Compare a justified workload with an array representation"],
+    submissionInstructions: "Submit an HTTPS repository or notebook URL with source, identity and adjacency tests, traces, proofs and a workload comparison. Local sample results are not official grading.", dueInDays: 28,
+    rubric: [
+      { criterion: "Implementation and contracts", description: "Correct pointer operations, boundaries, ownership and metadata", points: 30 },
+      { criterion: "Correctness and topology", description: "Invariants, node conservation, reciprocal links and cycle reasoning", points: 30 },
+      { criterion: "Tests and traces", description: "Deterministic identity checks, boundary cases and readable intermediate states", points: 25 },
+      { criterion: "Cost analysis and communication", description: "Honest complexity assumptions and representation trade-offs", points: 15 },
+    ],
+  },
+  problems: [
+    { slug: "reverse-linked-chain", title: "Reverse a linked chain", summary: "Reverse next references while preserving all payload-node identities.", difficulty: "core", constraints: ["At most 100 bounded integer values", "Use real nodes; do not allocate replacement payload nodes"], hints: ["Retain the untouched suffix before reversing an arrow.", "Maintain previous, current and saved-next references."] },
+    { slug: "linked-middle-value", title: "Second middle value", summary: "Find the second middle with two traversal speeds.", difficulty: "warm_up", constraints: ["At most 100 values", "Empty input returns None; even lengths use index floor(n/2)"], hints: ["Advance fast twice and slow once.", "Guard both fast and fast.next before advancing."] },
+    { slug: "linked-cycle-detection", title: "Detect a next-reference cycle", summary: "Build a finite JSON-described topology and detect a cycle through node identity.", difficulty: "challenge", constraints: ["At most 100 values", "Entry is -1 or a valid index; empty input requires -1"], hints: ["Equal values do not imply identical nodes.", "Compare references after advancing at different speeds."] },
+    { slug: "merge-linked-chains", title: "Merge sorted linked chains", summary: "Reuse existing nodes to merge disjoint sorted chains.", difficulty: "core", constraints: ["Each sorted input has at most 100 values", "Choose left input on ties; do not sort concatenated arrays"], hints: ["A dummy node simplifies the initial output link.", "Keep the output tail so each selected node is attached in constant work."] },
+    { slug: "insert-linked-position", title: "Insert at a linked position", summary: "Locate a predecessor and attach one new node without losing its successor.", difficulty: "warm_up", constraints: ["At most 100 values", "0 <= index <= n; value within -1000..1000"], hints: ["Head insertion changes the returned head.", "Initialize new.next before changing the incoming link."] },
+    { slug: "delete-linked-position", title: "Delete at a linked position", summary: "Bypass one node while conserving the remaining chain.", difficulty: "core", constraints: ["Nonempty input with at most 100 values", "0 <= index < n"], hints: ["Head deletion publishes head.next.", "For other indices, locate the predecessor and bypass its next node."] },
+  ],
+};

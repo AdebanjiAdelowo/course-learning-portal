@@ -44,13 +44,13 @@ export function validateInput(algorithm: VizAlgorithm, arrayText: string, target
   }
   if (algorithm.operations) {
     const operation = options.operation ?? "append";
-    if (!algorithm.operations.includes(operation as import("./dynamic-array").ArrayOperation)) return { ok: false, error: "Choose a supported array operation." };
+    if (!algorithm.operations.includes(operation as import("./types").VizOperation)) return { ok: false, error: "Choose a supported operation." };
     if (!/^-?\d+$/.test(options.index ?? "0") || !/^-?\d+$/.test(options.value ?? "7")) return { ok: false, error: "Enter whole numbers for index and value." };
     const index = Number(options.index ?? "0"), value = Number(options.value ?? "7");
     if (!Number.isInteger(index) || !Number.isSafeInteger(value) || value < VIZ_LIMITS.minValue || value > VIZ_LIMITS.maxValue) return { ok: false, error: "Use a whole index and a value within the displayed input bounds." };
     if ((operation === "access" || operation === "delete") && (index < 0 || index >= array.value.length)) return { ok: false, error: "Index must refer to an existing element." };
     if (operation === "insert" && (index < 0 || index > array.value.length)) return { ok: false, error: "Insertion index must be between zero and size." };
-    return { ok: true, value: { array: array.value, operation: operation as import("./dynamic-array").ArrayOperation, index, value } };
+    return { ok: true, value: { array: array.value, operation: operation as import("./types").VizOperation, index, value } };
   }
   if (!algorithm.needsTarget) return { ok: true, value: { array: array.value } };
   const target = parseTarget(targetText);

@@ -136,6 +136,24 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
           {step.frames.length === 0 ? <p className="mt-2 text-sm">The stack is empty.</p> : null}
         </div>
       ) : null}
+      {step.linked ? (
+        <div className="border-t border-line p-4">
+          <p className="font-mono text-sm">head → {step.linked.head ?? "null"} · tail → {step.linked.tail ?? "null"}</p>
+          <p className="mt-2 text-sm text-ink-soft">Node layout is fixed by identity so disconnected intermediate chains remain visible.</p>
+          <ol aria-label="Linked-list nodes" className="mt-3 grid gap-2 sm:grid-cols-3">
+            {step.linked.nodes.map(node => (
+              <li key={node.id} className="rounded-lg border border-line-strong bg-paper p-3 font-mono text-sm">
+                <strong>{node.id}</strong>: {node.value}<br />next → {node.next ?? "null"}
+              </li>
+            ))}
+          </ol>
+          {step.linked.nodes.length === 0 ? <p className="mt-2">The list has no nodes.</p> : null}
+          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 font-mono text-sm" aria-label="Working references">
+            {Object.entries(step.linked.markers).map(([name, target]) => <div key={name} className="contents"><dt>{name}</dt><dd>→ {target ?? "null"}</dd></div>)}
+          </dl>
+        </div>
+      ) : null}
+      {!step.linked && (
       <div className="relative overflow-x-auto px-4 pb-2 pt-5">
         {step.array.length === 0 ? (
           <p className="py-6 text-center text-ink-faint">The list is empty.</p>
@@ -176,6 +194,8 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
           </ol>
         )}
       </div>
+
+      )}
 
       <div className="border-t border-line px-4 py-3">
         <p className="min-h-[4.5rem] text-[0.97rem] leading-relaxed sm:min-h-[3.25rem]" aria-live="polite" aria-atomic="true">

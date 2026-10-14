@@ -137,8 +137,8 @@ export interface SeedModule {
   title: string;
   description: string;
   /**
-   * false marks a planned module: it appears in the learning path by title and description,
-   * but has no content yet and students cannot open it. Defaults to true.
+   * false keeps a module unpublished: it appears in the learning path by title and description,
+   * but students cannot open its content. Authored drafts may already have lessons. Defaults to true.
    */
   published?: boolean;
   /** Opens this many days from now; omit for no date gate. */

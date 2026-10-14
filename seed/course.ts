@@ -1,3 +1,4 @@
+import { linkedListsModule } from "./linked-lists-module";
 import { arraysModule } from "./arrays-module";
 import { recursionModule } from "./recursion-module";
 import { slidingWindow, twoPointers } from "./plans";
@@ -372,7 +373,7 @@ The purpose is the **explanation**. Where a measurement matches the theory, say 
         },
         recursionModule,
         arraysModule,
-        planned("linked-lists", "Linked lists", "Singly and doubly linked lists, pointer manipulation, and when a linked structure beats an array."),
+        linkedListsModule,
       ],
     },
     {

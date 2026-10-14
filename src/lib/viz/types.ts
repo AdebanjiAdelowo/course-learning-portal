@@ -26,7 +26,10 @@ export type CellRole =
   | "key" // the value currently being placed
   | "found";
 
+export type VizOperation = "access" | "traverse" | "append" | "insert" | "delete" | "reverse";
+
 export interface VizStep {
+  linked?: { nodes: { id: string; value: number; next: string | null }[]; head: string | null; tail: string | null; markers: Record<string, string | null> };
   /** Deterministic recursion frames, oldest call first. No student code is executed. */
   frames?: { argument: number; phase: "calling" | "base" | "returning"; returned?: number }[];
   /** Index into the algorithm's pseudocode lines, or null when no line is executing. */
@@ -48,7 +51,7 @@ export interface VizStep {
 }
 
 export interface VizInput {
-  operation?: import("./dynamic-array").ArrayOperation;
+  operation?: VizOperation;
   index?: number;
   value?: number;
   array: number[];
@@ -56,7 +59,7 @@ export interface VizInput {
 }
 
 export interface VizAlgorithm {
-  operations?: readonly import("./dynamic-array").ArrayOperation[];
+  operations?: readonly VizOperation[];
   id: string;
   title: string;
   pseudocode: string[];
