@@ -187,7 +187,7 @@ describe.skipIf(!configured)("row-level security", () => {
       const { data: modules } = await admin.from("modules").select("id, slug, position, is_published, plan").eq("course_id", courseId).not("slug", "like", "it-%").order("position");
       expect(modules!.filter((mod) => mod.is_published).map((mod) => mod.slug)).toEqual(PUBLISHED);
       const plannedIds = modules!.filter((mod) => !mod.is_published).map((mod) => mod.id);
-      const unwrittenIds = modules!.filter(mod => !mod.is_published && mod.slug !== "recursion-and-induction").map(mod => mod.id);
+      const unwrittenIds = modules!.filter(mod => !mod.is_published && !["recursion-and-induction", "arrays-and-amortised-analysis"].includes(mod.slug)).map(mod => mod.id);
       expect(plannedIds).toHaveLength(31);
       expect((await admin.from("lessons").select("id", { count: "exact", head: true }).in("module_id", unwrittenIds)).count).toBe(0);
       expect((await admin.from("coding_problems").select("id", { count: "exact", head: true }).in("module_id", unwrittenIds)).count).toBe(0);
@@ -248,7 +248,7 @@ describe.skipIf(!configured)("row-level security", () => {
         "is-sorted",
         "lower-bound",
       ]);
-      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(19);
+      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(25);
       const { data: solutions } = await admin.from("coding_problem_solutions").select("editorial_md, reference_solution, hidden_tests");
       expect(solutions!.length).toBeGreaterThanOrEqual(14);
       expect(solutions!.every((row) => row.reference_solution.includes("def ") && (row.hidden_tests as unknown[]).length >= 5)).toBe(true);
@@ -485,13 +485,13 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(enrolment?.status).toBe("active");
     });
 
-    it("retains authored recursion for staff while excluding every draft artifact from student access", async () => {
-      const { data: mod, error } = await admin.from("modules").select("id, is_published").eq("course_id", courseId).eq("slug", "recursion-and-induction").single();
+    it.each([{ slug: "recursion-and-induction", problems: 5 }, { slug: "arrays-and-amortised-analysis", problems: 6 }])("retains authored $slug for staff while excluding every draft artifact from student access", async ({ slug, problems }) => {
+      const { data: mod, error } = await admin.from("modules").select("id, is_published").eq("course_id", courseId).eq("slug", slug).single();
       expect(error).toBeNull();
       expect(mod!.is_published).toBe(false);
       const id = mod!.id;
       expect((await instructor.db.from("lessons").select("id").eq("module_id", id)).data).toHaveLength(6);
-      expect((await instructor.db.from("coding_problems").select("id").eq("module_id", id)).data).toHaveLength(5);
+      expect((await instructor.db.from("coding_problems").select("id").eq("module_id", id)).data).toHaveLength(problems);
       for (const table of ["lessons", "quizzes", "projects", "coding_problems"] as const) {
         expect((await alice.db.from(table).select("id").eq("module_id", id)).data, table).toEqual([]);
       }

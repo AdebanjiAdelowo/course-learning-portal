@@ -48,11 +48,15 @@ export interface VizStep {
 }
 
 export interface VizInput {
+  operation?: import("./dynamic-array").ArrayOperation;
+  index?: number;
+  value?: number;
   array: number[];
   target?: number;
 }
 
 export interface VizAlgorithm {
+  operations?: readonly import("./dynamic-array").ArrayOperation[];
   id: string;
   title: string;
   pseudocode: string[];

@@ -55,7 +55,7 @@ describe("curriculum blueprint", () => {
   });
 
   it("keeps unwritten planned modules empty while allowing an unpublished authored draft", () => {
-    for (const { mod } of planned.filter(({ mod }) => mod.slug !== "recursion-and-induction")) {
+    for (const { mod } of planned.filter(({ mod }) => !["recursion-and-induction", "arrays-and-amortised-analysis"].includes(mod.slug))) {
       expect(mod.lessons ?? []).toEqual([]);
       expect(mod.quiz).toBeUndefined();
       expect(mod.project).toBeUndefined();

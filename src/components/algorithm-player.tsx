@@ -50,6 +50,9 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
   const [speed, setSpeed] = useState<number>(speeds[1].ms);
   const [arrayText, setArrayText] = useState(initialInput.array.join(", "));
   const [targetText, setTargetText] = useState(String(initialInput.target ?? ""));
+  const [operationText, setOperationText] = useState(initialInput.operation ?? "append");
+  const [indexText, setIndexText] = useState(String(initialInput.index ?? 0));
+  const [valueText, setValueText] = useState(String(initialInput.value ?? 7));
   const [inputError, setInputError] = useState<string | null>(null);
 
   const steps = useMemo(() => (algorithm ? algorithm.trace(input) : []), [algorithm, input]);
@@ -81,7 +84,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
 
   function applyInput(event: React.FormEvent) {
     event.preventDefault();
-    const parsed = validateInput(algorithm!, arrayText, targetText);
+    const parsed = validateInput(algorithm!, arrayText, targetText, { operation: operationText, index: indexText, value: valueText });
     if (!parsed.ok) {
       setInputError(parsed.error);
       return;
@@ -297,6 +300,18 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
                 autoComplete="off"
               />
             </div>
+            {algorithm.operations ? (
+              <div className="space-y-3">
+                <label htmlFor={`${id}-operation`} className="block text-sm font-semibold">Operation</label>
+                <select id={`${id}-operation`} className="field" value={operationText} onChange={event => setOperationText(event.target.value as typeof operationText)}>
+                  {algorithm.operations.map(operation => <option key={operation} value={operation}>{operation}</option>)}
+                </select>
+                <label htmlFor={`${id}-index`} className="block text-sm font-semibold">Index</label>
+                <input id={`${id}-index`} className="field" inputMode="numeric" value={indexText} onChange={event => setIndexText(event.target.value)} />
+                <label htmlFor={`${id}-value`} className="block text-sm font-semibold">Value</label>
+                <input id={`${id}-value`} className="field" inputMode="numeric" value={valueText} onChange={event => setValueText(event.target.value)} />
+              </div>
+            ) : null}
             {algorithm.needsTarget ? (
               <div>
                 <label htmlFor={`${id}-target`} className="block text-sm font-semibold">

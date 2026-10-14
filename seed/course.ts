@@ -1,3 +1,4 @@
+import { arraysModule } from "./arrays-module";
 import { recursionModule } from "./recursion-module";
 import { slidingWindow, twoPointers } from "./plans";
 import { pythonCollections, pythonEssentials } from "./python-foundations";
@@ -370,7 +371,7 @@ The purpose is the **explanation**. Where a measurement matches the theory, say 
           ],
         },
         recursionModule,
-        planned("arrays-and-amortised-analysis", "Arrays, dynamic arrays and amortised analysis", "How Python lists work underneath, why appending is cheap on average, and how to prove it."),
+        arraysModule,
         planned("linked-lists", "Linked lists", "Singly and doubly linked lists, pointer manipulation, and when a linked structure beats an array."),
       ],
     },
