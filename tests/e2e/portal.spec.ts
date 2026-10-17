@@ -220,8 +220,11 @@ test.describe("learning", () => {
     await expect(page.locator("pre code").filter({ hasText: "def witness_holds" })).toBeVisible();
     await expect(page.locator("pre code .hljs-keyword").first()).toBeVisible();
     await expect(page.getByRole("img", { name: /Growth of common functions/ })).toBeVisible();
-    const loaded = await page.getByRole("img", { name: /Growth of common functions/ }).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0);
-    expect(loaded, "the figure should load under the content security policy").toBe(true);
+    const figure = page.getByRole("img", { name: /Growth of common functions/ });
+    await figure.scrollIntoViewIfNeeded();
+    await expect.poll(() => figure.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0), {
+      message: "the figure should load under the content security policy",
+    }).toBe(true);
 
     await page.goto("/learn/lessons/binary-search");
     await expect(page.getByRole("table").filter({ hasText: "Worst-case iterations" })).toContainText("Linear search");
