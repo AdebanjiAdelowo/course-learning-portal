@@ -5,7 +5,7 @@ import { linkedListsModule } from "../../seed/linked-lists-module";
 describe("linked-list module authoring definition", () => {
   it("keeps the established slug, title and six complete lesson files", () => {
     expect(linkedListsModule.slug).toBe("linked-lists");
-    expect(linkedListsModule.published).toBe(false);
+    expect(linkedListsModule.published).toBe(true);
     expect(linkedListsModule.title).toBe("Linked lists");
     expect(linkedListsModule.lessons).toHaveLength(6);
     for (const lesson of linkedListsModule.lessons!) {

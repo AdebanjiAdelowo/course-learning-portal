@@ -6,7 +6,7 @@ export const arraysModule: SeedModule = {
   title: "Arrays, dynamic arrays and amortised analysis",
   description: "How Python lists work underneath, why appending is cheap on average, and how to prove it.",
   requiresPrevious: true,
-  published: false,
+  published: true,
   lessons: [
     { slug: "array-model-and-indexing", title: "Array models, storage and indexing", summary: "Separate sequence abstractions, reference slots, indexing and value searches.", durationMinutes: 30, objectives: ["Calculate a slot address", "Distinguish indexing from search", "State the machine-word cost model"] },
     { slug: "array-insertion-deletion-and-traversal", title: "Traversal, insertion and deletion", summary: "Preserve order through correctly directed suffix shifts.", durationMinutes: 35, objectives: ["Prove shift direction safe", "Validate boundaries before mutation", "Count affected suffix work"] },

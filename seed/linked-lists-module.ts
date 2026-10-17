@@ -4,7 +4,7 @@ import type { SeedModule } from "./types";
 export const linkedListsModule: SeedModule = {
   slug: "linked-lists", title: "Linked lists",
   description: "Singly and doubly linked lists, pointer manipulation, and when a linked structure beats an array.",
-  requiresPrevious: true, published: false,
+  requiresPrevious: true, published: true,
   lessons: [
     { slug: "linked-nodes-and-traversal", title: "Nodes, references and traversal", summary: "Distinguish topology, node identity and payload equality.", durationMinutes: 30, objectives: ["Represent empty and acyclic chains", "Prove traversal", "Account for node and output storage"] },
     { slug: "singly-linked-insertion-and-deletion", title: "Singly linked insertion and deletion", summary: "Preserve suffixes while rewiring head, predecessor and tail references.", durationMinutes: 40, objectives: ["Perform safe indexed edits", "Separate location from rewiring cost", "Repair empty and end boundaries"] },

@@ -5,7 +5,7 @@ import { recursionModule } from "../../seed/recursion-module";
 describe("recursion module authoring definition", () => {
   it("keeps the established slug, title and six complete lesson files", () => {
     expect(recursionModule.slug).toBe("recursion-and-induction");
-    expect(recursionModule.published).toBe(false);
+    expect(recursionModule.published).toBe(true);
     expect(recursionModule.title).toBe("Recursion, induction and recurrences");
     expect(recursionModule.lessons).toHaveLength(6);
     for (const lesson of recursionModule.lessons!) {

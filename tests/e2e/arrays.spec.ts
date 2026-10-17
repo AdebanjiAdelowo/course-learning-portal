@@ -1,4 +1,4 @@
-/** Verify authored draft content without publishing it or changing existing students. */
+/** Verify published module content through an isolated copy, without changing existing students. */
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
@@ -50,7 +50,7 @@ test.beforeAll(async () => {
   courseId = must(await admin.from("courses").select("id").eq("slug", "data-structures-and-algorithms").single()).id;
   baseline = await existingState();
   const source = must(await admin.from("modules").select("*").eq("course_id", courseId).eq("slug", "arrays-and-amortised-analysis").single());
-  expect(source.is_published).toBe(false);
+  expect(source.is_published).toBe(true);
   const last = must(await admin.from("modules").select("position").eq("course_id", courseId).order("position", { ascending: false }).limit(1).single());
   moduleId = must(await admin.from("modules").insert({ ...copy(source), slug: prefix, position: last.position + 1, is_published: true, requires_previous: false, available_from: null }).select("id").single()).id;
   const user = await admin.auth.admin.createUser({ email, password, email_confirm: true });

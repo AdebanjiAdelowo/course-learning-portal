@@ -6,7 +6,7 @@ export const recursionModule: SeedModule = {
   title: "Recursion, induction and recurrences",
   description: "Recursive algorithms, proofs by induction, and solving the recurrences that describe their cost.",
   requiresPrevious: true,
-  published: false,
+  published: true,
   lessons: [
     { slug: "recursive-calls-and-stack", title: "Recursive calls and the call stack", summary: "Trace descent, base cases and return values, and distinguish frame space from arithmetic bit costs.", durationMinutes: 45, objectives: ["Trace factorial's suspended calls", "Prove termination with a decreasing measure", "Prove correctness by induction", "Distinguish calls and stack depth"] },
     { slug: "induction-and-recursive-correctness", title: "Induction and recursive correctness", summary: "Use strong induction to prove balanced interval summation and justify every child's precondition.", durationMinutes: 50, objectives: ["State ordinary and strong induction", "Prove interval partitioning", "Separate correctness from termination", "Count calls and simultaneous frames"] },

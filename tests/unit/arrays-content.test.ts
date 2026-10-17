@@ -5,7 +5,7 @@ import { arraysModule } from "../../seed/arrays-module";
 describe("arrays module authoring definition", () => {
   it("keeps the established slug, title and six complete lesson files", () => {
     expect(arraysModule.slug).toBe("arrays-and-amortised-analysis");
-    expect(arraysModule.published).toBe(false);
+    expect(arraysModule.published).toBe(true);
     expect(arraysModule.title).toBe("Arrays, dynamic arrays and amortised analysis");
     expect(arraysModule.lessons).toHaveLength(6);
     for (const lesson of arraysModule.lessons!) {
