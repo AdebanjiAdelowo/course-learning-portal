@@ -5,7 +5,7 @@
  * These tests sign in as the seeded accounts and try to do things they must not be able to do.
  * Requires a running, seeded local stack: `npm run db:start && npm run seed`.
  *
- * The seed publishes one module. Tests that need more (a locked module, a draft project
+ * The seed publishes six modules. Tests that need more (a locked module, a draft project
  * submission) create their own fixtures with the service role and remove them afterwards.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -27,8 +27,9 @@ const configured = Boolean(url && anonKey && serviceKey && password);
 
 const COURSE_SLUG = DEFAULT_COURSE_SLUG;
 const MODULE_SLUG = "correctness-and-cost";
-/** Published modules, in course order: the two Python modules, then the first DSA module. */
-const PUBLISHED = ["python-essentials", "python-collections-and-testing", MODULE_SLUG];
+/** Published modules, in course order: the two Python modules, then DSA Modules 1 to 4. */
+const PHASE3 = ["recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists"];
+const PUBLISHED = ["python-essentials", "python-collections-and-testing", MODULE_SLUG, ...PHASE3];
 const QUIZ_SLUG = "correctness-and-cost-quiz";
 
 function client(key: string): Db {
@@ -183,13 +184,15 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(modules![0]!.slug).toBe("python-essentials");
     });
 
-    it("publishes three modules and keeps the other 31 planned, with no lessons in any planned module", async () => {
+    it("publishes six modules and keeps all 28 planned modules empty", async () => {
       const { data: modules } = await admin.from("modules").select("id, slug, position, is_published, plan").eq("course_id", courseId).not("slug", "like", "it-%").order("position");
       expect(modules!.filter((mod) => mod.is_published).map((mod) => mod.slug)).toEqual(PUBLISHED);
+      expect(modules!.filter((mod) => PHASE3.includes(mod.slug)).map((mod) => mod.position)).toEqual([4, 5, 6]);
       const plannedIds = modules!.filter((mod) => !mod.is_published).map((mod) => mod.id);
-      expect(plannedIds).toHaveLength(31);
-      expect((await admin.from("lessons").select("id", { count: "exact", head: true }).in("module_id", plannedIds)).count).toBe(0);
-      expect((await admin.from("coding_problems").select("id", { count: "exact", head: true }).in("module_id", plannedIds)).count).toBe(0);
+      expect(plannedIds).toHaveLength(28);
+      for (const table of ["lessons", "quizzes", "projects", "coding_problems"] as const) {
+        expect((await admin.from(table).select("id", { count: "exact", head: true }).in("module_id", plannedIds)).count, table).toBe(0);
+      }
 
       const plans = new Map(modules!.map((mod) => [mod.slug, mod.plan as { objectives?: string[]; lessons?: unknown[]; prerequisites?: string[] }]));
       for (const slug of ["two-pointers", "sliding-window"]) {
@@ -247,7 +250,7 @@ describe.skipIf(!configured)("row-level security", () => {
         "is-sorted",
         "lower-bound",
       ]);
-      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(14);
+      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(31);
       const { data: solutions } = await admin.from("coding_problem_solutions").select("editorial_md, reference_solution, hidden_tests");
       expect(solutions!.length).toBeGreaterThanOrEqual(14);
       expect(solutions!.every((row) => row.reference_solution.includes("def ") && (row.hidden_tests as unknown[]).length >= 5)).toBe(true);
@@ -292,6 +295,12 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(dsa.lessons).toHaveLength(5);
       expect(available[0]).toMatchObject({ quiz_count: 1, problem_count: 4 });
       expect(available[0]!.lessons).toHaveLength(6);
+      for (const [slug, problems] of [["recursion-and-induction", 5], ["arrays-and-amortised-analysis", 6], ["linked-lists", 6]] as const) {
+        const mod = available.find((m) => m.slug === slug)!;
+        expect(mod, slug).toMatchObject({ quiz_count: 1, problem_count: problems });
+        expect(mod.lessons, slug).toHaveLength(6);
+        expect(mod.projects, slug).toHaveLength(1);
+      }
       expect((data as unknown as { phases: { slug: string; is_preparatory: boolean }[] }).phases.filter((phase) => phase.is_preparatory).map((phase) => phase.slug)).toEqual(["python-foundations"]);
       // A planned module is never dressed up as a published one.
       for (const mod of seeded.filter((m) => !m.is_published)) {
@@ -303,6 +312,7 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(text).not.toContain("Think of a number between 1 and 100"); // a sentence from a lesson body
       expect(text).not.toContain("def lower_bound"); // starter code, reference solution
       expect(text).not.toContain("hidden_tests");
+      expect(text).not.toContain("reference_solution");
       expect(text).not.toContain("@example.com");
     });
 
@@ -484,6 +494,38 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(enrolment?.status).toBe("active");
     });
 
+    it.each([{ slug: "recursion-and-induction", problems: 5 }, { slug: "arrays-and-amortised-analysis", problems: 6 }, { slug: "linked-lists", problems: 6 }])("publishes $slug with previews for students and keeps its assessment material staff-only", async ({ slug, problems }) => {
+      const { data: mod, error } = await admin.from("modules").select("id, is_published, requires_previous").eq("course_id", courseId).eq("slug", slug).single();
+      expect(error).toBeNull();
+      expect(mod).toMatchObject({ is_published: true, requires_previous: true });
+      const id = mod!.id;
+      expect((await instructor.db.from("lessons").select("id").eq("module_id", id)).data).toHaveLength(6);
+      expect((await instructor.db.from("coding_problems").select("id").eq("module_id", id)).data).toHaveLength(problems);
+      // Published titles are previewed to an enrolled student even before the module unlocks.
+      expect((await alice.db.from("lesson_outline").select("id").eq("module_id", id)).data, "lesson_outline").toHaveLength(6);
+      expect((await alice.db.from("coding_problem_outline").select("id").eq("module_id", id)).data, "coding_problem_outline").toHaveLength(problems);
+      const problemRows = (await admin.from("coding_problems").select("id").eq("module_id", id)).data!.map((row) => row.id);
+      expect((await alice.db.from("coding_problem_solutions").select("problem_id").in("problem_id", problemRows)).data).toEqual([]);
+      const { data: keys } = await alice.db.from("question_keys").select("question_id");
+      expect(keys ?? []).toEqual([]);
+    });
+
+    it("keeps a planned module closed to students even when it holds a published lesson", async () => {
+      const { data: planned } = await admin.from("modules").select("id, is_published").eq("course_id", courseId).eq("slug", "two-pointers").single();
+      expect(planned!.is_published).toBe(false);
+      const lesson = must(
+        "planned-module lesson",
+        await admin.from("lessons").insert({ course_id: courseId, module_id: planned!.id, slug: "it-planned-lesson", title: "Integration test: planned lesson", body_md: "SECRET-PLANNED-BODY", position: 900, is_published: true }).select("id").single(),
+      );
+      cleanup.push(() => admin.from("lessons").delete().eq("id", lesson.id));
+      for (const db of [alice.db, bob.db]) {
+        expect((await db.from("lessons").select("id").eq("id", lesson.id)).data).toEqual([]);
+        expect((await db.from("lesson_outline").select("id").eq("id", lesson.id)).data).toEqual([]);
+      }
+      expect((await alice.db.from("lesson_progress").insert({ user_id: alice.id, lesson_id: lesson.id })).error).not.toBeNull();
+      expect((await instructor.db.from("lessons").select("id").eq("id", lesson.id)).data).toHaveLength(1);
+    });
+
     it("does not see unpublished lessons", async () => {
       const { data: hidden, error } = await admin
         .from("lessons")
@@ -592,6 +634,8 @@ describe.skipIf(!configured)("row-level security", () => {
     });
 
     it("gives the browser runner the visible sample tests as data, and nothing from the hidden set", async () => {
+      // This student has one DSA Module 1 lesson left, so DSA Modules 2 to 4 are locked for them:
+      // they reach the 14 problems of the Python modules and DSA Module 1. All 31 are covered below.
       const { data: rows } = await alice.db.from("coding_problems").select("slug, examples").eq("course_id", courseId);
       expect(rows!.length).toBe(14);
       const { data: solutions } = await admin.from("coding_problem_solutions").select("problem_id, hidden_tests, reference_solution");
@@ -747,6 +791,132 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(error).toBeNull();
       expect(data!.code).toBe(hostile);
       expect((await admin.from("code_submissions").select("id", { count: "exact", head: true })).error).toBeNull();
+    });
+  });
+
+  describe("Phase 3 unlocking, for a new student who works through the course", () => {
+    let carol: { db: Db; id: string };
+    const email = `it-phase3-${crypto.randomUUID().slice(0, 8)}@example.com`;
+    const lessonsOf = async (slug: string) => {
+      const { data: mod } = await admin.from("modules").select("id").eq("course_id", courseId).eq("slug", slug).single();
+      return (await admin.from("lessons").select("id").eq("module_id", mod!.id).eq("is_published", true).order("position")).data!.map((row) => row.id);
+    };
+    const complete = async (ids: string[]) => {
+      for (const id of ids) expect((await carol.db.from("lesson_progress").insert({ user_id: carol.id, lesson_id: id })).error, id).toBeNull();
+    };
+    const opens = async (slug: string) => {
+      const { data: mod } = await admin.from("modules").select("id").eq("course_id", courseId).eq("slug", slug).single();
+      return ((await carol.db.from("lessons").select("id").eq("module_id", mod!.id)).data ?? []).length > 0;
+    };
+
+    beforeAll(async () => {
+      const temporaryPassword = `It-${crypto.randomUUID()}!`;
+      const created = await admin.auth.admin.createUser({ email, password: temporaryPassword, email_confirm: true });
+      if (created.error || !created.data.user) throw new Error(`Fixture "phase 3 student" failed: ${created.error?.message}`);
+      const id = created.data.user.id;
+      // Deleting the user cascades to the profile, enrolment, progress and code submissions made here.
+      cleanup.push(() => admin.auth.admin.deleteUser(id));
+      must("phase 3 enrolment", await admin.from("enrollments").insert({ user_id: id, course_id: courseId, status: "active" }).select("id").single());
+      const db = client(anonKey);
+      const signedIn = await db.auth.signInWithPassword({ email, password: temporaryPassword });
+      if (signedIn.error) throw new Error(`Fixture "phase 3 sign-in" failed: ${signedIn.error.message}`);
+      carol = { db, id };
+    });
+
+    it("1. opens the Python modules and DSA Module 1 to a new student, and nothing after them", async () => {
+      expect(await opens("python-essentials")).toBe(true);
+      expect(await opens(MODULE_SLUG)).toBe(true);
+      for (const slug of PHASE3) expect(await opens(slug), slug).toBe(false);
+    });
+
+    it("2. keeps recursion locked while a DSA Module 1 lesson is unfinished", async () => {
+      const dsa1 = await lessonsOf(MODULE_SLUG);
+      await complete(dsa1.slice(0, -1));
+      expect(await opens("recursion-and-induction")).toBe(false);
+    });
+
+    it("6. refuses progress, code and quiz attempts in a locked module, however they are addressed", async () => {
+      const [lesson] = await lessonsOf("recursion-and-induction");
+      expect((await carol.db.from("lesson_progress").insert({ user_id: carol.id, lesson_id: lesson! })).error).not.toBeNull();
+      const { data: mod } = await admin.from("modules").select("id").eq("course_id", courseId).eq("slug", "recursion-and-induction").single();
+      const { data: problem } = await admin.from("coding_problems").select("id").eq("module_id", mod!.id).limit(1).single();
+      expect((await carol.db.from("coding_problems").select("id").eq("id", problem!.id)).data).toEqual([]);
+      expect((await carol.db.from("code_submissions").insert({ problem_id: problem!.id, user_id: carol.id, code: "x = 1\n", status: "draft" })).error).not.toBeNull();
+      const { data: quiz } = await admin.from("quizzes").select("id").eq("module_id", mod!.id).single();
+      expect((await carol.db.from("questions").select("id").eq("quiz_id", quiz!.id)).data).toEqual([]);
+    });
+
+    it("3. opens recursion once every DSA Module 1 lesson is complete, without its quiz or project", async () => {
+      const dsa1 = await lessonsOf(MODULE_SLUG);
+      await complete(dsa1.slice(-1));
+      expect(await opens("recursion-and-induction")).toBe(true);
+      expect(await opens("arrays-and-amortised-analysis")).toBe(false);
+    });
+
+    it("4. opens arrays after the recursion lessons, and 5. linked lists after the arrays lessons", async () => {
+      await complete(await lessonsOf("recursion-and-induction"));
+      expect(await opens("arrays-and-amortised-analysis")).toBe(true);
+      expect(await opens("linked-lists")).toBe(false);
+      await complete(await lessonsOf("arrays-and-amortised-analysis"));
+      expect(await opens("linked-lists")).toBe(true);
+    });
+
+    it("7. keeps the planned module after linked lists closed once the linked-list lessons are done", async () => {
+      await complete(await lessonsOf("linked-lists"));
+      const { data: planned } = await admin.from("modules").select("id, is_published, position").eq("course_id", courseId).eq("slug", "two-pointers").single();
+      expect(planned).toMatchObject({ is_published: false, position: 7 });
+      expect((await carol.db.from("modules").select("id").eq("id", planned!.id)).data).toEqual([]);
+      const lesson = must(
+        "planned-module lesson",
+        await admin.from("lessons").insert({ course_id: courseId, module_id: planned!.id, slug: "it-phase3-planned-lesson", title: "Integration test: planned lesson", body_md: "SECRET-PLANNED-BODY", position: 901, is_published: true }).select("id").single(),
+      );
+      try {
+        expect((await carol.db.from("lessons").select("id").eq("id", lesson.id)).data).toEqual([]);
+        expect((await carol.db.from("lesson_outline").select("id").eq("id", lesson.id)).data).toEqual([]);
+        expect((await carol.db.from("lesson_progress").insert({ user_id: carol.id, lesson_id: lesson.id })).error).not.toBeNull();
+      } finally {
+        await admin.from("lessons").delete().eq("id", lesson.id);
+      }
+      const { data: path } = await carol.db.from("module_path").select("slug, is_published").eq("course_id", courseId).not("slug", "like", "it-%");
+      expect(path!.filter((row) => !row.is_published)).toHaveLength(28);
+    });
+
+    it("gives the browser runner every one of the 31 published problems' samples, and nothing hidden", async () => {
+      // This student finished linked lists, so the suite's own locked fixture module after it is open too.
+      const { data: rows } = await carol.db.from("coding_problems").select("*").eq("course_id", courseId).not("slug", "like", "it-%");
+      expect(rows!.map((row) => row.slug)).toHaveLength(31);
+      const { data: solutions } = await admin.from("coding_problem_solutions").select("problem_id, hidden_tests, reference_solution, editorial_md");
+      for (const row of rows!) {
+        expect(Object.keys(row), row.slug).not.toContain("hidden_tests");
+        expect(Object.keys(row), row.slug).not.toContain("reference_solution");
+        expect(Object.keys(row), row.slug).not.toContain("editorial_md");
+        const solution = solutions!.find((candidate) => candidate.problem_id === row.id)!;
+        const hidden = solution.hidden_tests as { args: unknown[] }[];
+        expect(hidden.length, row.slug).toBeGreaterThanOrEqual(5);
+        const examples = row.examples as { args: unknown[] }[];
+        expect(examples.length, row.slug).toBeGreaterThanOrEqual(2);
+        const visible = new Set(examples.map((example) => JSON.stringify(example.args)));
+        expect(hidden.filter((test) => visible.has(JSON.stringify(test.args))), row.slug).toEqual([]);
+        // Nothing a student can read from the problem row carries the reference solution or editorial.
+        const text = JSON.stringify(row);
+        expect(text.includes(solution.reference_solution.trim()), row.slug).toBe(false);
+        expect(text.includes(solution.editorial_md.trim()), row.slug).toBe(false);
+      }
+      expect((await carol.db.from("coding_problem_solutions").select("*")).data).toEqual([]);
+      expect((await carol.db.from("question_keys").select("*")).data).toEqual([]);
+    });
+
+    it("keeps Phase 3 practice self-review: the editorial opens on submission, and no verdict can be claimed", async () => {
+      const { data: problem } = await admin.from("coding_problems").select("id").eq("course_id", courseId).eq("slug", "reverse-linked-chain").single();
+      const editorial = () => carol.db.rpc("problem_editorial", { p_problem_id: problem!.id });
+      expect((await editorial()).data).toEqual([]);
+      expect((await carol.db.from("code_submissions").insert({ problem_id: problem!.id, user_id: carol.id, code: "x = 1\n", status: "submitted", verdict: "passed" })).error).not.toBeNull();
+      expect((await carol.db.from("code_submissions").insert({ problem_id: problem!.id, user_id: carol.id, code: "x = 1\n", status: "submitted" })).error).toBeNull();
+      const { data: released } = await editorial();
+      expect(released).toHaveLength(1);
+      expect(released![0]!.reference_solution).toContain("def ");
+      const { data: stored } = await admin.from("code_submissions").select("status, verdict").eq("user_id", carol.id).eq("problem_id", problem!.id).single();
+      expect(stored).toMatchObject({ status: "submitted", verdict: "not_evaluated" });
     });
   });
 

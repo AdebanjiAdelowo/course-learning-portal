@@ -47,14 +47,20 @@ describe("curriculum blueprint", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("publishes the two Python modules and the first DSA module, and none of them waits for another", () => {
-    expect(published.map(({ mod }) => mod.slug)).toEqual(["python-essentials", "python-collections-and-testing", "correctness-and-cost"]);
+  it("publishes the two Python modules and DSA Modules 1 to 4; only the first three never wait for another", () => {
+    expect(published.map(({ mod }) => mod.slug)).toEqual([
+      "python-essentials", "python-collections-and-testing", "correctness-and-cost",
+      "recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists",
+    ]);
     // Python preparation is optional: a student who already knows Python can start at DSA Module 1.
-    for (const { mod } of published) expect(mod.requiresPrevious).toBe(false);
-    expect(planned).toHaveLength(31);
+    for (const { mod } of published.slice(0, 3)) expect(mod.requiresPrevious).toBe(false);
+    // DSA Modules 2 to 4 open once the lessons of the module before them are complete.
+    for (const { mod } of published.slice(3)) expect(mod.requiresPrevious).toBe(true);
+    expect(planned).toHaveLength(28);
   });
 
-  it("gives planned modules no lessons, quiz, project or problems: a title is not content", () => {
+  it("keeps all 28 planned modules empty, so none can be dressed up as published content", () => {
+    expect(planned).toHaveLength(28);
     for (const { mod } of planned) {
       expect(mod.lessons ?? []).toEqual([]);
       expect(mod.quiz).toBeUndefined();

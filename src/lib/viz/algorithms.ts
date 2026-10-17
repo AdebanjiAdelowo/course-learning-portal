@@ -1,3 +1,6 @@
+import { linkedList } from "./linked-list";
+import { dynamicArray } from "./dynamic-array";
+import { recursiveFactorial } from "./recursion";
 import type { CellRole, VizAlgorithm, VizInput, VizStep } from "./types";
 
 /** Collects steps, copying the mutable state so that every recorded step is a snapshot. */
@@ -361,6 +364,9 @@ const insertionSort: VizAlgorithm = {
 };
 
 export const registry: Record<string, VizAlgorithm> = {
+  [linkedList.id]: linkedList,
+  [dynamicArray.id]: dynamicArray,
+  [recursiveFactorial.id]: recursiveFactorial,
   [linearSearch.id]: linearSearch,
   [binarySearch.id]: binarySearch,
   [insertionSort.id]: insertionSort,

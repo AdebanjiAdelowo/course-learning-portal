@@ -36,15 +36,28 @@ export function isSorted(values: readonly number[]): boolean {
 }
 
 /** Validates an input for a given algorithm, including its preconditions. */
-export function validateInput(algorithm: VizAlgorithm, arrayText: string, targetText: string): Parsed<VizInput> {
+export function validateInput(algorithm: VizAlgorithm, arrayText: string, targetText: string, options: { operation?: string; index?: string; value?: string } = {}): Parsed<VizInput> {
   const array = parseArray(arrayText);
   if (!array.ok) return array;
   if (algorithm.requiresSorted && !isSorted(array.value)) {
     return { ok: false, error: `${algorithm.title} requires the list to be sorted in non-decreasing order.` };
   }
+  if (algorithm.operations) {
+    const operation = options.operation ?? "append";
+    if (!algorithm.operations.includes(operation as import("./types").VizOperation)) return { ok: false, error: "Choose a supported operation." };
+    if (!/^-?\d+$/.test(options.index ?? "0") || !/^-?\d+$/.test(options.value ?? "7")) return { ok: false, error: "Enter whole numbers for index and value." };
+    const index = Number(options.index ?? "0"), value = Number(options.value ?? "7");
+    if (!Number.isInteger(index) || !Number.isSafeInteger(value) || value < VIZ_LIMITS.minValue || value > VIZ_LIMITS.maxValue) return { ok: false, error: "Use a whole index and a value within the displayed input bounds." };
+    if ((operation === "access" || operation === "delete") && (index < 0 || index >= array.value.length)) return { ok: false, error: "Index must refer to an existing element." };
+    if (operation === "insert" && (index < 0 || index > array.value.length)) return { ok: false, error: "Insertion index must be between zero and size." };
+    return { ok: true, value: { array: array.value, operation: operation as import("./types").VizOperation, index, value } };
+  }
   if (!algorithm.needsTarget) return { ok: true, value: { array: array.value } };
   const target = parseTarget(targetText);
   if (!target.ok) return target;
+  if (algorithm.id === "recursive-factorial" && (target.value < 0 || target.value > 8)) {
+    return { ok: false, error: "Factorial traces need an integer from 0 to 8." };
+  }
   return { ok: true, value: { array: array.value, target: target.value } };
 }
 
@@ -74,7 +87,7 @@ export function parseVizBlock(source: string): Parsed<VizSpec> {
   if (!algorithm) {
     return { ok: false, error: `Unknown algorithm "${id}". Available: ${Object.keys(registry).join(", ")}.` };
   }
-  const input = validateInput(algorithm, fields.get("input") ?? "", fields.get("target") ?? "");
+  const input = validateInput(algorithm, fields.get("input") ?? "", fields.get("target") ?? "", { operation: fields.get("operation"), index: fields.get("index"), value: fields.get("value") });
   if (!input.ok) return input;
   return { ok: true, value: { algorithm, input: input.value } };
 }

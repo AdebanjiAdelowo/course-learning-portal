@@ -26,7 +26,12 @@ export type CellRole =
   | "key" // the value currently being placed
   | "found";
 
+export type VizOperation = "access" | "traverse" | "append" | "insert" | "delete" | "reverse";
+
 export interface VizStep {
+  linked?: { nodes: { id: string; value: number; next: string | null }[]; head: string | null; tail: string | null; markers: Record<string, string | null> };
+  /** Deterministic recursion frames, oldest call first. No student code is executed. */
+  frames?: { argument: number; phase: "calling" | "base" | "returning"; returned?: number }[];
   /** Index into the algorithm's pseudocode lines, or null when no line is executing. */
   line: number | null;
   /** One or two sentences saying what just happened and why. */
@@ -46,11 +51,15 @@ export interface VizStep {
 }
 
 export interface VizInput {
+  operation?: VizOperation;
+  index?: number;
+  value?: number;
   array: number[];
   target?: number;
 }
 
 export interface VizAlgorithm {
+  operations?: readonly VizOperation[];
   id: string;
   title: string;
   pseudocode: string[];

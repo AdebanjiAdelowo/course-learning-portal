@@ -34,8 +34,12 @@ const speeds = [
   { label: "Fast", ms: 450 },
 ] as const;
 
-const controlClass =
-  "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-faint hover:bg-sunken disabled:opacity-45";
+// cn() only joins classes, so neutral and primary controls take separate colour sets: two background
+// or text utilities on one element are resolved by stylesheet order, not by the order written here.
+const controlBase =
+  "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45";
+const controlClass = cn(controlBase, "border-line-strong bg-surface text-ink hover:border-ink-faint hover:bg-sunken");
+const primaryControlClass = cn(controlBase, "border-accent bg-accent text-on-accent hover:border-accent-strong hover:bg-accent-strong");
 
 /**
  * Steps through a recorded run of a real algorithm (see `src/lib/viz`). Everything shown is a
@@ -50,6 +54,9 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
   const [speed, setSpeed] = useState<number>(speeds[1].ms);
   const [arrayText, setArrayText] = useState(initialInput.array.join(", "));
   const [targetText, setTargetText] = useState(String(initialInput.target ?? ""));
+  const [operationText, setOperationText] = useState(initialInput.operation ?? "append");
+  const [indexText, setIndexText] = useState(String(initialInput.index ?? 0));
+  const [valueText, setValueText] = useState(String(initialInput.value ?? 7));
   const [inputError, setInputError] = useState<string | null>(null);
 
   const steps = useMemo(() => (algorithm ? algorithm.trace(input) : []), [algorithm, input]);
@@ -81,7 +88,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
 
   function applyInput(event: React.FormEvent) {
     event.preventDefault();
-    const parsed = validateInput(algorithm!, arrayText, targetText);
+    const parsed = validateInput(algorithm!, arrayText, targetText, { operation: operationText, index: indexText, value: valueText });
     if (!parsed.ok) {
       setInputError(parsed.error);
       return;
@@ -119,6 +126,38 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
 
       {/* relative: the screen-reader labels inside are absolutely positioned, and must scroll with
           this strip instead of widening the page. */}
+      {step.frames ? (
+        <div className="border-t border-line p-4">
+          <p className="eyebrow">Call stack · oldest call first</p>
+          <ol aria-label="Call-stack frames" className="mt-2 space-y-2">
+            {step.frames.map((frame, depth) => (
+              <li key={depth} className="rounded-lg border border-line p-2 font-mono text-sm">
+                factorial({frame.argument}) · {frame.phase}
+                {frame.returned !== undefined ? ` · return ${frame.returned}` : " · waiting for a result"}
+              </li>
+            ))}
+          </ol>
+          {step.frames.length === 0 ? <p className="mt-2 text-sm">The stack is empty.</p> : null}
+        </div>
+      ) : null}
+      {step.linked ? (
+        <div className="border-t border-line p-4">
+          <p className="font-mono text-sm">head → {step.linked.head ?? "null"} · tail → {step.linked.tail ?? "null"}</p>
+          <p className="mt-2 text-sm text-ink-soft">Node layout is fixed by identity so disconnected intermediate chains remain visible.</p>
+          <ol aria-label="Linked-list nodes" className="mt-3 grid gap-2 sm:grid-cols-3">
+            {step.linked.nodes.map(node => (
+              <li key={node.id} className="rounded-lg border border-line-strong bg-paper p-3 font-mono text-sm">
+                <strong>{node.id}</strong>: {node.value}<br />next → {node.next ?? "null"}
+              </li>
+            ))}
+          </ol>
+          {step.linked.nodes.length === 0 ? <p className="mt-2">The list has no nodes.</p> : null}
+          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 font-mono text-sm" aria-label="Working references">
+            {Object.entries(step.linked.markers).map(([name, target]) => <div key={name} className="contents"><dt>{name}</dt><dd>→ {target ?? "null"}</dd></div>)}
+          </dl>
+        </div>
+      ) : null}
+      {!step.linked && (
       <div className="relative overflow-x-auto px-4 pb-2 pt-5">
         {step.array.length === 0 ? (
           <p className="py-6 text-center text-ink-faint">The list is empty.</p>
@@ -160,6 +199,8 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
         )}
       </div>
 
+      )}
+
       <div className="border-t border-line px-4 py-3">
         <p className="min-h-[4.5rem] text-[0.97rem] leading-relaxed sm:min-h-[3.25rem]" aria-live="polite" aria-atomic="true">
           {step.explanation}
@@ -167,17 +208,19 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
-        <button type="button" className={controlClass} onClick={restart} disabled={index === 0}>
+        {/* aria-disabled rather than disabled: a focused button that becomes disabled drops keyboard
+            focus to the page, so these stay focusable at the ends of the trace and do nothing there. */}
+        <button type="button" className={controlClass} onClick={() => { if (index > 0) restart(); }} aria-disabled={index === 0 || undefined}>
           <RotateCcw className="size-4" aria-hidden="true" />
           Reset
         </button>
-        <button type="button" className={controlClass} onClick={() => { setPlaying(false); setIndex((i) => Math.max(0, i - 1)); }} disabled={index === 0}>
+        <button type="button" className={controlClass} onClick={() => { if (index === 0) return; setPlaying(false); setIndex((i) => Math.max(0, i - 1)); }} aria-disabled={index === 0 || undefined}>
           <ChevronLeft className="size-4" aria-hidden="true" />
           Back
         </button>
         <button
           type="button"
-          className={cn(controlClass, "min-w-24 border-accent bg-accent text-on-accent hover:border-accent-strong hover:bg-accent-strong")}
+          className={cn(primaryControlClass, "min-w-24")}
           onClick={() => {
             if (atEnd) setIndex(0);
             setPlaying((value) => !value);
@@ -186,7 +229,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
           {playing ? <Pause className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
           {playing ? "Pause" : atEnd ? "Replay" : "Play"}
         </button>
-        <button type="button" className={controlClass} onClick={() => { setPlaying(false); setIndex((i) => Math.min(lastIndex, i + 1)); }} disabled={atEnd}>
+        <button type="button" className={controlClass} onClick={() => { if (atEnd) return; setPlaying(false); setIndex((i) => Math.min(lastIndex, i + 1)); }} aria-disabled={atEnd || undefined}>
           Step
           <ChevronRight className="size-4" aria-hidden="true" />
         </button>
@@ -283,6 +326,18 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
                 autoComplete="off"
               />
             </div>
+            {algorithm.operations ? (
+              <div className="space-y-3">
+                <label htmlFor={`${id}-operation`} className="block text-sm font-semibold">Operation</label>
+                <select id={`${id}-operation`} className="field" value={operationText} onChange={event => setOperationText(event.target.value as typeof operationText)}>
+                  {algorithm.operations.map(operation => <option key={operation} value={operation}>{operation}</option>)}
+                </select>
+                <label htmlFor={`${id}-index`} className="block text-sm font-semibold">Index</label>
+                <input id={`${id}-index`} className="field" inputMode="numeric" value={indexText} onChange={event => setIndexText(event.target.value)} />
+                <label htmlFor={`${id}-value`} className="block text-sm font-semibold">Value</label>
+                <input id={`${id}-value`} className="field" inputMode="numeric" value={valueText} onChange={event => setValueText(event.target.value)} />
+              </div>
+            ) : null}
             {algorithm.needsTarget ? (
               <div>
                 <label htmlFor={`${id}-target`} className="block text-sm font-semibold">
@@ -309,7 +364,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" className={cn(controlClass, "border-accent bg-accent text-on-accent hover:bg-accent-strong")}>
+            <button type="submit" className={primaryControlClass}>
               Run on this input
             </button>
             {algorithm.requiresSorted ? (

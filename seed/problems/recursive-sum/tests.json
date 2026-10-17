@@ -1,0 +1,141 @@
+{
+  "function": "recursive_sum",
+  "sample": [
+    {
+      "args": [
+        []
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          3,
+          -2,
+          8
+        ]
+      ],
+      "expected": 9
+    },
+    {
+      "args": [
+        [
+          7
+        ]
+      ],
+      "expected": 7
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        [
+          -5,
+          5,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          -4,
+          4,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          -3,
+          3,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          -2,
+          2,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          -1,
+          1,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          0,
+          0,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          1,
+          -1,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          2,
+          -2,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          3,
+          -3,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          4,
+          -4,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          5,
+          -5,
+          2
+        ]
+      ],
+      "expected": 2
+    }
+  ]
+}

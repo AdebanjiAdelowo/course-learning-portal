@@ -219,7 +219,7 @@ test("lessons can be reordered from the content page", async ({ page }) => {
 test("a module is managed from the content page: planned until it has a lesson, and editable", async ({ page }) => {
   await signIn(page, "instructor@example.com");
   await page.goto("/admin/content");
-  await expect(page.getByText(/3 of 34 modules published/)).toBeVisible();
+  await expect(page.getByText(/6 of 34 modules published/)).toBeVisible();
 
   const planned = page.locator("li.card").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) });
   await expect(planned.getByText("Planned", { exact: true })).toBeVisible();
@@ -246,5 +246,5 @@ test("a module is managed from the content page: planned until it has a lesson, 
   await expect(page.getByRole("status")).toContainText("Module saved");
 
   await page.goto("/admin/content");
-  await expect(page.getByText(/3 of 34 modules published/)).toBeVisible();
+  await expect(page.getByText(/6 of 34 modules published/)).toBeVisible();
 });

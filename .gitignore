@@ -52,3 +52,6 @@ next-env.d.ts
 # supabase
 supabase/.temp/
 supabase/.branches/
+
+# Generated config, migrations and runtime state for isolated local regression services
+/tests/regression-stack/

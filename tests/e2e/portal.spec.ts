@@ -152,7 +152,7 @@ test.describe("learning", () => {
     await expect(page.getByText(/Next lesson · DSA Module 1/i)).toBeVisible();
     await expect(page.locator("p", { hasText: "Current module" })).toContainText("DSA Module 1: Algorithms, correctness and cost");
     await expect(page.getByRole("progressbar", { name: "Overall course completion", exact: true })).toBeVisible();
-    await expect(page.getByText("3 modules available · 31 modules planned")).toBeVisible();
+    await expect(page.getByText("6 modules available · 28 modules planned")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Coding practice" })).toBeVisible();
     await page.getByRole("link", { name: "Continue learning" }).click();
     await expect(page).toHaveURL(/\/learn\/lessons\/insertion-sort$/);
@@ -162,7 +162,7 @@ test.describe("learning", () => {
   test("the curriculum shows eight phases, with planned modules labelled and not openable", async ({ page }) => {
     await page.goto("/learn/curriculum");
     await expect(page.getByRole("heading", { level: 1, name: "Data Structures and Algorithms" })).toBeVisible();
-    await expect(page.getByText("8 phases · 3 modules available · 31 modules planned")).toBeVisible();
+    await expect(page.getByText("8 phases · 6 modules available · 28 modules planned")).toBeVisible();
 
     const phases = page.getByRole("heading", { level: 2 });
     await expect(phases).toHaveText([
@@ -181,7 +181,7 @@ test.describe("learning", () => {
     const available = page.getByRole("link", { name: "Algorithms, correctness and cost" });
     await expect(available).toBeVisible();
     await expect(page.getByText("DSA Module 1", { exact: true })).toBeVisible();
-    await expect(page.getByText("DSA Module 2", { exact: true })).toBeVisible(); // planned, same phase
+    await expect(page.getByText("DSA Module 2", { exact: true })).toBeVisible(); // published, same phase
     await expect(page.getByText("Module 3", { exact: true })).toHaveCount(0);
 
     // Python preparation is numbered separately.
@@ -220,8 +220,11 @@ test.describe("learning", () => {
     await expect(page.locator("pre code").filter({ hasText: "def witness_holds" })).toBeVisible();
     await expect(page.locator("pre code .hljs-keyword").first()).toBeVisible();
     await expect(page.getByRole("img", { name: /Growth of common functions/ })).toBeVisible();
-    const loaded = await page.getByRole("img", { name: /Growth of common functions/ }).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0);
-    expect(loaded, "the figure should load under the content security policy").toBe(true);
+    const figure = page.getByRole("img", { name: /Growth of common functions/ });
+    await figure.scrollIntoViewIfNeeded();
+    await expect.poll(() => figure.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0), {
+      message: "the figure should load under the content security policy",
+    }).toBe(true);
 
     await page.goto("/learn/lessons/binary-search");
     await expect(page.getByRole("table").filter({ hasText: "Worst-case iterations" })).toContainText("Linear search");
@@ -309,9 +312,10 @@ test.describe("learning", () => {
     await signOut(page);
     await signIn(page, STUDENT);
     await expect(page.getByRole("heading", { name: /Welcome back/ })).toBeVisible();
-    // With every lesson done, the next step is the earliest quiz not yet passed: the first
-    // Python assessment, which this student has not taken.
-    await expect(page.getByText(/Next quiz · Python Module P1/i)).toBeVisible();
+    // With every DSA Module 1 lesson done, DSA Module 2 unlocks (quizzes and projects never block
+    // the next module), so its first lesson is the next step.
+    await expect(page.getByText(/Next lesson · DSA Module 2/i)).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Recursive calls and the call stack" })).toBeVisible();
     await page.goto(lesson);
     await expect(page.getByText("Lesson complete")).toBeVisible();
     await page.goto("/learn/modules/correctness-and-cost");
@@ -457,7 +461,7 @@ test.describe("coding practice", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Coding practice" })).toBeVisible();
     await expect(page.getByText(/Sample-test results are local feedback: there is no official grading\./)).toBeVisible();
     await expect(page.getByText(/Submitting a solution unlocks the editorial for self-review\. Submission does not mean the solution is correct\./)).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText("Showing all 14 problems, in course order.");
+    await expect(page.getByRole("status")).toHaveText("Showing all 31 problems, in course order.");
     await expect(page.getByRole("main").getByRole("listitem").getByText("Not attempted", { exact: true })).toHaveCount(14);
     // Problems are labelled with their module's display number.
     await expect(page.getByText(/^Python Module P1 · /).first()).toBeVisible();
@@ -465,7 +469,7 @@ test.describe("coding practice", () => {
 
     await page.getByLabel("Difficulty").selectOption({ label: "Warm-up" });
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 5 of 14 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 11 of 31 problems.");
     await expect(page.getByRole("link", { name: "First occurrence" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Is it sorted?" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lower bound" })).toHaveCount(0);
@@ -473,11 +477,11 @@ test.describe("coding practice", () => {
     // Clearing resets the list and the filter controls themselves.
     await page.getByRole("link", { name: "Clear" }).click();
     await expect(page).toHaveURL(/\/learn\/practice$/);
-    await expect(page.getByRole("status")).toHaveText("Showing all 14 problems, in course order.");
+    await expect(page.getByRole("status")).toHaveText("Showing all 31 problems, in course order.");
     await expect(page.getByLabel("Difficulty")).toHaveValue("all");
     await page.getByLabel("Search", { exact: true }).fill("square root");
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 1 of 14 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 1 of 31 problems.");
     await expect(page.getByRole("link", { name: "Integer square root" })).toBeVisible();
 
     await page.getByLabel("Search", { exact: true }).fill("no such problem anywhere");
@@ -633,7 +637,7 @@ test.describe("coding practice", () => {
     await expect(row.getByText("2 attempts")).toBeVisible();
     await page.getByLabel("Status").selectOption({ label: "Submitted for self-review" });
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 1 of 14 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 1 of 31 problems.");
     await page.goto("/learn");
     await expect(page.getByText(/1 of 14\s+problems submitted for self-review/)).toBeVisible();
 
@@ -1070,10 +1074,10 @@ test.describe("public website", () => {
     expect(await page.content()).not.toMatch(/Isocline|Scientific Machine Learning|Helena Voss|support@example\.com/);
 
     await expect(page.getByRole("heading", { name: "The learning path" })).toBeVisible();
-    await expect(page.getByText(/8 phases · 3 modules available · 31 modules planned/)).toBeVisible();
-    await expect(page.getByText("3 of 34")).toBeVisible();
-    // The published module lists its lessons; a planned one is labelled and lists none.
-    await expect(page.getByText("Available", { exact: true })).toHaveCount(3);
+    await expect(page.getByText(/8 phases · 6 modules available · 28 modules planned/)).toBeVisible();
+    await expect(page.getByText("6 of 34")).toBeVisible();
+    // Each published module lists its lessons; a planned one is labelled and lists none.
+    await expect(page.getByText("Available", { exact: true })).toHaveCount(6);
     // Python preparation and core modules are numbered separately.
     await expect(page.getByText("Python Module P1", { exact: true })).toBeVisible();
     await expect(page.getByText("Python Module P2", { exact: true })).toBeVisible();
