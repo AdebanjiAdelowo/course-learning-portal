@@ -34,8 +34,12 @@ const speeds = [
   { label: "Fast", ms: 450 },
 ] as const;
 
-const controlClass =
-  "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-faint hover:bg-sunken disabled:opacity-45";
+// cn() only joins classes, so neutral and primary controls take separate colour sets: two background
+// or text utilities on one element are resolved by stylesheet order, not by the order written here.
+const controlBase =
+  "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45";
+const controlClass = cn(controlBase, "border-line-strong bg-surface text-ink hover:border-ink-faint hover:bg-sunken");
+const primaryControlClass = cn(controlBase, "border-accent bg-accent text-on-accent hover:border-accent-strong hover:bg-accent-strong");
 
 /**
  * Steps through a recorded run of a real algorithm (see `src/lib/viz`). Everything shown is a
@@ -204,17 +208,19 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
-        <button type="button" className={controlClass} onClick={restart} disabled={index === 0}>
+        {/* aria-disabled rather than disabled: a focused button that becomes disabled drops keyboard
+            focus to the page, so these stay focusable at the ends of the trace and do nothing there. */}
+        <button type="button" className={controlClass} onClick={() => { if (index > 0) restart(); }} aria-disabled={index === 0 || undefined}>
           <RotateCcw className="size-4" aria-hidden="true" />
           Reset
         </button>
-        <button type="button" className={controlClass} onClick={() => { setPlaying(false); setIndex((i) => Math.max(0, i - 1)); }} disabled={index === 0}>
+        <button type="button" className={controlClass} onClick={() => { if (index === 0) return; setPlaying(false); setIndex((i) => Math.max(0, i - 1)); }} aria-disabled={index === 0 || undefined}>
           <ChevronLeft className="size-4" aria-hidden="true" />
           Back
         </button>
         <button
           type="button"
-          className={cn(controlClass, "min-w-24 border-accent bg-accent text-on-accent hover:border-accent-strong hover:bg-accent-strong")}
+          className={cn(primaryControlClass, "min-w-24")}
           onClick={() => {
             if (atEnd) setIndex(0);
             setPlaying((value) => !value);
@@ -223,7 +229,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
           {playing ? <Pause className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
           {playing ? "Pause" : atEnd ? "Replay" : "Play"}
         </button>
-        <button type="button" className={controlClass} onClick={() => { setPlaying(false); setIndex((i) => Math.min(lastIndex, i + 1)); }} disabled={atEnd}>
+        <button type="button" className={controlClass} onClick={() => { if (atEnd) return; setPlaying(false); setIndex((i) => Math.min(lastIndex, i + 1)); }} aria-disabled={atEnd || undefined}>
           Step
           <ChevronRight className="size-4" aria-hidden="true" />
         </button>
@@ -358,7 +364,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" className={cn(controlClass, "border-accent bg-accent text-on-accent hover:bg-accent-strong")}>
+            <button type="submit" className={primaryControlClass}>
               Run on this input
             </button>
             {algorithm.requiresSorted ? (
