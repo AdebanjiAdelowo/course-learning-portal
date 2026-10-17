@@ -4,7 +4,7 @@ A private learning platform for teaching Data Structures and Algorithms. Enrolle
 
 Every topic is taught the same way: motivation, intuition, a visualization, a precise statement, pseudocode, a tested Python implementation, a correctness argument, a cost analysis, a worked example, practice, a self-assessment checklist and further reading. Lessons are written in Markdown with LaTeX mathematics and syntax-highlighted code.
 
-The course is called "Data Structures and Algorithms". Its learning path has 8 phases and 34 modules. Three modules are published in full: two Python foundations modules (Python Module P1 and P2, 12 lessons) and DSA Module 1, "Algorithms, correctness and cost" (5 lessons, 3 visualizations). Each published module has an assessment, a project and coding problems: 17 lessons, 3 quizzes, 3 projects and 14 coding problems in all. The other 31 modules are planned: they appear on the learning path by title, description and plan, clearly labelled, and open as they are written.
+The course is called "Data Structures and Algorithms". Its learning path has 8 phases and 34 modules. Six modules are published in full: two Python foundations modules (Python Module P1 and P2, 12 lessons), DSA Module 1, "Algorithms, correctness and cost" (5 lessons, 3 visualizations), and DSA Modules 2 to 4 on recursion and induction, arrays and amortised analysis, and linked lists (6 lessons each, with call-stack, dynamic-array and pointer-operation visualizations). Each published module has an assessment, a project and coding problems: 35 lessons, 6 quizzes, 6 projects and 31 coding problems in all. The other 28 modules are planned: they appear on the learning path by title, description and plan, clearly labelled, and open as they are written.
 
 Students run Python directly in the browser: in a playground, in runnable examples inside lessons, and against the sample tests of each coding problem. Code never runs on the server.
 
@@ -214,7 +214,7 @@ The curriculum is a hierarchy: course, phases, modules, then lessons, a quiz, a 
 | Phase | Modules |
 | --- | --- |
 | 1. Python foundations | **P1** Python essentials: values, control flow and functions (published); **P2** Python for algorithms: collections, mutability and testing (published) |
-| 2. Foundations | **1** Algorithms, correctness and cost (published); **2** Recursion, induction and recurrences; **3** Arrays, dynamic arrays and amortised analysis; **4** Linked lists |
+| 2. Foundations | **1** Algorithms, correctness and cost (published); **2** Recursion, induction and recurrences (published); **3** Arrays, dynamic arrays and amortised analysis (published); **4** Linked lists (published) |
 | 3. Linear structures and sorting | **5** Two pointers; **6** Sliding window; **7** Stacks, queues and deques; **8** Elementary sorting and stability; **9** Divide and conquer: merge sort; **10** Quicksort, selection and randomisation; **11** Lower bounds and linear-time sorting |
 | 4. Hashing and trees | **12** Hash tables; **13** Binary trees and traversals; **14** Binary search trees; **15** Balanced search trees; **16** Heaps and priority queues |
 | 5. Graphs | **17** Representations and breadth-first search; **18** Depth-first search; **19** Dijkstra's algorithm; **20** Negative weights and all pairs; **21** Minimum spanning trees; **22** Union-find |
@@ -236,7 +236,7 @@ The numbers are presentation only. They are derived from the order of the curric
 - A published module is open to enrolled students, subject to the unlocking rules.
 - A planned module has no lessons. It is shown on the learning path by title and description, labelled "Planned", and is never a link. If it has a plan (`seed/plans.ts`), students can also read its learning objectives, planned lesson titles and prerequisites.
 
-The public website and the portal both state the two counts separately, for example "3 modules available · 31 modules planned", and derive them from the database.
+The public website and the portal both state the two counts separately, for example "6 modules available · 28 modules planned", and derive them from the database.
 
 ### Python foundations
 
@@ -421,7 +421,9 @@ print(total)
 
 A visualization is a recorded run of a real algorithm, not an animation script. Each algorithm in `src/lib/viz/algorithms.ts` is a tracer: a pure function that runs the algorithm on the given input and records a step whenever something worth explaining happens. The player displays those steps.
 
-Available tracers: linear search, binary search and insertion sort. Each step carries the array, the role of every cell, index pointers, variable values, operation counters, the pseudocode line being executed and an explanation.
+Available tracers: linear search, binary search, insertion sort, recursive factorial (call-stack frames), dynamic array operations (logical size, capacity and resize copies) and linked-list pointer operations (node identities, head, tail and working references). Each step carries the current state, variable values, operation counters, the pseudocode line being executed and an explanation.
+
+The player is keyboard operable. Its controls have accessible names, each step's explanation is announced through a polite live region, invalid custom input is reported as an alert, and controls that do nothing at the start or end of a trace stay focusable with `aria-disabled` so keyboard focus is never lost.
 
 A lesson embeds one with a fenced block:
 
