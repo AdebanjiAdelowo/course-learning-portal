@@ -1,0 +1,33 @@
+--- a/seed/recursion-module.ts
++++ b/seed/recursion-module.ts
+@@ -6,7 +6,7 @@
+   title: "Recursion, induction and recurrences",
+   description: "Recursive algorithms, proofs by induction, and solving the recurrences that describe their cost.",
+   requiresPrevious: true,
+-  published: false,
++  published: true,
+   lessons: [
+     { slug: "recursive-calls-and-stack", title: "Recursive calls and the call stack", summary: "Trace descent, base cases and return values, and distinguish frame space from arithmetic bit costs.", durationMinutes: 45, objectives: ["Trace factorial's suspended calls", "Prove termination with a decreasing measure", "Prove correctness by induction", "Distinguish calls and stack depth"] },
+     { slug: "induction-and-recursive-correctness", title: "Induction and recursive correctness", summary: "Use strong induction to prove balanced interval summation and justify every child's precondition.", durationMinutes: 50, objectives: ["State ordinary and strong induction", "Prove interval partitioning", "Separate correctness from termination", "Count calls and simultaneous frames"] },
+--- a/seed/arrays-module.ts
++++ b/seed/arrays-module.ts
+@@ -6,7 +6,7 @@
+   title: "Arrays, dynamic arrays and amortised analysis",
+   description: "How Python lists work underneath, why appending is cheap on average, and how to prove it.",
+   requiresPrevious: true,
+-  published: false,
++  published: true,
+   lessons: [
+     { slug: "array-model-and-indexing", title: "Array models, storage and indexing", summary: "Separate sequence abstractions, reference slots, indexing and value searches.", durationMinutes: 30, objectives: ["Calculate a slot address", "Distinguish indexing from search", "State the machine-word cost model"] },
+     { slug: "array-insertion-deletion-and-traversal", title: "Traversal, insertion and deletion", summary: "Preserve order through correctly directed suffix shifts.", durationMinutes: 35, objectives: ["Prove shift direction safe", "Validate boundaries before mutation", "Count affected suffix work"] },
+--- a/seed/linked-lists-module.ts
++++ b/seed/linked-lists-module.ts
+@@ -4,7 +4,7 @@
+ export const linkedListsModule: SeedModule = {
+   slug: "linked-lists", title: "Linked lists",
+   description: "Singly and doubly linked lists, pointer manipulation, and when a linked structure beats an array.",
+-  requiresPrevious: true, published: false,
++  requiresPrevious: true, published: true,
+   lessons: [
+     { slug: "linked-nodes-and-traversal", title: "Nodes, references and traversal", summary: "Distinguish topology, node identity and payload equality.", durationMinutes: 30, objectives: ["Represent empty and acyclic chains", "Prove traversal", "Account for node and output storage"] },
+     { slug: "singly-linked-insertion-and-deletion", title: "Singly linked insertion and deletion", summary: "Preserve suffixes while rewiring head, predecessor and tail references.", durationMinutes: 40, objectives: ["Perform safe indexed edits", "Separate location from rewiring cost", "Repair empty and end boundaries"] },
