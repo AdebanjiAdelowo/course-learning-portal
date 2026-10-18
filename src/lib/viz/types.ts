@@ -51,6 +51,8 @@ export interface VizStep {
 }
 
 export interface VizInput {
+  /** Selected mode of an algorithm that declares `modes`. */
+  mode?: string;
   operation?: VizOperation;
   index?: number;
   value?: number;
@@ -58,8 +60,25 @@ export interface VizInput {
   target?: number;
 }
 
+/**
+ * One variant of an algorithm, chosen with a Mode control or a `mode:` line, for example
+ * opposite-direction or same-direction pointers. A mode carries its own input preconditions.
+ */
+export interface VizMode {
+  id: string;
+  label: string;
+  needsTarget: boolean;
+  requiresSorted: boolean;
+  /** Label of the numeric parameter, such as "Window size k". Defaults to "Target". */
+  targetLabel?: string;
+  /** Extra precondition check; returns an explanation when the input is not allowed. */
+  validate?(array: readonly number[], target: number | undefined): string | null;
+}
+
 export interface VizAlgorithm {
   operations?: readonly VizOperation[];
+  /** When present, the first mode is the default and its preconditions replace the fields below. */
+  modes?: readonly VizMode[];
   id: string;
   title: string;
   pseudocode: string[];

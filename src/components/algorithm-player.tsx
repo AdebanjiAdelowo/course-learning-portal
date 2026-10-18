@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { registry } from "@/lib/viz/algorithms";
-import { validateInput } from "@/lib/viz/parse";
+import { resolveMode, validateInput } from "@/lib/viz/parse";
 import { VIZ_LIMITS, type CellRole, type VizInput } from "@/lib/viz/types";
 
 const cellStyles: Record<CellRole, string> = {
@@ -57,6 +57,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
   const [operationText, setOperationText] = useState(initialInput.operation ?? "append");
   const [indexText, setIndexText] = useState(String(initialInput.index ?? 0));
   const [valueText, setValueText] = useState(String(initialInput.value ?? 7));
+  const [modeText, setModeText] = useState(initialInput.mode ?? algorithm?.modes?.[0]?.id ?? "");
   const [inputError, setInputError] = useState<string | null>(null);
 
   const steps = useMemo(() => (algorithm ? algorithm.trace(input) : []), [algorithm, input]);
@@ -88,7 +89,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
 
   function applyInput(event: React.FormEvent) {
     event.preventDefault();
-    const parsed = validateInput(algorithm!, arrayText, targetText, { operation: operationText, index: indexText, value: valueText });
+    const parsed = validateInput(algorithm!, arrayText, targetText, { operation: operationText, index: indexText, value: valueText, mode: modeText || undefined });
     if (!parsed.ok) {
       setInputError(parsed.error);
       return;
@@ -107,6 +108,11 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
     setArrayText(sorted.join(", "));
     setInputError(null);
   }
+
+  // A mode, when the algorithm has them, decides whether a target is needed and whether input must be sorted.
+  const mode = resolveMode(algorithm, modeText || undefined);
+  const needsTarget = mode ? mode.needsTarget : algorithm.needsTarget;
+  const requiresSorted = mode ? mode.requiresSorted : algorithm.requiresSorted;
 
   // Pointers that share an index are stacked under the same cell; a pointer may also sit one
   // place before the start or after the end (for example hi = -1 or i = n).
@@ -310,7 +316,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
       <details className="border-t border-line">
         <summary className="px-4 py-3 text-sm font-semibold">Try your own input</summary>
         <form onSubmit={applyInput} className="space-y-3 border-t border-line px-4 py-4" noValidate>
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+          <div className={cn("grid gap-3", algorithm.modes ? "sm:grid-cols-2" : "sm:grid-cols-[minmax(0,1fr)_8rem]")}>
             <div>
               <label htmlFor={`${id}-array`} className="block text-sm font-semibold">
                 List
@@ -338,10 +344,18 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
                 <input id={`${id}-value`} className="field" inputMode="numeric" value={valueText} onChange={event => setValueText(event.target.value)} />
               </div>
             ) : null}
-            {algorithm.needsTarget ? (
+            {algorithm.modes ? (
+              <div>
+                <label htmlFor={`${id}-mode`} className="block text-sm font-semibold">Mode</label>
+                <select id={`${id}-mode`} className="field mt-1.5" value={modeText} onChange={(event) => { setModeText(event.target.value); setInputError(null); }}>
+                  {algorithm.modes.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                </select>
+              </div>
+            ) : null}
+            {needsTarget ? (
               <div>
                 <label htmlFor={`${id}-target`} className="block text-sm font-semibold">
-                  Target
+                  {mode?.targetLabel ?? "Target"}
                 </label>
                 <input
                   id={`${id}-target`}
@@ -356,7 +370,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
           </div>
           <p id={`${id}-help`} className="text-sm text-ink-faint">
             Up to {VIZ_LIMITS.maxLength} whole numbers, separated by commas.
-            {algorithm.requiresSorted ? " The list must be sorted." : ""}
+            {requiresSorted ? " The list must be sorted." : ""}
           </p>
           {inputError ? (
             <p role="alert" className="text-sm font-medium text-danger">
@@ -367,7 +381,7 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
             <button type="submit" className={primaryControlClass}>
               Run on this input
             </button>
-            {algorithm.requiresSorted ? (
+            {requiresSorted ? (
               <button type="button" className={controlClass} onClick={sortInput}>
                 Sort the list for me
               </button>
