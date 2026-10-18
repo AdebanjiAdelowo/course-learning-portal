@@ -219,9 +219,9 @@ test("lessons can be reordered from the content page", async ({ page }) => {
 test("a module is managed from the content page: planned until it has a lesson, and editable", async ({ page }) => {
   await signIn(page, "instructor@example.com");
   await page.goto("/admin/content");
-  await expect(page.getByText(/6 of 34 modules published/)).toBeVisible();
+  await expect(page.getByText(/8 of 34 modules published/)).toBeVisible();
 
-  // An unwritten module: Two pointers and Sliding window are planned too, but hold draft lessons.
+  // The first unwritten module after the published ones.
   const planned = page.locator("li.card").filter({ has: page.getByRole("heading", { level: 3, name: "Stacks, queues and deques", exact: true }) });
   await expect(planned.getByText("Planned", { exact: true })).toBeVisible();
   await expect(planned.getByText(/Phase 3: Linear structures and sorting/)).toBeVisible();
@@ -246,11 +246,11 @@ test("a module is managed from the content page: planned until it has a lesson, 
   await expect(page.getByRole("status")).toContainText("Module saved");
 
   await page.goto("/admin/content");
-  await expect(page.getByText(/6 of 34 modules published/)).toBeVisible();
+  await expect(page.getByText(/8 of 34 modules published/)).toBeVisible();
 
-  // An authored draft is still planned for students, and its plan is shown to staff for review.
+  // A published Phase 4 module keeps the plan it was written from, shown to staff.
   const draft = page.locator("li.card").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) });
-  await expect(draft.getByText("Planned", { exact: true })).toBeVisible();
+  await expect(draft.getByText("Published", { exact: true })).toBeVisible();
   await expect(draft.getByText(/DSA Module 5/)).toBeVisible();
   await draft.getByRole("link", { name: "Edit module" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Two pointers" })).toBeVisible();

@@ -1,7 +1,8 @@
 /**
- * Browser fixtures for an unpublished draft module: copy it into a uniquely named temporary
- * published module, create a temporary enrolled student, and remove both by exact ID afterwards.
- * The draft itself is never published, and existing students are checked to be unchanged.
+ * Browser fixtures for an authored module: copy it into a uniquely named temporary published
+ * module with no prerequisite, create a temporary enrolled student, and remove both by exact ID
+ * afterwards. The source module's publication flag is checked before and after, and existing
+ * students are checked to be unchanged.
  */
 import { createHash, randomUUID } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
@@ -25,7 +26,7 @@ function copy<T extends { id: string; search?: unknown }>(row: T) {
   return rest;
 }
 
-export function draftModuleFixture(sourceSlug: string, label: string) {
+export function draftModuleFixture(sourceSlug: string, label: string, options: { published: boolean } = { published: false }) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const admin = createClient<Database>(url, process.env.SUPABASE_SERVICE_ROLE_KEY ?? "", { auth: { persistSession: false } });
   const prefix = `e2e-${label}-${randomUUID().slice(0, 8)}`;
@@ -61,7 +62,7 @@ export function draftModuleFixture(sourceSlug: string, label: string) {
     courseId = must(await admin.from("courses").select("id").eq("slug", "data-structures-and-algorithms").single()).id;
     baseline = await existingState();
     const source = must(await admin.from("modules").select("*").eq("course_id", courseId).eq("slug", sourceSlug).single());
-    expect(source.is_published, `${sourceSlug} must remain an unpublished draft`).toBe(false);
+    expect(source.is_published, `${sourceSlug} publication flag`).toBe(options.published);
     const last = must(await admin.from("modules").select("position").eq("course_id", courseId).order("position", { ascending: false }).limit(1).single());
     moduleId = must(await admin.from("modules").insert({ ...copy(source), slug: prefix, position: last.position + 1, is_published: true, requires_previous: false, available_from: null }).select("id").single()).id;
     const user = await admin.auth.admin.createUser({ email, password, email_confirm: true });
@@ -106,7 +107,7 @@ export function draftModuleFixture(sourceSlug: string, label: string) {
     }
     if (baseline) expect(await existingState(), "Existing ordering and student activity must be unchanged after fixture cleanup").toBe(baseline);
     const source = must(await admin.from("modules").select("is_published").eq("course_id", courseId).eq("slug", sourceSlug).single());
-    expect(source.is_published, `${sourceSlug} must still be unpublished after the suite`).toBe(false);
+    expect(source.is_published, `${sourceSlug} publication flag after the suite`).toBe(options.published);
   }
 
   async function signIn(page: Page) {

@@ -1,13 +1,13 @@
 import { slidingWindow } from "./plans";
 import type { SeedModule } from "./types";
 
-/** Authored draft. Publication remains separate from local verification. */
+/** Authored module, published in source after the Phase 4 review; database publication is a separate step. */
 export const slidingWindowModule: SeedModule = {
   slug: "sliding-window",
   title: "Sliding window",
   description: "Maintaining a contiguous range and a summary of it as it moves: fixed and variable windows, running sums and frequency maps.",
   requiresPrevious: true,
-  published: false,
+  published: true,
   plan: slidingWindow,
   lessons: [
     { slug: "sliding-window-fundamentals", title: "Sliding-window fundamentals", summary: "Contiguous ranges, incremental summaries, and the conditions under which a window is safe.", durationMinutes: 35, objectives: ["Recognise contiguous-range problems", "Update a summary from entering and leaving values", "State the monotonicity a variable window needs"] },

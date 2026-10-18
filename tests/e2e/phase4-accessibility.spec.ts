@@ -1,14 +1,13 @@
 /**
- * Accessibility of the two Phase 4 visualizers, on isolated published copies of the unpublished
- * drafts. Includes the shared keyboard, contrast, focus and axe checks, and the Mode control the
+ * Accessibility of the two Phase 4 visualizers, on isolated copies of the published modules. Includes the shared keyboard, contrast, focus and axe checks, and the Mode control the
  * Phase 4 visualizers add. This is not a screen-reader pass.
  */
 import { expect, test } from "@playwright/test";
 import { draftModuleFixture } from "./support/draft-module";
 import { axeViolations, focused, visualizerAccessibilitySuite } from "./support/visualizer-a11y";
 
-const pointers = draftModuleFixture("two-pointers", "a11y-two-pointers");
-const windows = draftModuleFixture("sliding-window", "a11y-sliding-window");
+const pointers = draftModuleFixture("two-pointers", "a11y-two-pointers", { published: true });
+const windows = draftModuleFixture("sliding-window", "a11y-sliding-window", { published: true });
 test.beforeAll(async () => {
   await pointers.setUp();
   await windows.setUp();

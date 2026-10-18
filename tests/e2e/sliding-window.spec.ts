@@ -1,9 +1,9 @@
-/** Verify the Sliding Window draft through an isolated published copy, without publishing it or changing existing students. */
+/** Verify the published Sliding Window module through an isolated copy, without changing existing students. */
 import { expect, test } from "@playwright/test";
 import { draftModuleFixture } from "./support/draft-module";
 import { noHorizontalOverflow, passQuizAndSubmitProject, runAllProblems, walkLessons } from "./support/module-checks";
 
-const fixture = draftModuleFixture("sliding-window", "sliding-window");
+const fixture = draftModuleFixture("sliding-window", "sliding-window", { published: true });
 test.describe.configure({ mode: "serial" });
 test.beforeAll(fixture.setUp);
 test.afterAll(fixture.tearDown);

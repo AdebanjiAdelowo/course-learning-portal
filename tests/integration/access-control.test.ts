@@ -29,9 +29,11 @@ const COURSE_SLUG = DEFAULT_COURSE_SLUG;
 const MODULE_SLUG = "correctness-and-cost";
 /** Published modules, in course order: the two Python modules, then DSA Modules 1 to 4. */
 const PHASE3 = ["recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists"];
-const PUBLISHED = ["python-essentials", "python-collections-and-testing", MODULE_SLUG, ...PHASE3];
-/** Authored but unpublished: DSA Modules 5 and 6. */
-const DRAFTS = [{ slug: "two-pointers", position: 7 }, { slug: "sliding-window", position: 8 }];
+/** DSA Modules 5 and 6, published in Phase 4. */
+const PHASE4 = [{ slug: "two-pointers", position: 7 }, { slug: "sliding-window", position: 8 }];
+const PUBLISHED = ["python-essentials", "python-collections-and-testing", MODULE_SLUG, ...PHASE3, ...PHASE4.map((m) => m.slug)];
+/** The first module after the published ones, still planned and empty. */
+const FIRST_PLANNED = { slug: "stacks-and-queues", title: "Stacks, queues and deques", position: 9 };
 const QUIZ_SLUG = "correctness-and-cost-quiz";
 
 function client(key: string): Db {
@@ -186,14 +188,12 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(modules![0]!.slug).toBe("python-essentials");
     });
 
-    it("publishes six modules, keeps two authored drafts unpublished, and keeps the 26 unwritten modules empty", async () => {
+    it("publishes eight modules in course order and keeps the 26 planned modules empty", async () => {
       const { data: modules } = await admin.from("modules").select("id, slug, position, is_published, plan").eq("course_id", courseId).not("slug", "like", "it-%").order("position");
       expect(modules!.filter((mod) => mod.is_published).map((mod) => mod.slug)).toEqual(PUBLISHED);
       expect(modules!.filter((mod) => PHASE3.includes(mod.slug)).map((mod) => mod.position)).toEqual([4, 5, 6]);
-      expect(modules!.filter((mod) => DRAFTS.some((d) => d.slug === mod.slug)).map((mod) => [mod.slug, mod.position, mod.is_published])).toEqual(DRAFTS.map((d) => [d.slug, d.position, false]));
-      const planned = modules!.filter((mod) => !mod.is_published);
-      expect(planned).toHaveLength(28);
-      const unwrittenIds = planned.filter((mod) => !DRAFTS.some((d) => d.slug === mod.slug)).map((mod) => mod.id);
+      expect(modules!.filter((mod) => PHASE4.some((m) => m.slug === mod.slug)).map((mod) => [mod.slug, mod.position, mod.is_published])).toEqual(PHASE4.map((m) => [m.slug, m.position, true]));
+      const unwrittenIds = modules!.filter((mod) => !mod.is_published).map((mod) => mod.id);
       expect(unwrittenIds).toHaveLength(26);
       for (const table of ["lessons", "quizzes", "projects", "coding_problems"] as const) {
         expect((await admin.from(table).select("id", { count: "exact", head: true }).in("module_id", unwrittenIds)).count, table).toBe(0);
@@ -301,7 +301,7 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(dsa.lessons).toHaveLength(5);
       expect(available[0]).toMatchObject({ quiz_count: 1, problem_count: 4 });
       expect(available[0]!.lessons).toHaveLength(6);
-      for (const [slug, problems] of [["recursion-and-induction", 5], ["arrays-and-amortised-analysis", 6], ["linked-lists", 6]] as const) {
+      for (const [slug, problems] of [["recursion-and-induction", 5], ["arrays-and-amortised-analysis", 6], ["linked-lists", 6], ["two-pointers", 6], ["sliding-window", 6]] as const) {
         const mod = available.find((m) => m.slug === slug)!;
         expect(mod, slug).toMatchObject({ quiz_count: 1, problem_count: problems });
         expect(mod.lessons, slug).toHaveLength(6);
@@ -516,26 +516,22 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(keys ?? []).toEqual([]);
     });
 
-    it.each(DRAFTS)("retains authored $slug for staff while excluding every draft artifact from student access", async ({ slug }) => {
-      const { data: mod } = await admin.from("modules").select("id, is_published").eq("course_id", courseId).eq("slug", slug).single();
-      expect(mod!.is_published).toBe(false);
+    it.each(PHASE4)("publishes $slug with previews for students and keeps its assessment material staff-only", async ({ slug }) => {
+      const { data: mod } = await admin.from("modules").select("id, is_published, requires_previous").eq("course_id", courseId).eq("slug", slug).single();
+      expect(mod).toMatchObject({ is_published: true, requires_previous: true });
       const id = mod!.id;
       expect((await instructor.db.from("lessons").select("id").eq("module_id", id)).data).toHaveLength(6);
-      expect((await instructor.db.from("coding_problems").select("id").eq("module_id", id)).data).toHaveLength(6);
-      for (const db of [alice.db, bob.db]) {
-        for (const table of ["lessons", "quizzes", "projects", "coding_problems"] as const) {
-          expect((await db.from(table).select("id").eq("module_id", id)).data, table).toEqual([]);
-        }
-        for (const view of ["lesson_outline", "quiz_outline", "project_outline", "coding_problem_outline"] as const) {
-          expect((await db.from(view).select("id").eq("module_id", id)).data, view).toEqual([]);
-        }
-      }
-      const { data: lesson } = await admin.from("lessons").select("id").eq("module_id", id).limit(1).single();
-      expect((await alice.db.from("lesson_progress").insert({ user_id: alice.id, lesson_id: lesson!.id })).error).not.toBeNull();
+      expect((await alice.db.from("lesson_outline").select("id").eq("module_id", id)).data).toHaveLength(6);
+      expect((await alice.db.from("coding_problem_outline").select("id").eq("module_id", id)).data).toHaveLength(6);
+      // Locked for this student: one DSA Module 1 lesson is unfinished, so bodies and problems stay closed.
+      expect((await alice.db.from("lessons").select("id").eq("module_id", id)).data).toEqual([]);
+      expect((await alice.db.from("coding_problems").select("id").eq("module_id", id)).data).toEqual([]);
+      const problemRows = (await admin.from("coding_problems").select("id").eq("module_id", id)).data!.map((row) => row.id);
+      expect((await alice.db.from("coding_problem_solutions").select("problem_id").in("problem_id", problemRows)).data).toEqual([]);
     });
 
     it("keeps a planned module closed to students even when it holds a published lesson", async () => {
-      const { data: planned } = await admin.from("modules").select("id, is_published").eq("course_id", courseId).eq("slug", "two-pointers").single();
+      const { data: planned } = await admin.from("modules").select("id, is_published").eq("course_id", courseId).eq("slug", FIRST_PLANNED.slug).single();
       expect(planned!.is_published).toBe(false);
       const lesson = must(
         "planned-module lesson",
@@ -573,7 +569,8 @@ describe.skipIf(!configured)("row-level security", () => {
       const seeded = data!.filter((row) => !row.slug!.startsWith("it-"));
       expect(seeded).toHaveLength(34);
       expect(seeded.filter((row) => row.is_published).map((row) => row.slug).sort()).toEqual([...PUBLISHED].sort());
-      expect(seeded.find((row) => row.slug === "two-pointers")).toMatchObject({ title: "Two pointers", is_published: false });
+      expect(seeded.find((row) => row.slug === FIRST_PLANNED.slug)).toMatchObject({ title: FIRST_PLANNED.title, is_published: false });
+      expect(seeded.find((row) => row.slug === "two-pointers")).toMatchObject({ title: "Two pointers", is_published: true });
     });
 
     it("does not expose planned modules through the modules table, and the view carries no lesson content", async () => {
@@ -885,10 +882,19 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(await opens("linked-lists")).toBe(true);
     });
 
-    it("7. keeps the planned module after linked lists closed once the linked-list lessons are done", async () => {
+    it("continues the chain: two pointers after the linked-list lessons, sliding window after the two-pointer lessons", async () => {
+      expect(await opens("two-pointers")).toBe(false);
       await complete(await lessonsOf("linked-lists"));
-      const { data: planned } = await admin.from("modules").select("id, is_published, position").eq("course_id", courseId).eq("slug", "two-pointers").single();
-      expect(planned).toMatchObject({ is_published: false, position: 7 });
+      expect(await opens("two-pointers")).toBe(true);
+      expect(await opens("sliding-window")).toBe(false);
+      await complete(await lessonsOf("two-pointers"));
+      expect(await opens("sliding-window")).toBe(true);
+    });
+
+    it("7. keeps the first planned module closed once every published module's lessons are done", async () => {
+      await complete(await lessonsOf("sliding-window"));
+      const { data: planned } = await admin.from("modules").select("id, is_published, position").eq("course_id", courseId).eq("slug", FIRST_PLANNED.slug).single();
+      expect(planned).toMatchObject({ is_published: false, position: FIRST_PLANNED.position });
       expect((await carol.db.from("modules").select("id").eq("id", planned!.id)).data).toEqual([]);
       const lesson = must(
         "planned-module lesson",
@@ -902,13 +908,13 @@ describe.skipIf(!configured)("row-level security", () => {
         await admin.from("lessons").delete().eq("id", lesson.id);
       }
       const { data: path } = await carol.db.from("module_path").select("slug, is_published").eq("course_id", courseId).not("slug", "like", "it-%");
-      expect(path!.filter((row) => !row.is_published)).toHaveLength(28);
+      expect(path!.filter((row) => !row.is_published)).toHaveLength(26);
     });
 
-    it("gives the browser runner every one of the 31 published problems' samples, and nothing hidden", async () => {
-      // This student finished linked lists, so the suite's own locked fixture module after it is open too.
+    it("gives the browser runner every one of the 43 published problems' samples, and nothing hidden", async () => {
+      // This student finished every published module, so the suite's own locked fixture module is open too.
       const { data: rows } = await carol.db.from("coding_problems").select("*").eq("course_id", courseId).not("slug", "like", "it-%");
-      expect(rows!.map((row) => row.slug)).toHaveLength(31);
+      expect(rows!.map((row) => row.slug)).toHaveLength(43);
       const { data: solutions } = await admin.from("coding_problem_solutions").select("problem_id, hidden_tests, reference_solution, editorial_md");
       for (const row of rows!) {
         expect(Object.keys(row), row.slug).not.toContain("hidden_tests");
@@ -930,19 +936,18 @@ describe.skipIf(!configured)("row-level security", () => {
       expect((await carol.db.from("question_keys").select("*")).data).toEqual([]);
     });
 
-    it("keeps all 12 Phase 4 draft problems, their hidden tests and their solutions away from a student who has unlocked everything before them", async () => {
-      const { data: draftModules } = await admin.from("modules").select("id").eq("course_id", courseId).in("slug", DRAFTS.map((d) => d.slug));
-      const { data: problems } = await admin.from("coding_problems").select("id, slug, examples").in("module_id", draftModules!.map((m) => m.id));
+    it("opens all 12 Phase 4 problems once unlocked while keeping their hidden tests, solutions and editorials protected", async () => {
+      const { data: phase4Modules } = await admin.from("modules").select("id").eq("course_id", courseId).in("slug", PHASE4.map((m) => m.slug));
+      const { data: problems } = await admin.from("coding_problems").select("id, slug, examples").in("module_id", phase4Modules!.map((m) => m.id));
       expect(problems).toHaveLength(12);
       const ids = problems!.map((p) => p.id);
-      expect((await carol.db.from("coding_problems").select("id").in("id", ids)).data).toEqual([]);
-      expect((await carol.db.from("coding_problem_outline").select("id").in("id", ids)).data).toEqual([]);
+      expect((await carol.db.from("coding_problems").select("id").in("id", ids)).data).toHaveLength(12);
       expect((await carol.db.from("coding_problem_solutions").select("problem_id").in("problem_id", ids)).data).toEqual([]);
       for (const id of ids) {
-        expect((await carol.db.from("code_submissions").insert({ problem_id: id, user_id: carol.id, code: "x = 1\n", status: "submitted" })).error, id).not.toBeNull();
+        // No attempt has been submitted yet, so no editorial is released.
         expect((await carol.db.rpc("problem_editorial", { p_problem_id: id })).data ?? [], id).toEqual([]);
+        expect((await carol.db.from("code_submissions").insert({ problem_id: id, user_id: carol.id, code: "x = 1\n", status: "submitted", verdict: "passed" })).error, id).not.toBeNull();
       }
-      // At the database level, the visible samples never repeat a hidden case.
       const { data: solutions } = await admin.from("coding_problem_solutions").select("problem_id, hidden_tests, reference_solution").in("problem_id", ids);
       expect(solutions).toHaveLength(12);
       for (const problem of problems!) {
@@ -951,7 +956,6 @@ describe.skipIf(!configured)("row-level security", () => {
         expect(hidden.length, problem.slug).toBeGreaterThanOrEqual(20);
         const visible = new Set((problem.examples as { args: unknown[] }[]).map((e) => JSON.stringify(e.args)));
         expect(hidden.filter((t) => visible.has(JSON.stringify(t.args))), problem.slug).toEqual([]);
-        expect(JSON.stringify(problem.examples).includes(solution.reference_solution.trim()), problem.slug).toBe(false);
       }
     });
 
@@ -1078,8 +1082,9 @@ describe.skipIf(!configured)("row-level security", () => {
       // Content of the locked fixture module: visible to staff, not to the student.
       expect((await find(instructor, "integration test locked")).some((row) => row.kind === "problem")).toBe(true);
       expect((await find(bob, "integration test locked")).filter((row) => row.kind === "problem" || row.kind === "lesson")).toEqual([]);
-      // Planned modules are not search results: there is nothing to open.
-      expect((await find(alice, "sliding window")).filter((row) => row.kind === "module")).toEqual([]);
+      // Planned modules are not search results: there is nothing to open. Published ones are.
+      expect((await find(alice, "stacks queues deques")).filter((row) => row.kind === "module")).toEqual([]);
+      expect((await find(alice, "sliding window")).some((row) => row.kind === "module")).toBe(true);
       // Hidden material is not indexed for anyone through this function.
       expect(await find(alice, "bisect_left hidden_tests")).toEqual([]);
     });

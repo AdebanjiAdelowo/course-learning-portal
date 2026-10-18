@@ -152,7 +152,7 @@ test.describe("learning", () => {
     await expect(page.getByText(/Next lesson · DSA Module 1/i)).toBeVisible();
     await expect(page.locator("p", { hasText: "Current module" })).toContainText("DSA Module 1: Algorithms, correctness and cost");
     await expect(page.getByRole("progressbar", { name: "Overall course completion", exact: true })).toBeVisible();
-    await expect(page.getByText("6 modules available · 28 modules planned")).toBeVisible();
+    await expect(page.getByText("8 modules available · 26 modules planned")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Coding practice" })).toBeVisible();
     await page.getByRole("link", { name: "Continue learning" }).click();
     await expect(page).toHaveURL(/\/learn\/lessons\/insertion-sort$/);
@@ -160,9 +160,14 @@ test.describe("learning", () => {
   });
 
   test("the curriculum shows eight phases, with planned modules labelled and not openable", async ({ page }) => {
+    // Every authored module is now published, so no seeded planned module carries a plan. Give the
+    // first planned module a temporary plan to check how plans are shown, and restore it afterwards.
+    const { data: stacks } = await admin.from("modules").select("id, plan").eq("slug", "stacks-and-queues").single();
+    await admin.from("modules").update({ plan: { objectives: ["Implement a stack and a queue with amortised constant-time operations"], lessons: [{ title: "Stacks and queues", summary: "Last in, first out and first in, first out." }], prerequisites: ["sliding-window"], workedExamples: [], practice: [], visualizations: [] } }).eq("id", stacks!.id);
+    try {
     await page.goto("/learn/curriculum");
     await expect(page.getByRole("heading", { level: 1, name: "Data Structures and Algorithms" })).toBeVisible();
-    await expect(page.getByText("8 phases · 6 modules available · 28 modules planned")).toBeVisible();
+    await expect(page.getByText("8 phases · 8 modules available · 26 modules planned")).toBeVisible();
 
     const phases = page.getByRole("heading", { level: 2 });
     await expect(phases).toHaveText([
@@ -193,18 +198,22 @@ test.describe("learning", () => {
 
     // A planned module is shown by title, marked as planned, and is not a link.
     await page.getByText("Phase 3", { exact: true }).click();
-    const planned = page.locator("div").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) }).last();
+    const planned = page.locator("div").filter({ has: page.getByRole("heading", { level: 3, name: "Stacks, queues and deques", exact: true }) }).last();
     await expect(planned.getByText("Planned", { exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Two pointers", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Stacks, queues and deques", exact: true })).toHaveCount(0);
     await planned.getByText("What this module will cover").click();
-    await expect(planned.getByText(/Use opposite-direction pointers on sorted input/)).toBeVisible();
+    await expect(planned.getByText(/Implement a stack and a queue/)).toBeVisible();
     await expect(planned.getByText("Comes after:")).toBeVisible();
+    // Two pointers is published but locked for this student: shown with its lock reason, not as planned.
+    const pointers = page.locator("div").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) }).last();
+    await expect(pointers.getByText(/Complete the lessons in "Linked lists" first/)).toBeVisible();
+    await expect(pointers.getByText("Planned", { exact: true })).toHaveCount(0);
 
     // Planned content cannot be reached by guessing its address.
     // (The portal streams its pages, so the not-found page arrives with status 200.)
-    await page.goto("/learn/modules/two-pointers");
+    await page.goto("/learn/modules/stacks-and-queues");
     await expect(page.getByRole("heading", { level: 1, name: "That page is not part of your course" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Two pointers" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Stacks, queues and deques" })).toHaveCount(0);
 
     await page.goto("/learn/curriculum");
     await available.click();
@@ -212,6 +221,9 @@ test.describe("learning", () => {
     await expect(page.getByText(/Phase 2: Foundations · DSA Module 1/)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Practice problems" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lower bound" })).toBeVisible();
+    } finally {
+      await admin.from("modules").update({ plan: stacks!.plan }).eq("id", stacks!.id);
+    }
   });
 
   test("a lesson renders mathematics, code, figures, tables and resources", async ({ page }) => {
@@ -415,8 +427,8 @@ test.describe("learning", () => {
     await expect(page).toHaveURL(/\/learn\/lessons\/insertion-sort$/);
 
     // Planned modules have nothing to open, so they are not results; odd input is harmless.
-    await page.goto("/learn/search?q=sliding+window");
-    await expect(page.getByRole("link", { name: /Sliding window/ })).toHaveCount(0);
+    await page.goto("/learn/search?q=stacks+queues+deques");
+    await expect(page.getByRole("link", { name: /Stacks, queues and deques/ })).toHaveCount(0);
     await page.goto(`/learn/search?q=${encodeURIComponent("<script>alert(1)</script>")}`);
     await expect(page.getByText("No matches")).toBeVisible();
   });
@@ -461,7 +473,7 @@ test.describe("coding practice", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Coding practice" })).toBeVisible();
     await expect(page.getByText(/Sample-test results are local feedback: there is no official grading\./)).toBeVisible();
     await expect(page.getByText(/Submitting a solution unlocks the editorial for self-review\. Submission does not mean the solution is correct\./)).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText("Showing all 31 problems, in course order.");
+    await expect(page.getByRole("status")).toHaveText("Showing all 43 problems, in course order.");
     await expect(page.getByRole("main").getByRole("listitem").getByText("Not attempted", { exact: true })).toHaveCount(14);
     // Problems are labelled with their module's display number.
     await expect(page.getByText(/^Python Module P1 · /).first()).toBeVisible();
@@ -469,7 +481,7 @@ test.describe("coding practice", () => {
 
     await page.getByLabel("Difficulty").selectOption({ label: "Warm-up" });
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 11 of 31 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 14 of 43 problems.");
     await expect(page.getByRole("link", { name: "First occurrence" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Is it sorted?" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lower bound" })).toHaveCount(0);
@@ -477,11 +489,11 @@ test.describe("coding practice", () => {
     // Clearing resets the list and the filter controls themselves.
     await page.getByRole("link", { name: "Clear" }).click();
     await expect(page).toHaveURL(/\/learn\/practice$/);
-    await expect(page.getByRole("status")).toHaveText("Showing all 31 problems, in course order.");
+    await expect(page.getByRole("status")).toHaveText("Showing all 43 problems, in course order.");
     await expect(page.getByLabel("Difficulty")).toHaveValue("all");
     await page.getByLabel("Search", { exact: true }).fill("square root");
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 1 of 31 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 1 of 43 problems.");
     await expect(page.getByRole("link", { name: "Integer square root" })).toBeVisible();
 
     await page.getByLabel("Search", { exact: true }).fill("no such problem anywhere");
@@ -637,7 +649,7 @@ test.describe("coding practice", () => {
     await expect(row.getByText("2 attempts")).toBeVisible();
     await page.getByLabel("Status").selectOption({ label: "Submitted for self-review" });
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(page.getByRole("status")).toHaveText("Showing 1 of 31 problems.");
+    await expect(page.getByRole("status")).toHaveText("Showing 1 of 43 problems.");
     await page.goto("/learn");
     await expect(page.getByText(/1 of 14\s+problems submitted for self-review/)).toBeVisible();
 
@@ -1074,10 +1086,10 @@ test.describe("public website", () => {
     expect(await page.content()).not.toMatch(/Isocline|Scientific Machine Learning|Helena Voss|support@example\.com/);
 
     await expect(page.getByRole("heading", { name: "The learning path" })).toBeVisible();
-    await expect(page.getByText(/8 phases · 6 modules available · 28 modules planned/)).toBeVisible();
-    await expect(page.getByText("6 of 34")).toBeVisible();
+    await expect(page.getByText(/8 phases · 8 modules available · 26 modules planned/)).toBeVisible();
+    await expect(page.getByText("8 of 34")).toBeVisible();
     // Each published module lists its lessons; a planned one is labelled and lists none.
-    await expect(page.getByText("Available", { exact: true })).toHaveCount(6);
+    await expect(page.getByText("Available", { exact: true })).toHaveCount(8);
     // Python preparation and core modules are numbered separately.
     await expect(page.getByText("Python Module P1", { exact: true })).toBeVisible();
     await expect(page.getByText("Python Module P2", { exact: true })).toBeVisible();
@@ -1085,9 +1097,9 @@ test.describe("public website", () => {
     await expect(page.getByText("DSA Module 1", { exact: true })).toBeVisible();
     await expect(page.getByText(/Binary search/).first()).toBeVisible();
     await page.getByText("Phase 3", { exact: true }).click();
-    const planned = page.locator("div").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) }).last();
+    const planned = page.locator("div").filter({ has: page.getByRole("heading", { level: 3, name: "Stacks, queues and deques", exact: true }) }).last();
     await expect(planned.getByText("Planned", { exact: true })).toBeVisible();
-    await expect(planned.getByText("DSA Module 5", { exact: true })).toBeVisible();
+    await expect(planned.getByText("DSA Module 7", { exact: true })).toBeVisible();
 
     await expect(page.getByRole("heading", { name: "Adebanji Adelowo" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Frequently asked" })).toBeVisible();

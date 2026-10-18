@@ -20,14 +20,15 @@ describe("Phase 3 publication", () => {
       expect(mod.project!.rubric.reduce((sum, item) => sum + item.points, 0)).toBe(100);
     }
   });
-  it("leaves exactly six published and 28 planned, promoting only the three exact slugs", () => {
+  it("keeps the Phase 3 modules published among the eight published modules, with 26 planned", () => {
     const published = modules.filter(mod => mod.published !== false).map(mod => mod.slug);
     expect(published).toEqual([
       "python-essentials", "python-collections-and-testing", "correctness-and-cost",
       "recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists",
+      "two-pointers", "sliding-window",
     ]);
-    expect(modules.filter(mod => mod.published === false)).toHaveLength(28);
-    // Every planned module is the remainder in course order, with nothing published after position 6.
-    expect(modules.slice(6).every(mod => mod.published === false)).toBe(true);
+    expect(modules.filter(mod => mod.published === false)).toHaveLength(26);
+    // Every planned module is the remainder in course order, with nothing published after position 8.
+    expect(modules.slice(8).every(mod => mod.published === false)).toBe(true);
   });
 });

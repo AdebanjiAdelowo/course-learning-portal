@@ -1,9 +1,9 @@
-/** Verify the Two Pointers draft through an isolated published copy, without publishing it or changing existing students. */
+/** Verify the published Two Pointers module through an isolated copy, without changing existing students. */
 import { expect, test } from "@playwright/test";
 import { draftModuleFixture } from "./support/draft-module";
 import { noHorizontalOverflow, passQuizAndSubmitProject, runAllProblems, walkLessons } from "./support/module-checks";
 
-const fixture = draftModuleFixture("two-pointers", "two-pointers");
+const fixture = draftModuleFixture("two-pointers", "two-pointers", { published: true });
 test.describe.configure({ mode: "serial" });
 test.beforeAll(fixture.setUp);
 test.afterAll(fixture.tearDown);

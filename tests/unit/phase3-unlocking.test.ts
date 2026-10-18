@@ -34,11 +34,20 @@ const RECURSION = lessonsOf("recursion-and-induction");
 const ARRAYS = lessonsOf("arrays-and-amortised-analysis");
 
 describe("unlocking across the published Phase 3 modules", () => {
-  it("gives a student exactly the six published modules, with nothing planned in the outline", () => {
+  it("gives a student exactly the eight published modules, with nothing planned in the outline", () => {
     expect(outline.map((mod) => mod.slug)).toEqual([
       "python-essentials", "python-collections-and-testing", "correctness-and-cost",
       "recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists",
+      "two-pointers", "sliding-window",
     ]);
+  });
+
+  it("continues the chain: two pointers after the linked-list lessons, sliding window after the two-pointer lessons", () => {
+    const LINKED = lessonsOf("linked-lists");
+    const POINTERS = lessonsOf("two-pointers");
+    expect(states(done(...DSA1, ...RECURSION, ...ARRAYS))).toMatchObject({ "two-pointers": "locked", "sliding-window": "locked" });
+    expect(states(done(...DSA1, ...RECURSION, ...ARRAYS, ...LINKED))).toMatchObject({ "two-pointers": "available", "sliding-window": "locked" });
+    expect(states(done(...DSA1, ...RECURSION, ...ARRAYS, ...LINKED, ...POINTERS))).toMatchObject({ "two-pointers": "in_progress", "sliding-window": "available" });
   });
 
   it("opens Python and DSA Module 1 to a new student and keeps DSA Modules 2 to 4 locked", () => {

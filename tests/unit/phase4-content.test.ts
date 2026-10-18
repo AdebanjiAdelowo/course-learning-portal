@@ -10,8 +10,8 @@ const modules = course.phases.flatMap((phase) => phase.modules);
 const SECTIONS = ["## Learning objectives", "## Worked example", "## Correctness", "## Complexity", "## Common mistakes", "## Practice exercises"];
 
 function checkModule(mod: SeedModule, expectedViz: string[]) {
-  it("keeps its slug and position, stays an unpublished draft, and keeps a student-visible plan", () => {
-    expect(mod.published).toBe(false);
+  it("keeps its slug and position, is published in source, and keeps its plan", () => {
+    expect(mod.published).toBe(true);
     expect(mod.requiresPrevious).toBe(true);
     expect(mod.plan!.objectives.length).toBeGreaterThanOrEqual(4);
     expect(mod.plan!.lessons.map((lesson) => lesson.title)).toEqual(mod.lessons!.map((lesson) => lesson.title));
@@ -78,13 +78,14 @@ function checkModule(mod: SeedModule, expectedViz: string[]) {
 }
 
 describe("Phase 4 curriculum integration", () => {
-  it("places both drafts at their established positions without changing any other module", () => {
+  it("places both modules at their established positions without changing any other module", () => {
     expect(course.phases).toHaveLength(8);
     expect(modules).toHaveLength(34);
     expect(modules.indexOf(twoPointersModule) + 1).toBe(7);
     expect(modules.indexOf(slidingWindowModule) + 1).toBe(8);
-    expect(modules.filter((mod) => mod.published !== false)).toHaveLength(6);
-    expect(modules.filter((mod) => mod.published === false)).toHaveLength(28);
+    expect(modules.filter((mod) => mod.published !== false)).toHaveLength(8);
+    expect(modules.filter((mod) => mod.published === false)).toHaveLength(26);
+    expect(modules.flatMap((mod) => mod.problems ?? [])).toHaveLength(43);
     expect(modules.slice(5, 10).map((mod) => mod.slug)).toEqual(["linked-lists", "two-pointers", "sliding-window", "stacks-and-queues", "elementary-sorting"]);
   });
 });

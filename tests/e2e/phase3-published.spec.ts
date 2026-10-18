@@ -36,7 +36,7 @@ test.beforeAll(async () => {
   if (!/^https?:\/\/(localhost|127\.0\.0\.1):/.test(url)) throw new Error("Published-module fixtures require local Supabase.");
   courseId = must(await admin.from("courses").select("id").eq("slug", "data-structures-and-algorithms").single()).id;
   const published = must(await admin.from("modules").select("slug").eq("course_id", courseId).eq("is_published", true).order("position")).map((m) => m.slug);
-  expect(published).toEqual(["python-essentials", "python-collections-and-testing", "correctness-and-cost", "recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists"]);
+  expect(published).toEqual(["python-essentials", "python-collections-and-testing", "correctness-and-cost", "recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists", "two-pointers", "sliding-window"]);
   baseline = await existingState();
   const user = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (user.error || !user.data.user) throw new Error(user.error?.message ?? "Missing fixture user");
@@ -74,10 +74,10 @@ test("a new student finds DSA Modules 2 to 4 locked, by link or by direct addres
 
   // The portal streams, so the status is already 200 when notFound() renders (Next.js streaming
   // guide, "The HTTP contract"). A planned module must render exactly what a missing one does.
-  for (const address of ["/learn/modules/two-pointers", "/learn/modules/no-such-module"]) {
+  for (const address of ["/learn/modules/stacks-and-queues", "/learn/modules/no-such-module"]) {
     await page.goto(address);
     await expect(page.getByRole("heading", { level: 1, name: "That page is not part of your course" })).toBeVisible();
-    await expect(page.getByText(/Use opposite-direction pointers on sorted input/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Stacks, queues and deques" })).toHaveCount(0);
   }
 });
 

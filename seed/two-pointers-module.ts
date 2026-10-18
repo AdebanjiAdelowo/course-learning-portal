@@ -1,13 +1,13 @@
 import { twoPointers } from "./plans";
 import type { SeedModule } from "./types";
 
-/** Authored draft. Publication remains separate from local verification. */
+/** Authored module, published in source after the Phase 4 review; database publication is a separate step. */
 export const twoPointersModule: SeedModule = {
   slug: "two-pointers",
   title: "Two pointers",
   description: "Two indices moving through one array, towards each other or in the same direction, to replace a quadratic search with a linear scan.",
   requiresPrevious: true,
-  published: false,
+  published: true,
   plan: twoPointers,
   lessons: [
     { slug: "two-pointer-fundamentals", title: "Two-pointer fundamentals and loop invariants", summary: "Describe an algorithm as two indices plus an invariant, and bound its time by counting pointer moves.", durationMinutes: 35, objectives: ["Name the regions two indices create", "Write invariants about original values", "Prove linear time by counting moves"] },
