@@ -30,6 +30,8 @@ const MODULE_SLUG = "correctness-and-cost";
 /** Published modules, in course order: the two Python modules, then DSA Modules 1 to 4. */
 const PHASE3 = ["recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists"];
 const PUBLISHED = ["python-essentials", "python-collections-and-testing", MODULE_SLUG, ...PHASE3];
+/** Authored but unpublished: DSA Modules 5 and 6. */
+const DRAFTS = [{ slug: "two-pointers", position: 7 }, { slug: "sliding-window", position: 8 }];
 const QUIZ_SLUG = "correctness-and-cost-quiz";
 
 function client(key: string): Db {
@@ -184,14 +186,17 @@ describe.skipIf(!configured)("row-level security", () => {
       expect(modules![0]!.slug).toBe("python-essentials");
     });
 
-    it("publishes six modules and keeps all 28 planned modules empty", async () => {
+    it("publishes six modules, keeps two authored drafts unpublished, and keeps the 26 unwritten modules empty", async () => {
       const { data: modules } = await admin.from("modules").select("id, slug, position, is_published, plan").eq("course_id", courseId).not("slug", "like", "it-%").order("position");
       expect(modules!.filter((mod) => mod.is_published).map((mod) => mod.slug)).toEqual(PUBLISHED);
       expect(modules!.filter((mod) => PHASE3.includes(mod.slug)).map((mod) => mod.position)).toEqual([4, 5, 6]);
-      const plannedIds = modules!.filter((mod) => !mod.is_published).map((mod) => mod.id);
-      expect(plannedIds).toHaveLength(28);
+      expect(modules!.filter((mod) => DRAFTS.some((d) => d.slug === mod.slug)).map((mod) => [mod.slug, mod.position, mod.is_published])).toEqual(DRAFTS.map((d) => [d.slug, d.position, false]));
+      const planned = modules!.filter((mod) => !mod.is_published);
+      expect(planned).toHaveLength(28);
+      const unwrittenIds = planned.filter((mod) => !DRAFTS.some((d) => d.slug === mod.slug)).map((mod) => mod.id);
+      expect(unwrittenIds).toHaveLength(26);
       for (const table of ["lessons", "quizzes", "projects", "coding_problems"] as const) {
-        expect((await admin.from(table).select("id", { count: "exact", head: true }).in("module_id", plannedIds)).count, table).toBe(0);
+        expect((await admin.from(table).select("id", { count: "exact", head: true }).in("module_id", unwrittenIds)).count, table).toBe(0);
       }
 
       const plans = new Map(modules!.map((mod) => [mod.slug, mod.plan as { objectives?: string[]; lessons?: unknown[]; prerequisites?: string[] }]));
@@ -250,7 +255,8 @@ describe.skipIf(!configured)("row-level security", () => {
         "is-sorted",
         "lower-bound",
       ]);
-      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(31);
+      // Every authored problem: 31 in published modules and 12 in the two unpublished drafts.
+      expect([...problemIds.keys()].filter((slug) => !slug.startsWith("it-"))).toHaveLength(43);
       const { data: solutions } = await admin.from("coding_problem_solutions").select("editorial_md, reference_solution, hidden_tests");
       expect(solutions!.length).toBeGreaterThanOrEqual(14);
       expect(solutions!.every((row) => row.reference_solution.includes("def ") && (row.hidden_tests as unknown[]).length >= 5)).toBe(true);
@@ -508,6 +514,24 @@ describe.skipIf(!configured)("row-level security", () => {
       expect((await alice.db.from("coding_problem_solutions").select("problem_id").in("problem_id", problemRows)).data).toEqual([]);
       const { data: keys } = await alice.db.from("question_keys").select("question_id");
       expect(keys ?? []).toEqual([]);
+    });
+
+    it.each(DRAFTS)("retains authored $slug for staff while excluding every draft artifact from student access", async ({ slug }) => {
+      const { data: mod } = await admin.from("modules").select("id, is_published").eq("course_id", courseId).eq("slug", slug).single();
+      expect(mod!.is_published).toBe(false);
+      const id = mod!.id;
+      expect((await instructor.db.from("lessons").select("id").eq("module_id", id)).data).toHaveLength(6);
+      expect((await instructor.db.from("coding_problems").select("id").eq("module_id", id)).data).toHaveLength(6);
+      for (const db of [alice.db, bob.db]) {
+        for (const table of ["lessons", "quizzes", "projects", "coding_problems"] as const) {
+          expect((await db.from(table).select("id").eq("module_id", id)).data, table).toEqual([]);
+        }
+        for (const view of ["lesson_outline", "quiz_outline", "project_outline", "coding_problem_outline"] as const) {
+          expect((await db.from(view).select("id").eq("module_id", id)).data, view).toEqual([]);
+        }
+      }
+      const { data: lesson } = await admin.from("lessons").select("id").eq("module_id", id).limit(1).single();
+      expect((await alice.db.from("lesson_progress").insert({ user_id: alice.id, lesson_id: lesson!.id })).error).not.toBeNull();
     });
 
     it("keeps a planned module closed to students even when it holds a published lesson", async () => {
@@ -904,6 +928,31 @@ describe.skipIf(!configured)("row-level security", () => {
       }
       expect((await carol.db.from("coding_problem_solutions").select("*")).data).toEqual([]);
       expect((await carol.db.from("question_keys").select("*")).data).toEqual([]);
+    });
+
+    it("keeps all 12 Phase 4 draft problems, their hidden tests and their solutions away from a student who has unlocked everything before them", async () => {
+      const { data: draftModules } = await admin.from("modules").select("id").eq("course_id", courseId).in("slug", DRAFTS.map((d) => d.slug));
+      const { data: problems } = await admin.from("coding_problems").select("id, slug, examples").in("module_id", draftModules!.map((m) => m.id));
+      expect(problems).toHaveLength(12);
+      const ids = problems!.map((p) => p.id);
+      expect((await carol.db.from("coding_problems").select("id").in("id", ids)).data).toEqual([]);
+      expect((await carol.db.from("coding_problem_outline").select("id").in("id", ids)).data).toEqual([]);
+      expect((await carol.db.from("coding_problem_solutions").select("problem_id").in("problem_id", ids)).data).toEqual([]);
+      for (const id of ids) {
+        expect((await carol.db.from("code_submissions").insert({ problem_id: id, user_id: carol.id, code: "x = 1\n", status: "submitted" })).error, id).not.toBeNull();
+        expect((await carol.db.rpc("problem_editorial", { p_problem_id: id })).data ?? [], id).toEqual([]);
+      }
+      // At the database level, the visible samples never repeat a hidden case.
+      const { data: solutions } = await admin.from("coding_problem_solutions").select("problem_id, hidden_tests, reference_solution").in("problem_id", ids);
+      expect(solutions).toHaveLength(12);
+      for (const problem of problems!) {
+        const solution = solutions!.find((s) => s.problem_id === problem.id)!;
+        const hidden = solution.hidden_tests as { args: unknown[] }[];
+        expect(hidden.length, problem.slug).toBeGreaterThanOrEqual(20);
+        const visible = new Set((problem.examples as { args: unknown[] }[]).map((e) => JSON.stringify(e.args)));
+        expect(hidden.filter((t) => visible.has(JSON.stringify(t.args))), problem.slug).toEqual([]);
+        expect(JSON.stringify(problem.examples).includes(solution.reference_solution.trim()), problem.slug).toBe(false);
+      }
     });
 
     it("keeps Phase 3 practice self-review: the editorial opens on submission, and no verdict can be claimed", async () => {

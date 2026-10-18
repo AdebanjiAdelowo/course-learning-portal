@@ -221,13 +221,13 @@ test("a module is managed from the content page: planned until it has a lesson, 
   await page.goto("/admin/content");
   await expect(page.getByText(/6 of 34 modules published/)).toBeVisible();
 
-  const planned = page.locator("li.card").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) });
+  // An unwritten module: Two pointers and Sliding window are planned too, but hold draft lessons.
+  const planned = page.locator("li.card").filter({ has: page.getByRole("heading", { level: 3, name: "Stacks, queues and deques", exact: true }) });
   await expect(planned.getByText("Planned", { exact: true })).toBeVisible();
   await expect(planned.getByText(/Phase 3: Linear structures and sorting/)).toBeVisible();
-  await expect(planned.getByText(/DSA Module 5/)).toBeVisible();
+  await expect(planned.getByText(/DSA Module 7/)).toBeVisible();
   await planned.getByRole("link", { name: "Edit module" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Two pointers" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Plan shown to students" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Stacks, queues and deques" })).toBeVisible();
 
   // A module with no published lesson cannot be published: it would be an empty module.
   await page.getByLabel("Published").check();
@@ -247,4 +247,12 @@ test("a module is managed from the content page: planned until it has a lesson, 
 
   await page.goto("/admin/content");
   await expect(page.getByText(/6 of 34 modules published/)).toBeVisible();
+
+  // An authored draft is still planned for students, and its plan is shown to staff for review.
+  const draft = page.locator("li.card").filter({ has: page.getByRole("heading", { level: 3, name: "Two pointers", exact: true }) });
+  await expect(draft.getByText("Planned", { exact: true })).toBeVisible();
+  await expect(draft.getByText(/DSA Module 5/)).toBeVisible();
+  await draft.getByRole("link", { name: "Edit module" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Two pointers" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan shown to students" })).toBeVisible();
 });
