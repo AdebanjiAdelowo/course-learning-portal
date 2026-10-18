@@ -59,9 +59,18 @@ describe("curriculum blueprint", () => {
     expect(planned).toHaveLength(28);
   });
 
-  it("keeps all 28 planned modules empty, so none can be dressed up as published content", () => {
+  it("keeps the 26 unwritten planned modules empty and the two authored drafts unpublished", () => {
     expect(planned).toHaveLength(28);
-    for (const { mod } of planned) {
+    const drafts = ["two-pointers", "sliding-window"];
+    for (const slug of drafts) {
+      const { mod } = planned.find(({ mod }) => mod.slug === slug)!;
+      expect(mod.published).toBe(false);
+      expect(mod.lessons, slug).toHaveLength(6);
+      expect(mod.problems, slug).toHaveLength(6);
+    }
+    const unwritten = planned.filter(({ mod }) => !drafts.includes(mod.slug));
+    expect(unwritten).toHaveLength(26);
+    for (const { mod } of unwritten) {
       expect(mod.lessons ?? []).toEqual([]);
       expect(mod.quiz).toBeUndefined();
       expect(mod.project).toBeUndefined();

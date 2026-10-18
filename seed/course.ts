@@ -1,7 +1,8 @@
 import { linkedListsModule } from "./linked-lists-module";
+import { slidingWindowModule } from "./sliding-window-module";
+import { twoPointersModule } from "./two-pointers-module";
 import { arraysModule } from "./arrays-module";
 import { recursionModule } from "./recursion-module";
-import { slidingWindow, twoPointers } from "./plans";
 import { pythonCollections, pythonEssentials } from "./python-foundations";
 import type { SeedCourse, SeedModule, SeedModulePlan } from "./types";
 
@@ -381,18 +382,8 @@ The purpose is the **explanation**. Where a measurement matches the theory, say 
       title: "Linear structures and sorting",
       description: "Array techniques, stacks and queues, then sorting as a case study in algorithm design and in lower bounds.",
       modules: [
-        planned(
-          "two-pointers",
-          "Two pointers",
-          "Two indices moving through one array, towards each other or in the same direction, to replace a quadratic search with a linear scan.",
-          twoPointers,
-        ),
-        planned(
-          "sliding-window",
-          "Sliding window",
-          "Maintaining a contiguous range and a summary of it as it moves: fixed and variable windows, running sums and frequency maps.",
-          slidingWindow,
-        ),
+        twoPointersModule,
+        slidingWindowModule,
         planned("stacks-and-queues", "Stacks, queues and deques", "Abstract data types and their implementations, with applications from expression evaluation to breadth-first exploration."),
         planned("elementary-sorting", "Elementary sorting and stability", "Selection sort and bubble sort beside insertion sort: what they share, where they differ, and what stability buys."),
         planned("merge-sort-and-divide-and-conquer", "Divide and conquer: merge sort", "The divide-and-conquer pattern, merging, and the master theorem for its recurrences."),

@@ -1,0 +1,210 @@
+{
+  "function": "smallest_covering_window",
+  "sample": [
+    {
+      "args": [
+        "ADOBECODEBANC",
+        "ABC"
+      ],
+      "expected": "BANC"
+    },
+    {
+      "args": [
+        "a",
+        "aa"
+      ],
+      "expected": ""
+    },
+    {
+      "args": [
+        "xyz",
+        "z"
+      ],
+      "expected": "z"
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        "a",
+        "a"
+      ],
+      "expected": "a"
+    },
+    {
+      "args": [
+        "",
+        "a"
+      ],
+      "expected": ""
+    },
+    {
+      "args": [
+        "aa",
+        "aa"
+      ],
+      "expected": "aa"
+    },
+    {
+      "args": [
+        "ab",
+        "b"
+      ],
+      "expected": "b"
+    },
+    {
+      "args": [
+        "bba",
+        "ab"
+      ],
+      "expected": "ba"
+    },
+    {
+      "args": [
+        "abcabc",
+        "cab"
+      ],
+      "expected": "abc"
+    },
+    {
+      "args": [
+        "acbbaca",
+        "aba"
+      ],
+      "expected": "baca"
+    },
+    {
+      "args": [
+        "AaBbCc",
+        "abc"
+      ],
+      "expected": "aBbCc"
+    },
+    {
+      "args": [
+        "cabwefgewcwaefgcf",
+        "cae"
+      ],
+      "expected": "cwae"
+    },
+    {
+      "args": [
+        "bybccczaxccaxxcbczayzazbcaxbbzxcczcxcyczzbzycxxbbbaycxayxacaxbax",
+        "axb"
+      ],
+      "expected": "axb"
+    },
+    {
+      "args": [
+        "ycycaxcxxbbaxxa",
+        "xxa"
+      ],
+      "expected": "axx"
+    },
+    {
+      "args": [
+        "czbzcbyxxaazbbayazxbzbcyxxcxacbbabxxbcbycayzbbcabbxaxcxbxxzzyxzyaabyzcxbybzzyyaaxcxczycxzcbyczyyzbzccbzybcyxab",
+        "bxcxa"
+      ],
+      "expected": "bxaxc"
+    },
+    {
+      "args": [
+        "zycayxyxcbbczxbczyaxxbzyabayyyaycbxcbacyyycbyxcxaycbccycxyyyyzbcbayaccbba",
+        "xcb"
+      ],
+      "expected": "xcb"
+    },
+    {
+      "args": [
+        "byzxabaxccbbxacaabbbzaazcabybzxxayybaaybbbzbzyxyacababcyazbbaayzbyyzbaaaabayb",
+        "bcx"
+      ],
+      "expected": "baxc"
+    },
+    {
+      "args": [
+        "cyzcybzabxxzbbcababyzxcbcycxxaxzcaxcycbzccacazycbccbycybbayxxyzczbzaxaaycccayacxxyxcxybzzbaaybx",
+        "xxxx"
+      ],
+      "expected": "xxyxcx"
+    },
+    {
+      "args": [
+        "bxzzaabzxycxybyaaaxayaabaabbybxa",
+        "c"
+      ],
+      "expected": "c"
+    },
+    {
+      "args": [
+        "bxbxcybccxyabxcybzxzxbacyzzb",
+        "a"
+      ],
+      "expected": "a"
+    },
+    {
+      "args": [
+        "ybaacxbazxczyzzzyccxzbaaaaxybyacxxxaxbbbbzbzxbcccbxyazbxzzxxyxyzbzyybcxzxbxycaabzzcxyazaxzbcy",
+        "acccb"
+      ],
+      "expected": "cccbxya"
+    },
+    {
+      "args": [
+        "yybyyxyyxaxacbbcxxacaycxabyxcxyzbxcabxzcbzbzxxcxxxaazazbbyazyzzbacabxbxbzbxcbxzcacaaxcbzxabcxaycaayxc",
+        "b"
+      ],
+      "expected": "b"
+    },
+    {
+      "args": [
+        "zbaaaxaxbxxxyxazbbaxbcxycazzbbbbabcxybacaaxbbxzcxyaxxzzzybaybcccyxb",
+        "xcxac"
+      ],
+      "expected": "axbcxyc"
+    },
+    {
+      "args": [
+        "za",
+        "xb"
+      ],
+      "expected": ""
+    },
+    {
+      "args": [
+        "zzacaycyxzzyxxbxxbccabccyyabbyxacbzazyyzyyxzyyyzzxzxybxczbyccyaybaaabbxcxayaaxxxycy",
+        "cxaca"
+      ],
+      "expected": "acaycyx"
+    },
+    {
+      "args": [
+        "bbxxazaxxzbzyaaxbabzcxcaaazaacycyazaxzyxyxxcaxayzzcxzxzaazxxcycyybzybccbbczabxabzaa",
+        "xxaac"
+      ],
+      "expected": "xcaxa"
+    },
+    {
+      "args": [
+        "czayaccyczzzzbzbbycaybyyzzx",
+        "b"
+      ],
+      "expected": "b"
+    },
+    {
+      "args": [
+        "abbabcaxxcxbccyayczzzbzxzbxzybczabxaxyzzayzaazbxcaa",
+        "xax"
+      ],
+      "expected": "axx"
+    },
+    {
+      "args": [
+        "zbaczyaczcybbbzyazcybbybcyzzzxxccx",
+        "xcb"
+      ],
+      "expected": "bcyzzzx"
+    }
+  ]
+}

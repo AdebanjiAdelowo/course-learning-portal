@@ -1,0 +1,181 @@
+{
+  "function": "alnum_palindrome",
+  "sample": [
+    {
+      "args": [
+        "No lemon, no melon"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "race a car"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        ""
+      ],
+      "expected": true
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        "a"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "!!"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "Ab"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "0P"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "Was it a car or a cat I saw?"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "Step on no pets"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "12321"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "12 3 4 21"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "A man, a plan, a canal: Panama"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "abcCBA"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        ".,;:"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "ab_a"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        " ,B   ,B "
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "1.2AAa , .b,1,,1,b. , aAA2.1"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "cb!BB .a2!a1BaAacccb!BB .a2!a1BaAac"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        " "
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        " AA!..!AA "
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "122221,,122221"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "BA1 Bba!, A, c BA1 Bba!, A, c"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "B1Bab.12222c211  112c22221.baB1B"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "c,,,,c"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        ".!c21Bc,B.!c21Bc,"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        " bzc bA"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        ",BcAA!z1!AAcB,"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "B.b,aaa!cB  11  Bc!aaa,b.B"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "a,2 cAbbAc 2,a"
+      ],
+      "expected": true
+    }
+  ]
+}
