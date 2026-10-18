@@ -116,3 +116,37 @@ describe("numeric quiz answers, recomputed by brute force", () => {
     expect(short(slidingWindowModule, "exactly 2 distinct")).toBe(String(exactly));
   });
 });
+
+describe("claims corrected in the Phase 4 review, checked by computation", () => {
+  it("Floyd's phase 1: the distance from fast forwards to slow falls by exactly one per step", () => {
+    const lesson = readFileSync("seed/lessons/fast-and-slow-pointers.md", "utf8");
+    expect(lesson).toContain("distance from fast forwards around the cycle to slow");
+    for (const lambda of [1, 2, 5, 9]) {
+      for (let slow = 0; slow < lambda; slow++) {
+        for (let fast = 0; fast < lambda; fast++) {
+          let [s, f] = [slow, fast];
+          let gap = (s - f + lambda) % lambda;
+          for (let step = 0; step < lambda && gap !== 0; step++) {
+            s = (s + 1) % lambda;
+            f = (f + 2) % lambda;
+            const next = (s - f + lambda) % lambda;
+            expect(next).toBe(gap - 1);
+            gap = next;
+          }
+          expect(gap).toBe(0);
+        }
+      }
+    }
+  });
+
+  it("product windows need positive integers: a positive fraction breaks closure under shrinking", () => {
+    const lesson = readFileSync("seed/lessons/advanced-windows-and-monotonic-validity.md", "utf8");
+    expect(lesson).toContain("positive integers");
+    const product = (values: number[]) => values.reduce((p, v) => p * v, 1);
+    // [4, 0.5] has product 2, below a bound of 3, but its sub-window [4] does not.
+    expect(product([4, 0.5])).toBeLessThan(3);
+    expect(product([4])).toBeGreaterThanOrEqual(3);
+    const question = slidingWindowModule.quiz!.questions.find((q) => q.prompt.includes("strictly positive"))!;
+    expect(question.prompt).toContain("For integer inputs");
+  });
+});

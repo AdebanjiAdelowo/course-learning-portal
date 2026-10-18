@@ -46,7 +46,7 @@ print(count_exactly_k_distinct([1, 2, 1, 2, 3], 2))
 
 ## When strictly positive values are needed
 
-Count the windows whose product is less than a bound. With **positive** values, extending a window multiplies its product by at least 1, so the property "product less than the bound" is closed under shrinking, and removing a value from the left divides the product exactly. Zeros break this: a zero makes every window containing it valid, and dividing the running product by a leaving zero is impossible. Negative values break it too, because multiplying by a negative number flips the order. So this count needs values that are **strictly positive**, while the sum-based windows of the previous lesson only needed nonnegative ones.
+Count the windows whose product is less than a bound. With **positive integers**, every value is at least 1, so extending a window multiplies its product by at least 1: the property "product less than the bound" is then closed under shrinking, and removing a value from the left divides the product exactly. Zeros break this: a zero makes every window containing it valid, and dividing the running product by a leaving zero is impossible. Negative values break it too, because multiplying by a negative number flips the order. Positive fractions break it as well: removing 0.5 from a window doubles its product, so a sub-window of a valid window can be invalid. So this count needs integers that are **strictly positive**, while the sum-based windows of the previous lesson only needed nonnegative values.
 
 ```python-run
 def count_product_below(values, bound):

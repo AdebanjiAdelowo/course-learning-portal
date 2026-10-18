@@ -232,6 +232,35 @@ def replacement_cases():
     return samples, hidden
 
 
+# ---------------------------------------------------------------------------
+# Contracts: every case must satisfy the constraints stated in its problem.md.
+# ---------------------------------------------------------------------------
+
+def ints(values, low, high, max_len):
+    return isinstance(values, list) and len(values) <= max_len and all(isinstance(v, int) and not isinstance(v, bool) and low <= v <= high for v in values)
+
+
+def ascii_text(text, max_len, alphabet=None):
+    return isinstance(text, str) and len(text) <= max_len and all((32 <= ord(c) < 127) if alphabet is None else c in alphabet for c in text)
+
+
+LETTERS = string.ascii_letters
+CONTRACTS = {
+    "pair-sum-sorted": lambda v, t: ints(v, -1000, 1000, 100) and v == sorted(v) and isinstance(t, int),
+    "dedupe-sorted": lambda v: ints(v, -1000, 1000, 100) and v == sorted(v),
+    "zeros-to-end": lambda v: ints(v, -1000, 1000, 100),
+    "alnum-palindrome": lambda t: ascii_text(t, 200),
+    "triplets-with-sum": lambda v, t: ints(v, -1000, 1000, 60) and isinstance(t, int),
+    "widest-container": lambda h: ints(h, 0, 10000, 100),
+    "best-window-sum": lambda v, k: ints(v, -1000, 1000, 100) and len(v) >= 1 and isinstance(k, int) and 1 <= k <= len(v),
+    "shortest-reaching-sum": lambda v, t: ints(v, 1, 10000, 100) and isinstance(t, int) and 1 <= t <= 1_000_000,
+    "longest-distinct-run": lambda t: ascii_text(t, 200),
+    "permutation-in-text": lambda p, t: ascii_text(p, 26, string.ascii_lowercase) and len(p) >= 1 and ascii_text(t, 200, string.ascii_lowercase),
+    "smallest-covering-window": lambda t, p: ascii_text(t, 200, LETTERS) and ascii_text(p, 50, LETTERS) and len(p) >= 1,
+    "longest-run-after-replacements": lambda t, k: ascii_text(t, 200, string.ascii_uppercase) and isinstance(k, int) and 0 <= k <= len(t),
+}
+
+
 REGISTRY = {
     "pair-sum-sorted": ("pair_sum_sorted", pair_sum_sorted, pair_cases),
     "dedupe-sorted": ("dedupe_sorted", dedupe_sorted, dedupe_cases),
@@ -276,6 +305,8 @@ def main(argv):
             failures.append(f"{slug}: function is {spec['function']}, expected {function}")
         for case in spec["sample"] + spec["hidden"]:
             cases += 1
+            if not CONTRACTS[slug](*json.loads(json.dumps(case["args"]))):
+                failures.append(f"{slug}: {case['args']} violates the stated contract")
             got = oracle(*json.loads(json.dumps(case["args"])))
             if got != case["expected"]:
                 failures.append(f"{slug}: {case['args']} expected {case['expected']!r} but the oracle gives {got!r}")
