@@ -164,7 +164,8 @@ export function AlgorithmPlayer({ algorithmId, initialInput }: { algorithmId: st
         </div>
       ) : null}
       {!step.linked && (
-      <div className="relative overflow-x-auto px-4 pb-2 pt-5">
+      // Focusable so keyboard users can scroll the strip when it is wider than a phone screen.
+      <div className="relative overflow-x-auto px-4 pb-2 pt-5" tabIndex={0} role="region" aria-label="Array cells, scrollable">
         {step.array.length === 0 ? (
           <p className="py-6 text-center text-ink-faint">The list is empty.</p>
         ) : (
