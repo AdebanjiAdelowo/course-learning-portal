@@ -18,7 +18,7 @@ Nothing was pushed, merged or deployed. No hosted database was contacted. The lo
 ## Commands
 
 ```sh
-export PATH=/Users/adebanjiadelowo/.nvm/versions/node/v24.4.1/bin:$PATH
+export PATH="$HOME/.nvm/versions/node/v24.4.1/bin:$PATH"   # Node 24.4.1
 npm run lint && npm run typecheck && npm run test
 python3 scripts/verify_content.py
 python3 -I scripts/phase4_oracles.py --check
