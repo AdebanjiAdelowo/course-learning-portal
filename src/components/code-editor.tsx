@@ -76,6 +76,8 @@ export function CodeEditor({
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.nativeEvent.isComposing || event.altKey || event.metaKey || event.ctrlKey) return;
+    // A modifier pressed on its own, such as the Shift of Shift+Tab, must not cancel Escape.
+    if (event.key === "Shift" || event.key === "Control" || event.key === "Alt" || event.key === "Meta") return;
     const { value: text, selectionStart: start, selectionEnd: end } = event.currentTarget;
 
     if (event.key === "Escape") {

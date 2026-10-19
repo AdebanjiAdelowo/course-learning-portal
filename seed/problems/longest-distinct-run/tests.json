@@ -1,0 +1,175 @@
+{
+  "function": "longest_distinct_run",
+  "sample": [
+    {
+      "args": [
+        "abcabcbb"
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        ""
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        "bbbb"
+      ],
+      "expected": 1
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        "a"
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        "ab"
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        "abba"
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        "dvdf"
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        "pwwkew"
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        "tmmzuxt"
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        " "
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        "a b c a"
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        "0123456789"
+      ],
+      "expected": 10
+    },
+    {
+      "args": [
+        "AaBbAa"
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        "b1aceaa1B1 ecAc bbAaAebadbbee"
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        "bAcBab1e  dA"
+      ],
+      "expected": 8
+    },
+    {
+      "args": [
+        "BecaB1 AeAc c1 dd1d Bd A aAaAABba1bdBaB1ceA AAbebe1b1cdd1bbABAadbAa"
+      ],
+      "expected": 7
+    },
+    {
+      "args": [
+        "aAeBABadadaaececdcbbc  eadc1b"
+      ],
+      "expected": 7
+    },
+    {
+      "args": [
+        "ce1a11cdadBccAB  1ecc  daea1edAbdBcBa BdB1caee1edbe1bebdAd B c1aAcdb1 1ad  "
+      ],
+      "expected": 7
+    },
+    {
+      "args": [
+        " 1b1B1bBBA a1  BdA1debaaacc adBeBc aAcAcB11a1 AcceeBB1 bbBeBaac ec"
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        "eddA1aAd edBecB1     bd"
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        "abAeed bAda1dAeabdaeedeB1eb 1 Bc1AAcbccAeB1B1bbaB AcAbAde1acBBeac "
+      ],
+      "expected": 8
+    },
+    {
+      "args": [
+        "BBcdcA b ebedd a b1"
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        "b1e dBda1BBaB cAeee Bc Bc11B 11AdBBcbbbccAcbddc dAdcBbBcde1ceAb11A1BB B bA1cBeA d1cdcbB1dd1aebB"
+      ],
+      "expected": 7
+    },
+    {
+      "args": [
+        "Be eA ade 1Bda cbe  ec1e  Ab1cbabABBd dAaAA1d ebdaBe 11dAA"
+      ],
+      "expected": 8
+    },
+    {
+      "args": [
+        "B B  1AAbbce B a aA ccee bAB1caebcAaeeBcaaA daB1BA e1BdAcebaBdAdadd d AeaAa c eBAe c1"
+      ],
+      "expected": 8
+    },
+    {
+      "args": [
+        "  BA dBbaBadedcA BBd cA a eAa caecAAceb1dcBeAbacab1Ba aad1bc1aBeb ddbc1dcbeacdce  caaBcaeaAdceA eBbBdbbB1e A 1aBa 1BeBb"
+      ],
+      "expected": 8
+    },
+    {
+      "args": [
+        "acaaeaddbebcA1bBbb  a1dc1B1ecbAecd AAA aAABAdcc bcBAaa bAB1cdcdcBb1cAbc1ceA1AA"
+      ],
+      "expected": 8
+    },
+    {
+      "args": [
+        "a BAacBABa AAde1d BeBbabedbb1cee 1a edB ea111AAeccdbdBdd"
+      ],
+      "expected": 6
+    }
+  ]
+}

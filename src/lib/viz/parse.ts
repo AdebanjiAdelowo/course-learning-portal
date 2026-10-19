@@ -1,5 +1,5 @@
 import { registry } from "./algorithms";
-import { VIZ_LIMITS, type VizAlgorithm, type VizInput } from "./types";
+import { VIZ_LIMITS, type VizAlgorithm, type VizInput, type VizMode } from "./types";
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -35,10 +35,32 @@ export function isSorted(values: readonly number[]): boolean {
   return values.every((value, index) => index === 0 || values[index - 1]! <= value);
 }
 
+/** The mode an input selects, or the algorithm's first mode; undefined for algorithms without modes. */
+export function resolveMode(algorithm: VizAlgorithm, modeId: string | undefined): VizMode | undefined {
+  if (!algorithm.modes) return undefined;
+  return algorithm.modes.find((mode) => mode.id === modeId) ?? (modeId === undefined ? algorithm.modes[0] : undefined);
+}
+
 /** Validates an input for a given algorithm, including its preconditions. */
-export function validateInput(algorithm: VizAlgorithm, arrayText: string, targetText: string, options: { operation?: string; index?: string; value?: string } = {}): Parsed<VizInput> {
+export function validateInput(algorithm: VizAlgorithm, arrayText: string, targetText: string, options: { operation?: string; index?: string; value?: string; mode?: string } = {}): Parsed<VizInput> {
   const array = parseArray(arrayText);
   if (!array.ok) return array;
+  if (algorithm.modes) {
+    const mode = resolveMode(algorithm, options.mode);
+    if (!mode) return { ok: false, error: `Choose a supported mode: ${algorithm.modes.map((m) => m.id).join(", ")}.` };
+    if (mode.requiresSorted && !isSorted(array.value)) {
+      return { ok: false, error: `${mode.label} requires the list to be sorted in non-decreasing order.` };
+    }
+    let target: number | undefined;
+    if (mode.needsTarget) {
+      const parsed = parseTarget(targetText);
+      if (!parsed.ok) return { ok: false, error: parsed.error.replace("The target", mode.targetLabel ?? "The target") };
+      target = parsed.value;
+    }
+    const problem = mode.validate?.(array.value, target);
+    if (problem) return { ok: false, error: problem };
+    return { ok: true, value: { array: array.value, mode: mode.id, ...(target === undefined ? {} : { target }) } };
+  }
   if (algorithm.requiresSorted && !isSorted(array.value)) {
     return { ok: false, error: `${algorithm.title} requires the list to be sorted in non-decreasing order.` };
   }
@@ -87,7 +109,7 @@ export function parseVizBlock(source: string): Parsed<VizSpec> {
   if (!algorithm) {
     return { ok: false, error: `Unknown algorithm "${id}". Available: ${Object.keys(registry).join(", ")}.` };
   }
-  const input = validateInput(algorithm, fields.get("input") ?? "", fields.get("target") ?? "", { operation: fields.get("operation"), index: fields.get("index"), value: fields.get("value") });
+  const input = validateInput(algorithm, fields.get("input") ?? "", fields.get("target") ?? "", { operation: fields.get("operation"), index: fields.get("index"), value: fields.get("value"), mode: fields.get("mode") });
   if (!input.ok) return input;
   return { ok: true, value: { algorithm, input: input.value } };
 }

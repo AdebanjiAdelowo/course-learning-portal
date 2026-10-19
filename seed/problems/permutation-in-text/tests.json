@@ -1,0 +1,210 @@
+{
+  "function": "contains_permutation",
+  "sample": [
+    {
+      "args": [
+        "ab",
+        "eidbaooo"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "ab",
+        "eidboaoo"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "abc",
+        "ab"
+      ],
+      "expected": false
+    }
+  ],
+  "hidden": [
+    {
+      "args": [
+        "a",
+        "a"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "a",
+        "b"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "aa",
+        "aba"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "aab",
+        "baa"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "abc",
+        "cba"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "abc",
+        "xxcab"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "hello",
+        "ooolleoooleh"
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "adc",
+        "dcda"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "z",
+        ""
+      ],
+      "expected": false
+    },
+    {
+      "args": [
+        "acbbb",
+        "cbcbddcaabbdabadbbcbaacbabcbcabbcbbacdcdaaaaaabdcddbccdadadcbabdadadadaababcdd"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "bcbbd",
+        "cdcabccbbccabddbcbaabbaadabbdbddcacbccdddbaddbcdaaabbdabcaabbbbdcabaddbacaabdbbbbcaa"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "cabcb",
+        "aaabcbdbdabbcbadddccbabddadcadadbdbbaccaabccbcadabbadabdbbbccaaabdcaccaadddcacaaaccadbaaaaccddbcbabdbaabacaccddbddbbbcca"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "c",
+        "adaaababbbbacccdbcbdbcbcccbcccaddcccccddcbdadcbbaddbbcacacaccdbcccbcccbdbccadaaccc"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "daa",
+        "dbaaadabbaadbadacdbbbdccdbdbaddcdabac"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "adaadd",
+        "daaddbcbdcdbaddccdbdbacccbacabdcacdadcbaadccbabdddcddddccaacbcdbbdbccdaccdabcbbcbccabdbdaaddaabbbdcccdbbdabbbdbaddddababdacbabdcbdbcbabdbdaaabcbcdab"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "dbddac",
+        "dbddcdbcdabdbbdabbcbacaaddddbdadacbabbccacdcacccbadcdda"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "ddb",
+        "baabcbbcdaddbcbbaddccdbbcbbdabaddbcabbabcbcaaddacbddbbdcabcdbabcdabcaacbbcabaacbadcddbbcccaddccbbbccccbabccbcddbdc"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "cbdb",
+        "dacdcbdcadbdcbddacaadaabbcdddbbcddbacbccdbacddcbbddcdaadcbdadccbddaddabbbbbcddcbbbdbaaabbaccbaccadabaaad"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "bc",
+        "bdcadbadcdababbcdacabcbaaadbcdccabcddbcacabcbaaddaaaddabbaaddcaaadcdaddcaadddbacabaabcbabcdcbbcdacbbdcccacacdacaacddbaadccaabbccbbbabdbaacaabac"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "dbaba",
+        "cbdacccbaabbbddaaccababad"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "dabaa",
+        "dcdddaaacdadddabccdbcbabddcbcbdaaaabbacbbbdcdaab"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "b",
+        "bddbcbcbcacdabdbbaadadcbaadbbacaadcbdacdacdbaabbcdabddccdabdbbadccdddcdcdbbabcadbaaccbbaddadbaba"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "ddba",
+        "ccaaddaddcbabbdaccabddbabbddcbdccaadcddbdccbcddbbdcdcadbda"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "ddcdba",
+        "bbcbabbbcdadcdccbdcadbddbbacddbccddbdbddbdddddbdadbaacccddaa"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "abcac",
+        "dbcbcbcaacdbaccadadaa"
+      ],
+      "expected": true
+    },
+    {
+      "args": [
+        "abbc",
+        "bcaaddbdadbdbabdaccddaacabacbbdabccccaacdacbabdacdbcbddbdabbbabbaccbbdcaaaaccdcdcbddaba"
+      ],
+      "expected": true
+    }
+  ]
+}

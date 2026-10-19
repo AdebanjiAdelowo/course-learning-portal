@@ -47,20 +47,21 @@ describe("curriculum blueprint", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("publishes the two Python modules and DSA Modules 1 to 4; only the first three never wait for another", () => {
+  it("publishes the two Python modules and DSA Modules 1 to 6; only the first three never wait for another", () => {
     expect(published.map(({ mod }) => mod.slug)).toEqual([
       "python-essentials", "python-collections-and-testing", "correctness-and-cost",
       "recursion-and-induction", "arrays-and-amortised-analysis", "linked-lists",
+      "two-pointers", "sliding-window",
     ]);
     // Python preparation is optional: a student who already knows Python can start at DSA Module 1.
     for (const { mod } of published.slice(0, 3)) expect(mod.requiresPrevious).toBe(false);
-    // DSA Modules 2 to 4 open once the lessons of the module before them are complete.
+    // DSA Modules 2 to 6 open once the lessons of the module before them are complete.
     for (const { mod } of published.slice(3)) expect(mod.requiresPrevious).toBe(true);
-    expect(planned).toHaveLength(28);
+    expect(planned).toHaveLength(26);
   });
 
-  it("keeps all 28 planned modules empty, so none can be dressed up as published content", () => {
-    expect(planned).toHaveLength(28);
+  it("keeps all 26 planned modules empty, so none can be dressed up as published content", () => {
+    expect(planned).toHaveLength(26);
     for (const { mod } of planned) {
       expect(mod.lessons ?? []).toEqual([]);
       expect(mod.quiz).toBeUndefined();
@@ -201,10 +202,10 @@ describe("the modules added for beginners and array techniques", () => {
     }
   });
 
-  it("keeps the two array-technique modules planned, with objectives, lessons and exercises defined", () => {
+  it("publishes the two array-technique modules and keeps their plans, with objectives, lessons and exercises", () => {
     for (const slug of added.slice(2)) {
       const { mod } = bySlug.get(slug)!;
-      expect(mod.published).toBe(false);
+      expect(mod.published).toBe(true);
       expect(mod.plan!.objectives.length).toBeGreaterThanOrEqual(4);
       expect(mod.plan!.lessons.length).toBeGreaterThanOrEqual(4);
       expect(mod.plan!.practice!.length).toBeGreaterThanOrEqual(4);

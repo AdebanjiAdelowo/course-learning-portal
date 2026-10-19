@@ -21,6 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 # ```python blocks, and ```python-run blocks (the same code, shown with a Run button).
 FENCE = re.compile(r"^([ \t]*)```python(?:-run)?[ \t]*\n(.*?)^\1```[ \t]*$", re.DOTALL | re.MULTILINE)
+# The browser runs each ```python-run block on its own, so each must also work without earlier blocks.
+RUNNABLE = re.compile(r"^([ \t]*)```python-run[ \t]*\n(.*?)^\1```[ \t]*$", re.DOTALL | re.MULTILINE)
 
 
 def python_blocks(markdown: str) -> list[str]:
@@ -38,6 +40,12 @@ def run_markdown(path: Path) -> tuple[int, list[str]]:
                 exec(compile(block, f"{path.name}#block{number}", "exec"), namespace)
         except Exception:  # noqa: BLE001 - report every kind of failure
             failures.append(f"{path.relative_to(ROOT)} block {number}:\n{traceback.format_exc(limit=3)}")
+    for number, match in enumerate(RUNNABLE.finditer(path.read_text(encoding="utf-8")), start=1):
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                exec(compile(textwrap.dedent(match.group(2)), f"{path.name}#run{number}", "exec"), {"__name__": "__lesson__"})
+        except Exception:  # noqa: BLE001
+            failures.append(f"{path.relative_to(ROOT)} runnable block {number} fails on its own, as the browser runs it:\n{traceback.format_exc(limit=3)}")
     return len(blocks), failures
 
 

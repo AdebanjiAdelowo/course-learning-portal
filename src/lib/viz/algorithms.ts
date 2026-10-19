@@ -1,6 +1,8 @@
 import { linkedList } from "./linked-list";
 import { dynamicArray } from "./dynamic-array";
 import { recursiveFactorial } from "./recursion";
+import { slidingWindow } from "./sliding-window";
+import { twoPointers } from "./two-pointers";
 import type { CellRole, VizAlgorithm, VizInput, VizStep } from "./types";
 
 /** Collects steps, copying the mutable state so that every recorded step is a snapshot. */
@@ -367,6 +369,8 @@ export const registry: Record<string, VizAlgorithm> = {
   [linkedList.id]: linkedList,
   [dynamicArray.id]: dynamicArray,
   [recursiveFactorial.id]: recursiveFactorial,
+  [twoPointers.id]: twoPointers,
+  [slidingWindow.id]: slidingWindow,
   [linearSearch.id]: linearSearch,
   [binarySearch.id]: binarySearch,
   [insertionSort.id]: insertionSort,
